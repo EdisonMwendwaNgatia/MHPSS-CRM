@@ -1,4 +1,4 @@
-### KRCTI MHPSS
+### Krcti Mhpss
 
 MHPSS Case Management System
 

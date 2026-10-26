@@ -1,5 +1,5 @@
 app_name = "krcti_mhpss"
-app_title = "KRCTI MHPSS"
+app_title = "Krcti Mhpss"
 app_publisher = "KRCS Digital Transformation Team"
 app_description = "MHPSS Case Management System"
 app_email = "esibitaremmanuel316@gmail.com"
@@ -15,7 +15,7 @@ app_license = "mit"
 # 	{
 # 		"name": "krcti_mhpss",
 # 		"logo": "/assets/krcti_mhpss/logo.png",
-# 		"title": "KRCTI MHPSS",
+# 		"title": "Krcti Mhpss",
 # 		"route": "/krcti_mhpss",
 # 		"has_permission": "krcti_mhpss.api.permission.has_app_permission",
 # 	}
