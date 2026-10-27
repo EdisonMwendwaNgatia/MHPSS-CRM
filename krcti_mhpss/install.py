@@ -2,6 +2,7 @@ import frappe
 
 # Counsellors keep Desk access for now as a fallback. Everyone else works in the app.
 ROLES = {
+    "System Manager": 1,
     "MHPSS Counsellor": 1,
     "KRCTI Programme Manager": 0,
     "WoC Programme Manager": 0,
