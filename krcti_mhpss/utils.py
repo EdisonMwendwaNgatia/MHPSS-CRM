@@ -3,13 +3,13 @@ import re
 import frappe
 from frappe.utils import get_datetime, now_datetime
 
-ADMIN_ROLE = "System Manager"
 COUNSELLOR = "MHPSS Counsellor"
 KRCTI_PM = "KRCTI Programme Manager"
 WOC_PM = "WoC Programme Manager"
 CLIENT_ROLE = "MHPSS Client"
-# Every account holds exactly one of these (SRD section 3.2).
-SINGLE_ROLES = (ADMIN_ROLE, COUNSELLOR, KRCTI_PM, WOC_PM, CLIENT_ROLE)
+
+# Mutually exclusive MHPSS business roles.
+SINGLE_ROLES = (COUNSELLOR, KRCTI_PM, WOC_PM, CLIENT_ROLE)
 
 MODES = ("Physical Individual", "Physical Group", "Tele-counselling", "Phone Call", "School Campaign")
 PHYSICAL_MODES = ("Physical Individual", "Physical Group", "School Campaign")
