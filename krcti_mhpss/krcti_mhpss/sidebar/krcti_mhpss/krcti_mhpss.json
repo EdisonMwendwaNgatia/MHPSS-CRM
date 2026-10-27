@@ -1,0 +1,62 @@
+{
+ "app": "krcti_mhpss",
+ "creation": "2026-10-27 00:36:18.814326",
+ "docstatus": 0,
+ "doctype": "Sidebar",
+ "header_icon": "hammer",
+ "idx": 0,
+ "items": [
+  {
+   "added": 0,
+   "child": 0,
+   "collapsible": 1,
+   "hidden": 0,
+   "indent": 0,
+   "is_default_module": 0,
+   "keep_closed": 0,
+   "label": "Appointment",
+   "link_to": "Appointment",
+   "link_type": "DocType",
+   "open_in_new_tab": 1,
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "added": 0,
+   "child": 0,
+   "collapsible": 1,
+   "hidden": 0,
+   "indent": 0,
+   "is_default_module": 0,
+   "keep_closed": 0,
+   "label": "Client",
+   "link_to": "Client",
+   "link_type": "DocType",
+   "open_in_new_tab": 1,
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "added": 0,
+   "child": 0,
+   "collapsible": 1,
+   "hidden": 0,
+   "indent": 0,
+   "is_default_module": 0,
+   "keep_closed": 0,
+   "label": "Baseline Survey",
+   "link_to": "Baseline Survey",
+   "link_type": "DocType",
+   "open_in_new_tab": 1,
+   "show_arrow": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-10-27 00:36:18.814326",
+ "modified_by": "Administrator",
+ "module": "Krcti Mhpss",
+ "name": "Krcti Mhpss",
+ "owner": "Administrator",
+ "standard": 1,
+ "title": "Krcti Mhpss"
+}

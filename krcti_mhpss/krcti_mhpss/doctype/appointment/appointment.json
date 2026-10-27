@@ -1,0 +1,175 @@
+{
+ "doctype": "DocType",
+ "name": "Appointment",
+ "module": "Krcti Mhpss",
+ "custom": 0,
+ "engine": "InnoDB",
+ "naming_rule": "Expression",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "field_order": [
+  "sec_who",
+  "client_id",
+  "client_name",
+  "scholar_code",
+  "col_1",
+  "counsellor_id",
+  "counsellor_name",
+  "sec_when",
+  "date_time",
+  "duration_minutes",
+  "end_time",
+  "col_2",
+  "session_type",
+  "mode_of_contact",
+  "location",
+  "sec_status",
+  "status",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "sec_who",
+   "fieldtype": "Section Break",
+   "label": "Who"
+  },
+  {
+   "fieldname": "client_id",
+   "fieldtype": "Link",
+   "label": "Client",
+   "options": "Client",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "client_name",
+   "fieldtype": "Data",
+   "label": "Client name",
+   "fetch_from": "client_id.full_name",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "scholar_code",
+   "fieldtype": "Data",
+   "label": "Scholar/Participant Code",
+   "fetch_from": "client_id.scholar_code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "counsellor_id",
+   "fieldtype": "Link",
+   "label": "Counsellor",
+   "options": "User",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "counsellor_name",
+   "fieldtype": "Data",
+   "label": "Counsellor name",
+   "fetch_from": "counsellor_id.full_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sec_when",
+   "fieldtype": "Section Break",
+   "label": "When and how"
+  },
+  {
+   "fieldname": "date_time",
+   "fieldtype": "Datetime",
+   "label": "Date and time",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "duration_minutes",
+   "fieldtype": "Int",
+   "label": "Duration (minutes)",
+   "default": "60"
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Datetime",
+   "label": "Ends at",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "session_type",
+   "fieldtype": "Select",
+   "label": "Session type",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "options": "\nFirst Session\nFollow-Up\nTermination"
+  },
+  {
+   "fieldname": "mode_of_contact",
+   "fieldtype": "Select",
+   "label": "Mode of contact",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "options": "\nPhysical Individual\nPhysical Group\nTele-counselling\nPhone Call\nSchool Campaign"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Physical location",
+   "mandatory_depends_on": "eval:[\"Physical Individual\",\"Physical Group\",\"School Campaign\"].includes(doc.mode_of_contact)"
+  },
+  {
+   "fieldname": "sec_status",
+   "fieldtype": "Section Break",
+   "label": "Status"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Scheduled\nCompleted\nCancelled",
+   "default": "Scheduled",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "MHPSS Counsellor",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 1
+  }
+ ],
+ "autoname": "format:APT-{#####}",
+ "title_field": "client_name",
+ "show_title_field_in_link": 1
+}

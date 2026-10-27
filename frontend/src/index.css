@@ -1,0 +1,5 @@
+@import "frappe-ui/style.css";
+body {
+  font-family: Inter, -apple-system, BlinkMacSystemFont,
+               "Segoe UI", sans-serif;
+}

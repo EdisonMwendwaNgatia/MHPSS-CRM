@@ -1,0 +1,15 @@
+const list = (values, blank = "Select") => values.map((v) => ({ label: v || blank, value: v }))
+
+export const GENDERS = list(["", "Male", "Female", "Other"])
+export const STREAMS = list(["", "Scholarship/Education", "Enterprise Development", "Workforce Development"])
+export const REFERRALS = list(["", "School", "Peer", "Self", "Other"])
+export const SESSION_TYPES = list(["", "First Session", "Follow-Up", "Termination"])
+export const MODES = list(["", "Physical Individual", "Physical Group", "Tele-counselling", "Phone Call", "School Campaign"])
+export const PHYSICAL_MODES = ["Physical Individual", "Physical Group", "School Campaign"]
+export const STRESS = list(["", "Daily", "Weekly", "Monthly", "Rarely"])
+export const SUPPORT = list(["", "Yes", "No", "Partial"])
+export const COPING = list(["", "Strong", "Moderate", "Weak"])
+export const SUPPORT_TYPES = list(["", "Individual", "Group", "Tele-counselling", "Other"])
+export const MARITAL = list(["", "Single", "Married", "Separated", "Divorced", "Widowed", "Other"])
+export const EXPOSURE = list(["", "Yes", "No", "Prefer not to say"])
+export const RATINGS = list(["", ...Array.from({ length: 10 }, (_, i) => String(i + 1))])

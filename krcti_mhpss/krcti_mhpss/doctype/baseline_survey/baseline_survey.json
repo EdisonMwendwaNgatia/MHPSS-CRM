@@ -1,0 +1,251 @@
+{
+ "doctype": "DocType",
+ "name": "Baseline Survey",
+ "module": "Krcti Mhpss",
+ "custom": 0,
+ "engine": "InnoDB",
+ "naming_rule": "Expression",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "field_order": [
+  "sec_client",
+  "client_id",
+  "client_name",
+  "scholar_code",
+  "col_1",
+  "consent",
+  "declined_reason",
+  "status",
+  "sec_wellbeing",
+  "wellbeing_self_rating",
+  "stress_frequency",
+  "main_concerns",
+  "col_2",
+  "support_availability",
+  "coping_ability",
+  "coping_behaviour",
+  "sec_support",
+  "interest_in_support",
+  "preferred_support_type",
+  "col_3",
+  "willingness_for_followup",
+  "sec_family",
+  "marital_status",
+  "dependants",
+  "col_4",
+  "domestic_situation",
+  "conflict_exposure",
+  "exposure_details",
+  "sec_record",
+  "completed_by",
+  "completed_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "sec_client",
+   "fieldtype": "Section Break",
+   "label": "Client"
+  },
+  {
+   "fieldname": "client_id",
+   "fieldtype": "Link",
+   "label": "Client",
+   "options": "Client",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "client_name",
+   "fieldtype": "Data",
+   "label": "Client name",
+   "fetch_from": "client_id.full_name",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "scholar_code",
+   "fieldtype": "Data",
+   "label": "Scholar/Participant Code",
+   "fetch_from": "client_id.scholar_code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "consent",
+   "fieldtype": "Select",
+   "label": "Consent to the baseline survey",
+   "options": "\nConsented\nDeclined",
+   "reqd": 1
+  },
+  {
+   "fieldname": "declined_reason",
+   "fieldtype": "Small Text",
+   "label": "Reason for declining (optional)",
+   "depends_on": "eval:doc.consent==\"Declined\""
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending\nCompleted\nDeclined",
+   "default": "Pending",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "sec_wellbeing",
+   "fieldtype": "Section Break",
+   "label": "Wellbeing",
+   "depends_on": "eval:doc.consent==\"Consented\""
+  },
+  {
+   "fieldname": "wellbeing_self_rating",
+   "fieldtype": "Int",
+   "label": "Wellbeing self-rating (1 lowest, 10 highest)"
+  },
+  {
+   "fieldname": "stress_frequency",
+   "fieldtype": "Select",
+   "label": "Recent stress frequency",
+   "options": "\nDaily\nWeekly\nMonthly\nRarely"
+  },
+  {
+   "fieldname": "main_concerns",
+   "fieldtype": "Text",
+   "label": "Main concerns"
+  },
+  {
+   "fieldname": "col_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "support_availability",
+   "fieldtype": "Select",
+   "label": "Support available to the client",
+   "options": "\nYes\nNo\nPartial"
+  },
+  {
+   "fieldname": "coping_ability",
+   "fieldtype": "Select",
+   "label": "Coping ability",
+   "options": "\nStrong\nModerate\nWeak"
+  },
+  {
+   "fieldname": "coping_behaviour",
+   "fieldtype": "Text",
+   "label": "Coping behaviour"
+  },
+  {
+   "fieldname": "sec_support",
+   "fieldtype": "Section Break",
+   "label": "Support",
+   "depends_on": "eval:doc.consent==\"Consented\""
+  },
+  {
+   "fieldname": "interest_in_support",
+   "fieldtype": "Check",
+   "label": "Interested in MHPSS support"
+  },
+  {
+   "fieldname": "preferred_support_type",
+   "fieldtype": "Select",
+   "label": "Preferred support type",
+   "options": "\nIndividual\nGroup\nTele-counselling\nOther"
+  },
+  {
+   "fieldname": "col_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "willingness_for_followup",
+   "fieldtype": "Check",
+   "label": "Willing to take part in follow-up"
+  },
+  {
+   "fieldname": "sec_family",
+   "fieldtype": "Section Break",
+   "label": "Family background",
+   "depends_on": "eval:doc.consent==\"Consented\""
+  },
+  {
+   "fieldname": "marital_status",
+   "fieldtype": "Select",
+   "label": "Marital status",
+   "options": "\nSingle\nMarried\nSeparated\nDivorced\nWidowed\nOther"
+  },
+  {
+   "fieldname": "dependants",
+   "fieldtype": "Int",
+   "label": "Number of dependants"
+  },
+  {
+   "fieldname": "col_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "domestic_situation",
+   "fieldtype": "Small Text",
+   "label": "Domestic situation"
+  },
+  {
+   "fieldname": "conflict_exposure",
+   "fieldtype": "Select",
+   "label": "Exposure to conflict or disaster",
+   "options": "\nYes\nNo\nPrefer not to say"
+  },
+  {
+   "fieldname": "exposure_details",
+   "fieldtype": "Small Text",
+   "label": "Details",
+   "depends_on": "eval:doc.conflict_exposure==\"Yes\""
+  },
+  {
+   "fieldname": "sec_record",
+   "fieldtype": "Section Break",
+   "label": "Record"
+  },
+  {
+   "fieldname": "completed_by",
+   "fieldtype": "Link",
+   "label": "Entered by",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "completed_on",
+   "fieldtype": "Datetime",
+   "label": "Completed on",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "MHPSS Counsellor",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 1
+  }
+ ],
+ "autoname": "format:BS-{#####}",
+ "title_field": "client_name",
+ "show_title_field_in_link": 1
+}

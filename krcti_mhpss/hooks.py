@@ -277,3 +277,34 @@ app_license = "mit"
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
 
+
+# ---- KRCTI MHPSS ----
+after_install = "krcti_mhpss.install.after_install"
+
+permission_query_conditions = {
+    "Client": "krcti_mhpss.permissions.client_conditions",
+    "Baseline Survey": "krcti_mhpss.permissions.baseline_conditions",
+    "Appointment": "krcti_mhpss.permissions.appointment_conditions",
+}
+
+has_permission = {
+    "Client": "krcti_mhpss.permissions.client_has_permission",
+    "Baseline Survey": "krcti_mhpss.permissions.baseline_has_permission",
+    "Appointment": "krcti_mhpss.permissions.appointment_has_permission",
+}
+
+doc_events = {
+    "User": {
+        "validate": [
+            "krcti_mhpss.permissions.validate_user_roles",
+            "krcti_mhpss.permissions.validate_user_password",
+        ],
+        "on_update": "krcti_mhpss.permissions.log_role_changes",
+    }
+}
+
+# Recreate any missing role whenever the site is updated
+after_migrate = ["krcti_mhpss.install.after_migrate"]
+
+# The Frappe UI app at /frontend
+website_route_rules = [{"from_route": "/frontend/<path:app_path>", "to_route": "frontend"}]

@@ -1,0 +1,227 @@
+{
+ "doctype": "DocType",
+ "name": "Client",
+ "module": "Krcti Mhpss",
+ "custom": 0,
+ "engine": "InnoDB",
+ "naming_rule": "Expression",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "field_order": [
+  "sec_identity",
+  "scholar_code",
+  "full_name",
+  "phone_number",
+  "col_1",
+  "age",
+  "gender",
+  "sex",
+  "sec_inclusion",
+  "disability_status",
+  "disability_type",
+  "col_2",
+  "refugee_status",
+  "sec_programme",
+  "institution",
+  "course_programme",
+  "year_of_study",
+  "col_3",
+  "county_location",
+  "programme_stream",
+  "referral_source",
+  "referral_source_other",
+  "sec_case",
+  "assigned_counsellor",
+  "col_4",
+  "case_status"
+ ],
+ "fields": [
+  {
+   "fieldname": "sec_identity",
+   "fieldtype": "Section Break",
+   "label": "Client"
+  },
+  {
+   "fieldname": "scholar_code",
+   "fieldtype": "Data",
+   "label": "Scholar/Participant Code",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Issued by the WoC programme administration"
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Full name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "phone_number",
+   "fieldtype": "Data",
+   "label": "Phone number",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "col_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "age",
+   "fieldtype": "Int",
+   "label": "Age",
+   "reqd": 1
+  },
+  {
+   "fieldname": "gender",
+   "fieldtype": "Select",
+   "label": "Gender",
+   "options": "\nMale\nFemale\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sex",
+   "fieldtype": "Select",
+   "label": "Sex",
+   "options": "\nMale\nFemale\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sec_inclusion",
+   "fieldtype": "Section Break",
+   "label": "Disability and status"
+  },
+  {
+   "fieldname": "disability_status",
+   "fieldtype": "Check",
+   "label": "Person with a disability"
+  },
+  {
+   "fieldname": "disability_type",
+   "fieldtype": "Data",
+   "label": "Type of disability",
+   "depends_on": "disability_status",
+   "mandatory_depends_on": "eval:doc.disability_status"
+  },
+  {
+   "fieldname": "col_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "refugee_status",
+   "fieldtype": "Check",
+   "label": "Refugee"
+  },
+  {
+   "fieldname": "sec_programme",
+   "fieldtype": "Section Break",
+   "label": "Education and programme"
+  },
+  {
+   "fieldname": "institution",
+   "fieldtype": "Data",
+   "label": "College or learning institution",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "course_programme",
+   "fieldtype": "Data",
+   "label": "Course or programme",
+   "reqd": 1
+  },
+  {
+   "fieldname": "year_of_study",
+   "fieldtype": "Int",
+   "label": "Year of study",
+   "reqd": 1
+  },
+  {
+   "fieldname": "col_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "county_location",
+   "fieldtype": "Data",
+   "label": "County location",
+   "reqd": 1
+  },
+  {
+   "fieldname": "programme_stream",
+   "fieldtype": "Select",
+   "label": "WoC programme stream",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "options": "\nScholarship/Education\nEnterprise Development\nWorkforce Development"
+  },
+  {
+   "fieldname": "referral_source",
+   "fieldtype": "Select",
+   "label": "Referral source",
+   "reqd": 1,
+   "options": "\nSchool\nPeer\nSelf\nOther"
+  },
+  {
+   "fieldname": "referral_source_other",
+   "fieldtype": "Data",
+   "label": "Describe the referral source",
+   "depends_on": "eval:doc.referral_source==\"Other\""
+  },
+  {
+   "fieldname": "sec_case",
+   "fieldtype": "Section Break",
+   "label": "Case"
+  },
+  {
+   "fieldname": "assigned_counsellor",
+   "fieldtype": "Link",
+   "label": "Assigned counsellor",
+   "options": "User",
+   "reqd": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "col_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "case_status",
+   "fieldtype": "Select",
+   "label": "Case status",
+   "options": "Active\nFollow-Up Pending\nClosed",
+   "default": "Active",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "MHPSS Counsellor",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 1
+  }
+ ],
+ "autoname": "format:CL-{#####}",
+ "title_field": "full_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "scholar_code,full_name,phone_number,institution"
+}
