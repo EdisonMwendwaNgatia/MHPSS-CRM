@@ -8,9 +8,19 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    App: typeof import('./src/App.vue')['default']
+    AppointmentForm: typeof import('./src/pages/AppointmentForm.vue')['default']
+    Appointments: typeof import('./src/pages/Appointments.vue')['default']
     AppShell: typeof import('./src/components/AppShell.vue')['default']
+    BaselineForm: typeof import('./src/pages/BaselineForm.vue')['default']
+    ClientForm: typeof import('./src/pages/ClientForm.vue')['default']
+    ClientProfile: typeof import('./src/pages/ClientProfile.vue')['default']
+    Clients: typeof import('./src/pages/Clients.vue')['default']
+    Home: typeof import('./src/pages/Home.vue')['default']
     LoadingBar: typeof import('./src/components/LoadingBar.vue')['default']
+    Login: typeof import('./src/pages/Login.vue')['default']
     PageLoader: typeof import('./src/components/PageLoader.vue')['default']
+    Programme: typeof import('./src/pages/Programme.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Spinner: typeof import('./src/components/Spinner.vue')['default']

@@ -92,6 +92,10 @@ def appointment_has_permission(doc, ptype=None, user=None, **kwargs):
 def validate_user_roles(doc, method=None):
     if doc.name == "Administrator":
         return
+    # Frappe's setup wizard intentionally gives its setup user System Manager
+    # and every role on the site. Preserve that built-in full-access behavior.
+    if any(row.role == "System Manager" for row in doc.roles):
+        return
     held = sorted({row.role for row in doc.roles} & set(SINGLE_ROLES))
     if len(held) > 1:
         frappe.throw(_("Each user holds exactly one role. This user has: {0}.").format(", ".join(held)))
