@@ -30,7 +30,7 @@ APPOINTMENT_DETAIL = (
     "duration_minutes", "session_type", "mode_of_contact", "location", "notes", "status",
     "session_details", "presenting_issues", "issue_subclassifications", "interventions_applied",
     "referrals_made", "urgency_level", "risk_assessment", "follow_up_plan",
-    "progress_previous_goals", "counsellor_observations", "next_session_focus",
+    "progress_previous_goals", "counsellor_observations", "next_session_focus", "audio_recording",
 )
 SESSION_RECORD_TEXT = (
     "session_details", "presenting_issues", "issue_subclassifications", "interventions_applied",

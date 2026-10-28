@@ -38,7 +38,8 @@
   "follow_up_plan",
   "progress_previous_goals",
   "counsellor_observations",
-  "next_session_focus"
+  "next_session_focus",
+  "audio_recording"
  ],
  "fields": [
   {
@@ -221,6 +222,12 @@
    "fieldtype": "Small Text",
    "label": "Next session focus",
    "depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "audio_recording",
+   "fieldtype": "Attach",
+   "label": "Session audio recording",
+   "description": "Optional private audio recording attached to this session."
   }
  ],
  "permissions": [

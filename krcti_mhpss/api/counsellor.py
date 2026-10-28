@@ -23,7 +23,7 @@ APPOINTMENT_FIELDS = [
 SESSION_RECORD_FIELDS = [
     *APPOINTMENT_FIELDS, "session_details", "presenting_issues",
     "issue_subclassifications", "interventions_applied", "referrals_made", "urgency_level", "risk_assessment",
-    "follow_up_plan", "progress_previous_goals", "counsellor_observations", "next_session_focus",
+    "follow_up_plan", "progress_previous_goals", "counsellor_observations", "next_session_focus", "audio_recording",
 ]
 
 
@@ -39,7 +39,10 @@ def _client_for_user(name):
 
 def _flag(rows):
     for row in rows:
-        row["overdue"] = is_overdue(row.status, row.date_time)
+        # API detail responses may be plain dicts, while frappe.get_list returns
+        # frappe._dict rows. Support both representations.
+        get = row.get if hasattr(row, "get") else lambda key: getattr(row, key, None)
+        row["overdue"] = is_overdue(get("status"), get("date_time"))
     return rows
 
 

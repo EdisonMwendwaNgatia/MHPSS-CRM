@@ -38,6 +38,10 @@
                   <p><span class="font-medium">Counsellor observations:</span> {{ item.counsellor_observations || '—' }}</p>
                   <p class="sm:col-span-2"><span class="font-medium">Next session focus:</span> {{ item.next_session_focus || '—' }}</p>
                 </template>
+                <div v-if="item.audio_recording" class="sm:col-span-2">
+                  <p class="mb-2 font-medium">Session audio</p>
+                  <audio controls preload="none" class="w-full max-w-xl" :src="item.audio_recording">Your browser does not support audio playback.</audio>
+                </div>
               </div>
               <p v-else class="mt-2 text-sm text-[#5B616B]">{{ item.status === 'Scheduled' ? 'Session is scheduled.' : 'Session was cancelled.' }}</p>
             </li>
@@ -85,6 +89,23 @@
           </form>
         </section>
         <div v-else class="mt-5 rounded-xl border border-[#E4E6EA] bg-white px-5 py-6 text-sm text-[#5B616B]">{{ caseClosed ? 'This case is closed. Its records are available in read-only mode.' : 'This appointment was cancelled, so it cannot be recorded.' }}</div>
+        <section v-if="record.status === 'Completed' || (!caseClosed && record.status === 'Scheduled')" class="mt-5 rounded-xl border border-[#E4E6EA] bg-white p-5 sm:p-6">
+          <h2 class="text-base font-semibold">Session audio <span class="font-normal text-[#737780]">(optional)</span></h2>
+          <p class="mt-1 text-sm text-[#5B616B]">Upload an audio recording if one is available. The file is stored privately with this session.</p>
+          <div v-if="audioUrl" class="mt-4 rounded-lg border border-[#E4E6EA] bg-[#F8F9FA] p-4">
+            <audio controls preload="none" class="w-full" :src="audioUrl">Your browser does not support audio playback.</audio>
+          </div>
+          <FileUploader v-if="!isReadOnly" class="mt-4" :fileTypes="['audio/*']" :validateFile="validateAudio" :uploadArgs="audioUploadArgs" @success="onAudioUploaded">
+            <template #default="{ uploading, progress, openFileSelector, error }">
+              <button type="button" :disabled="uploading" class="inline-flex h-10 items-center gap-2 rounded-[10px] border border-[#D5D8DE] px-4 text-sm font-semibold hover:bg-[#F4F5F7] disabled:opacity-60" @click="openFileSelector">
+                <Loader2 v-if="uploading" :size="16" class="animate-spin" />
+                <Upload v-else :size="16" />
+                {{ uploading ? `Uploading ${progress}%` : audioUrl ? 'Replace audio file' : 'Upload audio file' }}
+              </button>
+              <p v-if="error" class="mt-2 text-sm text-[#A10E24]">{{ error }}</p>
+            </template>
+          </FileUploader>
+        </section>
       </template>
       <ErrorMessage v-else :message="resource.error" />
     </div>
@@ -92,10 +113,10 @@
 </template>
 
 <script setup>
-import { createResource } from "frappe-ui"
-import { computed, h, onMounted, reactive } from "vue"
+import { createResource, FileUploader } from "frappe-ui"
+import { computed, h, onMounted, reactive, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { ArrowLeft, Check, Loader2 } from "lucide-vue-next"
+import { ArrowLeft, Check, Loader2, Upload } from "lucide-vue-next"
 import { fmtDateTime } from "../data/format"
 
 const props = defineProps({ name: { type: String, default: "" } })
@@ -112,6 +133,14 @@ const form = reactive({
 	referrals_made: "", urgency_level: "", risk_assessment: "", follow_up_plan: "",
 	progress_previous_goals: "", counsellor_observations: "", next_session_focus: "",
 })
+const uploadedAudio = ref("")
+const audioUrl = computed(() => uploadedAudio.value || record.value?.audio_recording || "")
+const audioUploadArgs = computed(() => ({
+	doctype: "Appointment",
+	docname: name.value,
+	fieldname: "audio_recording",
+	private: true,
+}))
 const resource = createResource({
 	url: "krcti_mhpss.api.records.session_record_detail",
 	onSuccess(data) {
@@ -135,6 +164,12 @@ const saver = createResource({
 })
 function save() {
 	saver.submit({ name: name.value, data: Object.fromEntries(recordFields.map((field) => [field, form[field]])) })
+}
+function onAudioUploaded(file) {
+	uploadedAudio.value = file?.file_url || ""
+}
+function validateAudio(file) {
+	return file.type?.startsWith("audio/") ? "" : "Choose an audio file."
 }
 
 const Field = (props, { slots }) => h("label", { class: "block text-sm font-medium text-[#33353A]" }, [
