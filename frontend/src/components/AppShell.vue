@@ -23,9 +23,10 @@
     <aside
       class="fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[#E4E6EA] bg-white transition-[width,transform] duration-200 md:translate-x-0"
       :class="[open ? 'translate-x-0' : '-translate-x-full', collapsed ? 'w-[248px] md:w-[84px]' : 'w-[248px]']"
+      @click="handleSidebarBackgroundClick"
     >
       <!-- Brand: height matches the top bar so the two border lines meet -->
-      <div class="flex h-[68px] shrink-0 items-center justify-between border-b border-[#E4E6EA] px-4 md:h-[72px]" :class="collapsed ? 'md:px-2' : ''">
+      <div class="flex h-[68px] shrink-0 items-center justify-between border-b border-[#E4E6EA] px-4 md:h-[72px]" :class="collapsed ? 'md:justify-center md:px-2' : ''">
         <div class="flex min-w-0 items-center gap-3" :class="collapsed ? 'md:gap-1' : ''">
           <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#C8102E] text-sm font-semibold tracking-wide text-white" :class="collapsed ? 'md:h-8 md:w-8 md:rounded-lg md:text-xs' : ''">KR</span>
           <span v-if="!collapsed || open" class="min-w-0 leading-[18px]">
@@ -174,6 +175,10 @@ const collapsed = ref(typeof localStorage !== "undefined" && localStorage.getIte
 function toggleSidebar() {
 	collapsed.value = !collapsed.value
 	if (typeof localStorage !== "undefined") localStorage.setItem("krcti-sidebar-collapsed", String(collapsed.value))
+}
+function handleSidebarBackgroundClick(event) {
+	if (window.innerWidth < 768 || event.target.closest("a, button, input, p, span, svg")) return
+	toggleSidebar()
 }
 onMounted(() => me.reload())
 watch(() => route.fullPath, () => (open.value = false))
