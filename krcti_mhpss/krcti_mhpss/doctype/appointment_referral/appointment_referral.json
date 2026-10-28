@@ -1,0 +1,61 @@
+{
+ "doctype": "DocType",
+ "name": "Appointment Referral",
+ "module": "Krcti Mhpss",
+ "custom": 0,
+ "istable": 1,
+ "editable_grid": 1,
+ "field_order": [
+  "from_counsellor",
+  "to_counsellor",
+  "reason",
+  "referred_on",
+  "source_seen",
+  "target_seen"
+ ],
+ "fields": [
+  {
+   "fieldname": "from_counsellor",
+   "fieldtype": "Link",
+   "label": "Referred by",
+   "options": "User",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "to_counsellor",
+   "fieldtype": "Link",
+   "label": "Referred to",
+   "options": "User",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason for referral",
+   "read_only": 1
+  },
+  {
+   "fieldname": "referred_on",
+   "fieldtype": "Datetime",
+   "label": "Referred on",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_seen",
+   "fieldtype": "Check",
+   "label": "Seen by referring counsellor",
+   "default": "0",
+   "hidden": 1
+  },
+  {
+   "fieldname": "target_seen",
+   "fieldtype": "Check",
+   "label": "Seen by receiving counsellor",
+   "default": "0",
+   "hidden": 1
+  }
+ ],
+ "permissions": []
+}

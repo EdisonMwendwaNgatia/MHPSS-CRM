@@ -39,7 +39,8 @@
   "progress_previous_goals",
   "counsellor_observations",
   "next_session_focus",
-  "audio_recording"
+  "audio_recording",
+  "referral_history"
  ],
  "fields": [
   {
@@ -228,6 +229,13 @@
    "fieldtype": "Attach",
    "label": "Session audio recording",
    "description": "Optional private audio recording attached to this session."
+  },
+  {
+   "fieldname": "referral_history",
+   "fieldtype": "Table",
+   "label": "Referral history",
+   "options": "Appointment Referral",
+   "read_only": 1
   }
  ],
  "permissions": [

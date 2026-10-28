@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from frappe.utils import get_datetime
+from frappe.utils import get_datetime, now_datetime
 
 from krcti_mhpss.api.counsellor import _client_for_user, _flag
 from krcti_mhpss.utils import ADMIN_ROLE, COUNSELLOR, is_admin, is_counsellor, require_roles
@@ -26,12 +26,25 @@ BASELINE_ALLOWED = ("consent",) + BASELINE_SHORT + BASELINE_LONG + BASELINE_NUMB
 
 APPOINTMENT_FIELDS = ("date_time", "duration_minutes", "session_type", "mode_of_contact", "location", "notes")
 APPOINTMENT_DETAIL = (
-    "name", "client_id", "client_name", "scholar_code", "counsellor_id", "date_time", "end_time",
+    "name", "client_id", "client_name", "scholar_code", "counsellor_id", "counsellor_name", "date_time", "end_time",
     "duration_minutes", "session_type", "mode_of_contact", "location", "notes", "status",
     "session_details", "presenting_issues", "issue_subclassifications", "interventions_applied",
     "referrals_made", "urgency_level", "risk_assessment", "follow_up_plan",
     "progress_previous_goals", "counsellor_observations", "next_session_focus", "audio_recording",
 )
+
+
+def _referral_rows(appointment_name):
+    rows = frappe.get_all(
+        "Appointment Referral",
+        filters={"parent": appointment_name, "parenttype": "Appointment", "parentfield": "referral_history"},
+        fields=["name", "from_counsellor", "to_counsellor", "reason", "referred_on"],
+        order_by="idx asc",
+    )
+    for row in rows:
+        row["from_name"] = frappe.db.get_value("User", row.from_counsellor, "full_name") or row.from_counsellor
+        row["to_name"] = frappe.db.get_value("User", row.to_counsellor, "full_name") or row.to_counsellor
+    return rows
 SESSION_RECORD_TEXT = (
     "session_details", "presenting_issues", "issue_subclassifications", "interventions_applied",
     "referrals_made", "risk_assessment", "follow_up_plan", "progress_previous_goals",
@@ -187,7 +200,9 @@ def _appointment(name):
 def appointment_detail(name=None):
     require_roles(COUNSELLOR, ADMIN_ROLE)
     doc = _appointment(name)
-    return {field: doc.get(field) for field in APPOINTMENT_DETAIL}
+    result = {field: doc.get(field) for field in APPOINTMENT_DETAIL}
+    result["referral_history"] = _referral_rows(doc.name)
+    return result
 
 
 @frappe.whitelist()
@@ -196,14 +211,18 @@ def session_record_detail(name=None):
     doc = _appointment(name)
     client = _client_for_user(doc.client_id)
     appointment = {field: doc.get(field) for field in APPOINTMENT_DETAIL}
+    appointment["referral_history"] = _referral_rows(doc.name)
     appointment["overdue"] = _flag([appointment])[0]["overdue"]
     history = frappe.get_list(
         "Appointment", filters={"client_id": client.name}, fields=list(APPOINTMENT_DETAIL),
         order_by="date_time asc", limit=0,
     )
+    for row in history:
+        row["referral_history"] = _referral_rows(row.name)
     return {
         "appointment": appointment,
         "case_status": client.case_status,
+        "can_manage": doc.counsellor_id == frappe.session.user or is_admin(),
         "history": _flag(history),
     }
 
@@ -213,6 +232,8 @@ def record_session(name=None, data=None):
     """Save the clinical session record and complete its scheduled appointment atomically."""
     require_roles(COUNSELLOR, ADMIN_ROLE)
     doc = _appointment(name)
+    if doc.counsellor_id != frappe.session.user and not is_admin():
+        frappe.throw(_("Only the counsellor assigned to this appointment can record the session."), frappe.PermissionError)
     if doc.status != "Scheduled":
         frappe.throw(_("Only a scheduled appointment can be recorded."))
     client = _client_for_user(doc.client_id)
@@ -254,7 +275,7 @@ def save_appointment(name=None, client=None, data=None):
         owner = _client_for_user(client)
         doc = frappe.new_doc("Appointment")
         doc.client_id = owner.name
-        doc.counsellor_id = owner.assigned_counsellor
+        doc.counsellor_id = frappe.session.user if is_counsellor() else owner.assigned_counsellor
 
     if "date_time" in data or not name:
         doc.date_time = _when(data.get("date_time"))
@@ -270,6 +291,100 @@ def save_appointment(name=None, client=None, data=None):
 
     doc.save() if name else doc.insert()
     return {"name": doc.name}
+
+
+@frappe.whitelist()
+def referral_counsellors():
+    require_roles(COUNSELLOR)
+    users = frappe.get_all("User", filters={"enabled": 1, "user_type": "System User"}, fields=["name", "full_name"], order_by="full_name asc")
+    return [
+        {"name": row.name, "full_name": row.full_name or row.name}
+        for row in users
+        if row.name != frappe.session.user and COUNSELLOR in frappe.get_roles(row.name)
+    ]
+
+
+@frappe.whitelist(methods=["POST"])
+def refer_appointment(name=None, to_counsellor=None, reason=None):
+    require_roles(COUNSELLOR)
+    doc = _appointment(name)
+    if doc.status != "Scheduled":
+        frappe.throw(_("Only a scheduled appointment can be referred."))
+    if doc.counsellor_id != frappe.session.user:
+        frappe.throw(_("Only the counsellor currently responsible for this appointment can refer it."), frappe.PermissionError)
+    if not to_counsellor or to_counsellor == frappe.session.user:
+        frappe.throw(_("Choose a different counsellor to receive this appointment."))
+    if not frappe.db.get_value("User", to_counsellor, "enabled") or COUNSELLOR not in frappe.get_roles(to_counsellor):
+        frappe.throw(_("Choose an active MHPSS counsellor."))
+    client = _client_for_user(doc.client_id)
+    if client.case_status == "Closed":
+        frappe.throw(_("Closed cases cannot be referred."))
+    reason = _long(reason, _("The referral reason"), 2000)
+    if not reason:
+        frappe.throw(_("Enter a reason for this referral."))
+
+    doc.append("referral_history", {
+        "from_counsellor": frappe.session.user,
+        "to_counsellor": to_counsellor,
+        "reason": reason,
+        "referred_on": now_datetime(),
+    })
+    doc.counsellor_id = to_counsellor
+    frappe.flags.allow_appointment_referral = True
+    try:
+        doc.flags.ignore_permissions = True
+        doc.save()
+    finally:
+        frappe.flags.allow_appointment_referral = False
+    return {"name": doc.name, "counsellor_id": doc.counsellor_id}
+
+
+@frappe.whitelist()
+def referral_notifications():
+    require_roles(COUNSELLOR)
+    user = frappe.session.user
+    rows = frappe.get_all(
+        "Appointment Referral",
+        or_filters={"from_counsellor": user, "to_counsellor": user},
+        fields=["name", "parent", "from_counsellor", "to_counsellor", "reason", "referred_on", "source_seen", "target_seen"],
+        order_by="referred_on desc",
+        limit=20,
+    )
+    result = []
+    for row in rows:
+        appt = frappe.db.get_value("Appointment", row.parent, ["client_id", "client_name", "date_time"], as_dict=True)
+        if not appt:
+            continue
+        client = frappe.db.get_value("Client", appt.client_id, ["scholar_code"], as_dict=True)
+        result.append({
+            "id": row.name,
+            "appointment": row.parent,
+            "client_id": appt.client_id,
+            "client_name": appt.client_name,
+            "scholar_code": client.scholar_code if client else "",
+            "date_time": appt.date_time,
+            "from_counsellor": row.from_counsellor,
+            "from_name": frappe.db.get_value("User", row.from_counsellor, "full_name") or row.from_counsellor,
+            "to_counsellor": row.to_counsellor,
+            "to_name": frappe.db.get_value("User", row.to_counsellor, "full_name") or row.to_counsellor,
+            "reason": row.reason,
+            "referred_on": row.referred_on,
+            "direction": "sent" if source else "received",
+        })
+    unread = frappe.db.count("Appointment Referral", {"from_counsellor": user, "source_seen": 0})
+    unread += frappe.db.count("Appointment Referral", {"to_counsellor": user, "target_seen": 0})
+    return {"notifications": result, "unread_count": unread}
+
+
+@frappe.whitelist(methods=["POST"])
+def mark_referral_notifications_read():
+    require_roles(COUNSELLOR)
+    user = frappe.session.user
+    for field, party_field in (("source_seen", "from_counsellor"), ("target_seen", "to_counsellor")):
+        names = frappe.get_all("Appointment Referral", filters={party_field: user, field: 0}, pluck="name", limit=0)
+        for name in names:
+            frappe.db.set_value("Appointment Referral", name, field, 1, update_modified=False)
+    return {"ok": True}
 
 
 @frappe.whitelist(methods=["POST"])

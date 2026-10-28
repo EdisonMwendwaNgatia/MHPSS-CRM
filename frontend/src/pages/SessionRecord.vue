@@ -44,12 +44,17 @@
                 </div>
               </div>
               <p v-else class="mt-2 text-sm text-[#5B616B]">{{ item.status === 'Scheduled' ? 'Session is scheduled.' : 'Session was cancelled.' }}</p>
+              <div v-if="item.referral_history?.length" class="mt-3 space-y-2 rounded-lg bg-[#F1F5FB] px-3.5 py-3">
+                <p v-for="referral in item.referral_history" :key="referral.name || referral.referred_on" class="text-xs leading-5 text-[#315A91]">
+                  <span class="font-semibold">Referral:</span> {{ referral.from_name || referral.from_counsellor }} → {{ referral.to_name || referral.to_counsellor }} · {{ fmtDateTime(referral.referred_on) }}. {{ referral.reason }}
+                </p>
+              </div>
             </li>
           </ol>
           <p v-else class="px-5 py-8 text-sm text-[#737780]">No earlier sessions are recorded for this client.</p>
         </section>
 
-        <section v-if="record.status === 'Completed' || (!caseClosed && record.status === 'Scheduled')" class="mt-5 rounded-xl border border-[#E4E6EA] bg-white">
+        <section v-if="record.status === 'Completed' || (!caseClosed && record.status === 'Scheduled' && canManage)" class="mt-5 rounded-xl border border-[#E4E6EA] bg-white">
           <div class="border-b border-[#ECEDEF] px-5 py-4 sm:px-6">
             <h2 class="text-base font-semibold">{{ isReadOnly ? 'Recorded summary' : 'Session summary' }}</h2>
             <p class="mt-1 text-sm text-[#5B616B]">Capture the session details, issues, interventions, referrals, urgency, risk, and follow-up plan.</p>
@@ -88,8 +93,8 @@
             </div>
           </form>
         </section>
-        <div v-else class="mt-5 rounded-xl border border-[#E4E6EA] bg-white px-5 py-6 text-sm text-[#5B616B]">{{ caseClosed ? 'This case is closed. Its records are available in read-only mode.' : 'This appointment was cancelled, so it cannot be recorded.' }}</div>
-        <section v-if="record.status === 'Completed' || (!caseClosed && record.status === 'Scheduled')" class="mt-5 rounded-xl border border-[#E4E6EA] bg-white p-5 sm:p-6">
+        <div v-else class="mt-5 rounded-xl border border-[#E4E6EA] bg-white px-5 py-6 text-sm text-[#5B616B]">{{ caseClosed ? 'This case is closed. Its records are available in read-only mode.' : record.status === 'Scheduled' && !canManage ? `This appointment was referred to ${record.counsellor_name || record.counsellor_id} and is now on their schedule.` : 'This appointment was cancelled, so it cannot be recorded.' }}</div>
+        <section v-if="record.status === 'Completed' || (!caseClosed && record.status === 'Scheduled' && canManage)" class="mt-5 rounded-xl border border-[#E4E6EA] bg-white p-5 sm:p-6">
           <h2 class="text-base font-semibold">Session audio <span class="font-normal text-[#737780]">(optional)</span></h2>
           <p class="mt-1 text-sm text-[#5B616B]">Upload an audio recording if one is available. The file is stored privately with this session.</p>
           <div v-if="audioUrl" class="mt-4 rounded-lg border border-[#E4E6EA] bg-[#F8F9FA] p-4">
@@ -150,9 +155,12 @@ const resource = createResource({
 const record = computed(() => resource.data?.appointment)
 const history = computed(() => resource.data?.history || [])
 const caseClosed = computed(() => resource.data?.case_status === "Closed")
-const isReadOnly = computed(() => record.value?.status === "Completed" || record.value?.status === "Cancelled" || caseClosed.value)
-const backTo = computed(() => record.value?.status === "Completed"
-	? { name: "SessionRecords" }
+const canManage = computed(() => resource.data?.can_manage === true)
+const isReadOnly = computed(() => record.value?.status === "Completed" || record.value?.status === "Cancelled" || caseClosed.value || !canManage.value)
+const backTo = computed(() => !canManage.value
+	? { name: "ClientProfile", params: { name: record.value?.client_id } }
+	: record.value?.status === "Completed"
+		? { name: "SessionRecords" }
 	: record.value?.status === "Scheduled" && record.value?.session_type === "Follow-Up"
 		? { name: "FollowUps" }
 		: { name: "Appointments" })

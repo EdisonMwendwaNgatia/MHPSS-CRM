@@ -13,7 +13,13 @@ def client_conditions(user=None):
     if is_admin(user):
         return ""
     if is_counsellor(user):
-        return f"`tabClient`.`assigned_counsellor` = {frappe.db.escape(user)}"
+        escaped = frappe.db.escape(user)
+        return (
+            f"(`tabClient`.`assigned_counsellor` = {escaped} or `tabClient`.`name` in ("
+            "select a.`client_id` from `tabAppointment` a "
+            "inner join `tabAppointment Referral` r on r.`parent` = a.`name` "
+            f"where r.`from_counsellor` = {escaped} or r.`to_counsellor` = {escaped}))"
+        )
     return "1=0"
 
 
@@ -24,7 +30,7 @@ def baseline_conditions(user=None):
     if is_counsellor(user):
         return (
             "`tabBaseline Survey`.`client_id` in (select `name` from `tabClient` "
-            f"where `assigned_counsellor` = {frappe.db.escape(user)})"
+            f"where {client_conditions(user)})"
         )
     return "1=0"
 
@@ -34,8 +40,35 @@ def appointment_conditions(user=None):
     if is_admin(user):
         return ""
     if is_counsellor(user):
-        return f"`tabAppointment`.`counsellor_id` = {frappe.db.escape(user)}"
+        escaped = frappe.db.escape(user)
+        return (
+            f"(`tabAppointment`.`counsellor_id` = {escaped} or `tabAppointment`.`client_id` in ("
+            "select a.`client_id` from `tabAppointment` a "
+            "inner join `tabAppointment Referral` r on r.`parent` = a.`name` "
+            f"where r.`from_counsellor` = {escaped} or r.`to_counsellor` = {escaped}))"
+        )
     return "1=0"
+
+
+def counsellor_in_case(client_name, user=None):
+    user = user or frappe.session.user
+    if is_admin(user):
+        return True
+    if not is_counsellor(user) or not client_name:
+        return False
+    assigned = frappe.db.get_value("Client", client_name, "assigned_counsellor")
+    if assigned == user:
+        return True
+    if frappe.db.exists("Appointment", {"client_id": client_name, "counsellor_id": user}):
+        return True
+    return bool(
+        frappe.db.sql(
+            """select r.name from `tabAppointment Referral` r
+               inner join `tabAppointment` a on a.name = r.parent
+               where a.client_id = %s and (r.from_counsellor = %s or r.to_counsellor = %s) limit 1""",
+            (client_name, user, user),
+        )
+    )
 
 
 # ---- who may open a single record. These only ever deny, never grant. ----
@@ -61,7 +94,9 @@ def client_has_permission(doc, ptype=None, user=None, **kwargs):
 
     assigned = doc.get("assigned_counsellor")
     counsellor = is_counsellor(user)
-    result = _only_own(doc, ptype, user, assigned)
+    result = _only_own(doc, ptype, user, assigned) or (
+        ptype in ("read", "write") and counsellor_in_case(doc.name, user)
+    )
 
     frappe.logger("krcti_mhpss").warning(
         "CLIENT_PERMISSION_TRACE: "
@@ -80,11 +115,18 @@ def client_has_permission(doc, ptype=None, user=None, **kwargs):
 
 def baseline_has_permission(doc, ptype=None, user=None, **kwargs):
     owner = frappe.db.get_value("Client", doc.get("client_id"), "assigned_counsellor") if doc.get("client_id") else None
-    return _only_own(doc, ptype, user, owner)
+    return _only_own(doc, ptype, user, owner) or (
+        ptype in ("read", "write") and counsellor_in_case(doc.get("client_id"), user)
+    )
 
 
 def appointment_has_permission(doc, ptype=None, user=None, **kwargs):
-    return _only_own(doc, ptype, user, doc.get("counsellor_id"))
+    return _only_own(doc, ptype, user, doc.get("counsellor_id")) or (
+        ptype == "read" and counsellor_in_case(doc.get("client_id"), user)
+    ) or (
+        ptype == "write" and getattr(frappe.flags, "allow_appointment_referral", False)
+        and counsellor_in_case(doc.get("client_id"), user)
+    )
 
 
 # ---- user accounts: one role each, strong passwords, role changes on record ----

@@ -133,6 +133,7 @@
                     <span class="inline-flex items-center gap-1"><MapPin :size="13" />{{ a.location }}</span>
                   </template>
                 </p>
+                <p v-if="a.referral_history?.length" class="mt-1 text-xs font-medium text-[#3767A6]">{{ a.counsellor_id === me.data?.user ? `Referred from ${a.referral_history[a.referral_history.length - 1].from_name}` : `Referred to ${a.referral_history[a.referral_history.length - 1].to_name}` }}</p>
               </div>
 
               <div class="sm:justify-self-end"><Badge :label="apptLabel(a)" :theme="apptTheme(a)" /></div>
@@ -144,6 +145,7 @@
                 <router-link :to="{ name: 'AppointmentEdit', params: { name: a.name } }" class="act">
                   <Pencil :size="16" /> Edit
                 </router-link>
+                <button type="button" class="act" @click="openReferral(a)"><Share2 :size="16" /> Refer to counsellor</button>
                 <button type="button" class="act act-danger" :disabled="action.loading" @click="cancel(a)">
                   <XCircle :size="17" /> Cancel
                 </button>
@@ -158,6 +160,36 @@
         </section>
       </div>
     </div>
+    <div v-if="referralAppointment" class="fixed inset-0 z-50 flex items-center justify-center bg-[#20242B]/40 p-4" @click.self="closeReferral">
+      <section class="w-full max-w-[520px] overflow-hidden rounded-2xl border border-[#E4E6EA] bg-white shadow-[0_20px_60px_rgba(31,35,45,0.2)]" role="dialog" aria-modal="true" aria-labelledby="referral-title">
+        <div class="border-b border-[#ECEDEF] px-5 py-4 sm:px-6"><h2 id="referral-title" class="text-lg font-semibold">Refer appointment</h2><p class="mt-1 text-sm text-[#5B616B]">Transfer {{ referralAppointment.client_name }}’s scheduled session to another counsellor. The client’s case owner and original referral source remain recorded.</p></div>
+        <form class="space-y-4 p-5 sm:p-6" @submit.prevent="submitReferral">
+          <div>
+            <label for="referral-counsellor" class="mb-1.5 block text-sm font-medium">Receiving counsellor <span class="text-[#A10E24]">*</span></label>
+            <div class="relative">
+              <button id="referral-counsellor" type="button" class="range-field flex items-center justify-between text-left" :class="referralTo ? '' : 'text-[#858891]'" :aria-expanded="referralSelectOpen" aria-haspopup="listbox" @click="referralSelectOpen = !referralSelectOpen">
+                {{ referralOptions.data?.find((user) => user.name === referralTo)?.full_name || (referralOptions.loading ? 'Loading counsellors…' : 'Select a counsellor') }}
+                <ChevronDown :size="16" class="shrink-0 text-[#737780] transition-transform" :class="referralSelectOpen ? 'rotate-180' : ''" />
+              </button>
+              <div v-if="referralSelectOpen" class="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-xl border border-[#E4E6EA] bg-white p-1.5 shadow-[0_12px_30px_rgba(31,35,45,0.14)]" role="listbox" aria-labelledby="referral-counsellor">
+                <button v-for="user in referralOptions.data || []" :key="user.name" type="button" role="option" :aria-selected="referralTo === user.name" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition hover:bg-[#F4F5F7]" :class="referralTo === user.name ? 'bg-[#FCE8EB] font-semibold text-[#A10E24]' : ''" @click="referralTo = user.name; referralSelectOpen = false">{{ user.full_name }}<CheckCircle2 v-if="referralTo === user.name" :size="16" /></button>
+                <p v-if="!referralOptions.loading && !referralOptions.data?.length" class="px-3 py-3 text-sm text-[#737780]">No other active counsellors are available.</p>
+              </div>
+            </div>
+            <p v-if="!referralOptions.loading && !referralOptions.data?.length" class="mt-1.5 text-xs text-[#737780]">No other active counsellors are available.</p>
+          </div>
+          <div>
+            <label for="referral-reason" class="mb-1.5 block text-sm font-medium">Reason for referral <span class="text-[#A10E24]">*</span></label>
+            <textarea id="referral-reason" v-model="referralReason" class="range-field !h-auto min-h-[100px] py-3" maxlength="2000" required placeholder="Record why this appointment is being handed over."></textarea>
+          </div>
+          <ErrorMessage v-if="referAction.error" :message="referAction.error" />
+          <div class="flex justify-end gap-2 border-t border-[#ECEDEF] pt-4">
+            <button type="button" class="inline-flex h-10 items-center rounded-[10px] border border-[#D5D8DE] px-4 text-sm font-semibold hover:bg-[#F4F5F7]" @click="closeReferral">Cancel</button>
+            <button type="submit" :disabled="referAction.loading || referralOptions.loading || !referralOptions.data?.length" class="inline-flex h-10 items-center gap-2 rounded-[10px] bg-[#C8102E] px-4 text-sm font-semibold text-white hover:bg-[#A10E24] disabled:opacity-50"><Loader2 v-if="referAction.loading" :size="16" class="animate-spin" /><Share2 v-else :size="16" /> Transfer appointment</button>
+          </div>
+        </form>
+      </section>
+    </div>
   </main>
 </template>
 
@@ -166,9 +198,10 @@ import { createResource } from "frappe-ui"
 import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import {
 	AlertCircle, CalendarClock, CalendarDays, CalendarPlus, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
-	ClipboardList, MapPin, Pencil, XCircle,
+	ClipboardList, Loader2, MapPin, Pencil, Share2, XCircle,
 } from "lucide-vue-next"
 import { apptLabel, apptTheme, dayKey, fmtDate, fmtTime } from "../data/format"
+import { me } from "../data/me"
 
 const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 const addDays = (value, n) => {
@@ -187,6 +220,11 @@ const weekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 const list = createResource({ url: "krcti_mhpss.api.counsellor.my_appointments" })
 const monthList = createResource({ url: "krcti_mhpss.api.counsellor.my_appointments" })
+const referralOptions = createResource({ url: "krcti_mhpss.api.records.referral_counsellors" })
+const referralAppointment = ref(null)
+const referralTo = ref("")
+const referralReason = ref("")
+const referralSelectOpen = ref(false)
 const data = computed(() => list.data)
 const load = () => list.submit({ date_from: from.value, date_to: to.value })
 onMounted(load)
@@ -321,6 +359,27 @@ const tiles = computed(() => {
 })
 
 const action = createResource({ url: "krcti_mhpss.api.records.set_appointment_status", onSuccess: load })
+const referAction = createResource({
+	url: "krcti_mhpss.api.records.refer_appointment",
+	onSuccess() { closeReferral(); load() },
+})
+function openReferral(appointment) {
+	referralAppointment.value = appointment
+	referralTo.value = ""
+	referralReason.value = ""
+	referralSelectOpen.value = false
+	if (!referralOptions.data) referralOptions.submit()
+}
+function closeReferral() {
+	referralAppointment.value = null
+	referralTo.value = ""
+	referralReason.value = ""
+	referralSelectOpen.value = false
+}
+function submitReferral() {
+	if (!referralAppointment.value || !referralTo.value || !referralReason.value.trim()) return
+	referAction.submit({ name: referralAppointment.value.name, to_counsellor: referralTo.value, reason: referralReason.value.trim() })
+}
 const setStatus = (a, status) => action.submit({ name: a.name, status })
 function cancel(a) {
 	if (window.confirm(`Cancel the appointment with ${a.client_name}?`)) setStatus(a, "Cancelled")

@@ -105,18 +105,22 @@
               <span v-if="notificationCount" class="absolute right-1 top-1 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border-2 border-white bg-[#C8102E] px-1 text-[9px] font-bold leading-none text-white">{{ notificationCount > 9 ? '9+' : notificationCount }}</span>
             </button>
             <div v-if="notificationsOpen" class="absolute right-0 top-full z-40 mt-3 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_14px_36px_rgba(31,35,45,0.16)]">
-              <div class="flex items-center justify-between border-b border-[#ECEDEF] px-4 py-3.5"><div><h2 class="text-sm font-semibold text-[#25272B]">Notifications</h2><p class="mt-0.5 text-xs text-[#858891]">Follow-ups that need attention</p></div><span v-if="notificationCount" class="rounded-full bg-[#FCE8EB] px-2 py-1 text-[11px] font-semibold text-[#A10E24]">{{ notificationCount }} new</span></div>
+              <div class="flex items-center justify-between border-b border-[#ECEDEF] px-4 py-3.5"><div><h2 class="text-sm font-semibold text-[#25272B]">Notifications</h2><p class="mt-0.5 text-xs text-[#858891]">Follow-ups and referral updates</p></div><span v-if="notificationCount" class="rounded-full bg-[#FCE8EB] px-2 py-1 text-[11px] font-semibold text-[#A10E24]">{{ notificationCount }} new</span></div>
               <div v-if="notificationData.loading && !notificationData.data" class="flex items-center gap-2.5 px-4 py-5 text-sm text-[#737780]"><LoaderCircle :size="16" class="animate-spin" /> Checking follow-ups…</div>
               <div v-else-if="notificationData.error" class="px-4 py-5 text-sm text-[#737780]">Couldn’t load follow-ups. Close and reopen notifications to try again.</div>
-              <div v-else-if="overdueFollowups.length" class="max-h-[320px] overflow-y-auto divide-y divide-[#F0F1F3]">
-                <router-link v-for="row in overdueFollowups" :key="row.name" :to="{ name: 'SessionRecord', params: { name: row.name } }" class="flex items-start gap-3 px-4 py-3.5 transition hover:bg-[#FCFCFD]" @click="notificationsOpen = false">
+              <div v-else-if="overdueFollowups.length || referralEvents.length" class="max-h-[360px] overflow-y-auto divide-y divide-[#F0F1F3]">
+                <router-link v-for="row in overdueFollowups" :key="`overdue-${row.name}`" :to="{ name: 'SessionRecord', params: { name: row.name } }" class="flex items-start gap-3 px-4 py-3.5 transition hover:bg-[#FCFCFD]" @click="notificationsOpen = false">
                   <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FDEBEC] text-[#B42332]"><BellRing :size="15" /></span>
                   <span class="min-w-0 flex-1"><span class="block truncate text-sm font-semibold text-[#33353A]">{{ row.client_name || row.client_id }}</span><span class="mt-0.5 block text-xs text-[#737780]">Overdue follow-up · {{ row.date_time ? new Date(String(row.date_time).replace(' ', 'T')).toLocaleDateString() : '' }}</span></span>
                   <ChevronRight :size="15" class="mt-1 shrink-0 text-[#B9BBC1]" />
                 </router-link>
-                <p v-if="notificationCount > overdueFollowups.length" class="px-4 py-3 text-xs text-[#737780]">{{ notificationCount - overdueFollowups.length }} more overdue follow-up{{ notificationCount - overdueFollowups.length === 1 ? '' : 's' }}. <router-link :to="{ name: 'Appointments' }" class="font-semibold text-[#A10E24]" @click="notificationsOpen = false">View appointments</router-link></p>
+                <router-link v-for="row in referralEvents" :key="row.id" :to="{ name: 'SessionRecord', params: { name: row.appointment } }" class="flex items-start gap-3 px-4 py-3.5 transition hover:bg-[#FCFCFD]" @click="notificationsOpen = false">
+                  <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full" :class="row.direction === 'received' ? 'bg-[#EAF1FC] text-[#3767A6]' : 'bg-[#EAF5EE] text-[#26834B]'"><Users :size="15" /></span>
+                  <span class="min-w-0 flex-1"><span class="block truncate text-sm font-semibold text-[#33353A]">{{ row.client_name || row.client_id }}</span><span class="mt-0.5 block text-xs text-[#737780]">{{ row.direction === 'received' ? `Referred to you by ${row.from_name}` : `You referred this appointment to ${row.to_name}` }}</span><span class="mt-1 block truncate text-xs text-[#858891]">{{ row.reason }}</span></span>
+                  <ChevronRight :size="15" class="mt-1 shrink-0 text-[#B9BBC1]" />
+                </router-link>
               </div>
-              <div v-else class="px-5 py-8 text-center"><span class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#EAF5EE] text-[#26834B]"><Check :size="19" /></span><p class="mt-3 text-sm font-semibold text-[#33353A]">You’re all caught up</p><p class="mt-1 text-xs text-[#858891]">No overdue follow-ups to review.</p></div>
+              <div v-else class="px-5 py-8 text-center"><span class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#EAF5EE] text-[#26834B]"><Check :size="19" /></span><p class="mt-3 text-sm font-semibold text-[#33353A]">You’re all caught up</p><p class="mt-1 text-xs text-[#858891]">No overdue follow-ups or referral updates.</p></div>
             </div>
           </div>
           <span class="h-7 w-px bg-[#E4E6EA]"></span>
@@ -191,9 +195,16 @@ const notificationsOpen = ref(false)
 const accountOpen = ref(false)
 const clientSearch = createResource({ url: "krcti_mhpss.api.counsellor.search_clients" })
 const notificationData = createResource({ url: "krcti_mhpss.api.counsellor.home" })
+const referralNotificationData = createResource({ url: "krcti_mhpss.api.records.referral_notifications" })
+const markReferralNotificationsRead = createResource({
+	url: "krcti_mhpss.api.records.mark_referral_notifications_read",
+	onSuccess() { referralNotificationData.submit() },
+})
 const overdueFollowups = computed(() => (notificationData.data?.followups || []).filter((row) => row.overdue))
-const notificationCount = computed(() => notificationData.data?.overdue_followups || 0)
+const referralEvents = computed(() => referralNotificationData.data?.notifications || [])
+const notificationCount = computed(() => (notificationData.data?.overdue_followups || 0) + (referralNotificationData.data?.unread_count || 0))
 let searchTimer = null
+let notificationTimer = null
 watch(searchTerm, (value) => {
 	clearTimeout(searchTimer)
 	if (value.trim().length < 2) {
@@ -204,7 +215,10 @@ watch(searchTerm, (value) => {
 	searchTimer = setTimeout(() => clientSearch.submit({ term: value.trim(), limit: 8 }), 250)
 })
 watch(() => me.data?.role, (value) => {
-	if (value === "counsellor") notificationData.submit()
+	if (value === "counsellor") {
+		notificationData.submit()
+		referralNotificationData.submit()
+	}
 }, { immediate: true })
 function clientInitials(name) {
 	return (name || "Client").split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase()
@@ -215,7 +229,11 @@ function clearSearch() {
 }
 function toggleNotifications() {
 	notificationsOpen.value = !notificationsOpen.value
-	if (notificationsOpen.value) notificationData.submit()
+	if (notificationsOpen.value) {
+		notificationData.submit()
+		referralNotificationData.submit()
+		markReferralNotificationsRead.submit()
+	}
 }
 function logout() {
 	accountOpen.value = false
@@ -227,8 +245,15 @@ function closeHeaderMenus(event) {
 	if (!event.target.closest("[data-account-menu]")) accountOpen.value = false
 }
 onMounted(() => document.addEventListener("click", closeHeaderMenus))
+notificationTimer = setInterval(() => {
+	if (role.value === "counsellor" && !notificationsOpen.value) {
+		notificationData.submit()
+		referralNotificationData.submit()
+	}
+}, 60000)
 onUnmounted(() => {
 	clearTimeout(searchTimer)
+	clearInterval(notificationTimer)
 	document.removeEventListener("click", closeHeaderMenus)
 })
 

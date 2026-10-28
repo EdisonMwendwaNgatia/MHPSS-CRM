@@ -3,6 +3,7 @@ import frappe
 
 def execute():
     settings = frappe.get_single("System Settings")
+    settings.language ="en"
     settings.session_expiry = "00:30"
     settings.enable_password_policy = 1
     settings.minimum_password_score = 3

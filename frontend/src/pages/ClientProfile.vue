@@ -190,7 +190,7 @@
           <ul v-if="history.length" class="divide-y divide-[#E4E6EA]">
             <li v-for="a in history" :key="a.name">
               <router-link
-                :to="{ name: a.status === 'Completed' || c.case_status === 'Closed' ? 'SessionRecord' : 'AppointmentEdit', params: { name: a.name } }"
+                :to="{ name: a.status === 'Completed' || c.case_status === 'Closed' || (a.status === 'Scheduled' && (a.referral_history?.length || (a.counsellor_id !== c.assigned_counsellor && a.counsellor_id !== me.data?.user))) ? 'SessionRecord' : 'AppointmentEdit', params: { name: a.name } }"
                 class="group flex items-center gap-4 px-5 py-4 transition hover:bg-[#F4F5F7]/70 focus-visible:bg-[#F4F5F7]/70 focus-visible:outline-none sm:px-6"
               >
                 <span
@@ -201,6 +201,9 @@
                   <span class="block text-sm font-semibold">{{ a.session_type }}</span>
                   <span class="mt-0.5 block text-[13px] text-[#5B616B]">
                     {{ fmtDateTime(a.date_time) }}<span v-if="a.mode_of_contact"> &middot; {{ a.mode_of_contact }}</span><span v-if="a.location"> &middot; {{ a.location }}</span>
+                  </span>
+                  <span v-for="referral in a.referral_history || []" :key="referral.name || referral.referred_on" class="mt-1 block text-xs text-[#3767A6]">
+                    Referred from {{ referral.from_name }} to {{ referral.to_name }} · {{ fmtDateTime(referral.referred_on) }} — {{ referral.reason }}
                   </span>
                 </span>
                 <Badge :label="apptLabel(a)" :theme="apptTheme(a)" />
@@ -301,6 +304,8 @@ const detailGroups = computed(() => [
 		fields: [
 			{ label: "County", value: c.value.county_location },
 			{ label: "Programme stream", value: c.value.programme_stream },
+			{ label: "Registered by", value: c.value.registered_by_name || c.value.registered_by, wide: true },
+			{ label: "Current case owner", value: c.value.assigned_counsellor_name || c.value.assigned_counsellor, wide: true },
 			{ label: "Referral source", value: [c.value.referral_source, c.value.referral_source_other].filter(Boolean).join(": "), wide: true },
 		],
 	},

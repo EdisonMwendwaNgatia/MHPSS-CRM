@@ -3,6 +3,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_to_date, cint, get_datetime, now_datetime
 
+from krcti_mhpss.permissions import counsellor_in_case
 from krcti_mhpss.utils import GROUP_MODES, PHYSICAL_MODES, is_admin
 
 
@@ -26,12 +27,17 @@ class Appointment(Document):
             if self.client_id
             else None
         )
-        if not client or (not is_admin() and client.assigned_counsellor != frappe.session.user):
+        if not client or (not is_admin() and not counsellor_in_case(self.client_id, frappe.session.user)):
             frappe.throw(_("Client not found."), frappe.DoesNotExistError)
-        if client.assigned_counsellor != self.counsellor_id:
-            frappe.throw(_("The counsellor must be the one assigned to this client."))
-        if not is_admin() and self.counsellor_id != frappe.session.user:
+        if not is_admin() and self.counsellor_id != frappe.session.user and not getattr(frappe.flags, "allow_appointment_referral", False):
             frappe.throw(_("You can only manage your own appointments."), frappe.PermissionError)
+        if getattr(frappe.flags, "allow_appointment_referral", False):
+            history = self.get("referral_history") or []
+            latest = history[-1] if history else None
+            if not latest or latest.from_counsellor != frappe.session.user or latest.to_counsellor != self.counsellor_id:
+                frappe.throw(_("A referral must be recorded before changing the appointment counsellor."), frappe.PermissionError)
+        elif is_admin() and client.assigned_counsellor != self.counsellor_id and not counsellor_in_case(self.client_id, self.counsellor_id):
+            frappe.throw(_("The appointment counsellor must be assigned to or involved in this case."))
         if client.case_status == "Closed" and not is_admin():
             frappe.throw(_("This case is closed and its records are read-only."))
         before = self.get_doc_before_save()

@@ -27,6 +27,31 @@ SESSION_RECORD_FIELDS = [
 ]
 
 
+def _attach_referrals(rows):
+    names = [row.name for row in rows]
+    by_parent = {name: [] for name in names}
+    if names:
+        referrals = frappe.get_all(
+            "Appointment Referral",
+            filters={"parent": ["in", names], "parenttype": "Appointment", "parentfield": "referral_history"},
+            fields=["name", "parent", "from_counsellor", "to_counsellor", "reason", "referred_on"],
+            order_by="idx asc",
+        )
+        users = {user for referral in referrals for user in (referral.from_counsellor, referral.to_counsellor)}
+        user_names = {user: frappe.db.get_value("User", user, "full_name") or user for user in users}
+        for referral in referrals:
+            referral["from_name"] = user_names[referral.from_counsellor]
+            referral["to_name"] = user_names[referral.to_counsellor]
+            by_parent[referral.parent].append(referral)
+    for row in rows:
+        row["referral_history"] = by_parent[row.name]
+    return rows
+
+
+def _mine_open_cases():
+    return frappe.get_list("Client", filters={"case_status": ["!=", "Closed"]}, pluck="name", limit=0)
+
+
 def _client_for_user(name):
     """The client, if this user may read it. A client that is not yours looks like a missing one."""
     if not name or not frappe.db.exists("Client", name):
@@ -96,8 +121,16 @@ def client_profile(name=None):
         "Appointment", filters={"client_id": doc.name}, fields=APPOINTMENT_FIELDS,
         order_by="date_time desc", limit=100,
     )
+    appointments = _attach_referrals(appointments)
+    client_data = {f: doc.get(f) for f in CLIENT_FIELDS}
+    client_data["registered_by"] = doc.owner
+    client_data["registered_by_name"] = frappe.db.get_value("User", doc.owner, "full_name") or doc.owner
+    client_data["assigned_counsellor_name"] = (
+        frappe.db.get_value("User", doc.assigned_counsellor, "full_name") or doc.assigned_counsellor
+        if doc.assigned_counsellor else ""
+    )
     return {
-        "client": {f: doc.get(f) for f in CLIENT_FIELDS},
+        "client": client_data,
         "survey": {f: survey.get(f) for f in SURVEY_FIELDS} if survey else None,
         "appointments": _flag(appointments),
     }
@@ -113,29 +146,29 @@ def my_appointments(date_from=None, date_to=None):
         frappe.throw(_("Choose a date range of up to 120 days."))
     rows = frappe.get_list(
         "Appointment",
-        filters=[["date_time", ">=", f"{start} 00:00:00"], ["date_time", "<=", f"{end} 23:59:59"]],
+        filters=[["counsellor_id", "=", frappe.session.user], ["date_time", ">=", f"{start} 00:00:00"], ["date_time", "<=", f"{end} 23:59:59"]],
         fields=APPOINTMENT_FIELDS,
         order_by="date_time asc",
         limit=0,
     )
     overdue = frappe.get_list(
         "Appointment",
-        filters=[["status", "=", "Scheduled"], ["date_time", "<", now_datetime()]],
+        filters=[["counsellor_id", "=", frappe.session.user], ["status", "=", "Scheduled"], ["date_time", "<", now_datetime()]],
         pluck="name",
         limit=0,
     )
-    return {"appointments": _flag(rows), "overdue_total": len(overdue)}
+    return {"appointments": _attach_referrals(_flag(rows)), "overdue_total": len(overdue)}
 
 
 @frappe.whitelist()
 def my_followups():
     """Scheduled follow-up appointments, with overdue status derived from their set appointment date."""
     require_roles(COUNSELLOR, ADMIN_ROLE)
-    filters = {"session_type": "Follow-Up", "status": "Scheduled"}
+    filters = {"counsellor_id": frappe.session.user, "session_type": "Follow-Up", "status": "Scheduled"}
     rows = frappe.get_list(
         "Appointment", filters=filters, fields=APPOINTMENT_FIELDS, order_by="date_time asc", limit=0,
     )
-    flagged = _flag(rows)
+    flagged = _attach_referrals(_flag(rows))
     return {"followups": flagged, "overdue_total": sum(bool(row.overdue) for row in flagged)}
 
 
@@ -143,18 +176,18 @@ def my_followups():
 def my_session_records():
     """Completed appointment records in chronological order for the signed-in counsellor."""
     require_roles(COUNSELLOR, ADMIN_ROLE)
-    return frappe.get_list(
-        "Appointment", filters={"status": "Completed"}, fields=SESSION_RECORD_FIELDS,
+    rows = frappe.get_list(
+        "Appointment", filters={"counsellor_id": frappe.session.user, "status": "Completed"}, fields=SESSION_RECORD_FIELDS,
         order_by="date_time desc", limit=500,
     )
+    return _attach_referrals(rows)
 
 
 @frappe.whitelist()
 def home():
     require_roles(COUNSELLOR)
     user = frappe.session.user
-    open_cases = {"assigned_counsellor": user, "case_status": ["!=", "Closed"]}
-    mine = frappe.get_all("Client", filters=open_cases, pluck="name")
+    mine = _mine_open_cases()
     settled = (
         set(frappe.get_all("Baseline Survey", filters={"client_id": ["in", mine], "status": ["in", ["Completed", "Declined"]]}, pluck="client_id"))
         if mine
@@ -179,23 +212,25 @@ def home():
         order_by="date_time asc",
         limit=5,
     )
+    today_rows = frappe.get_all(
+        "Appointment",
+        filters={**scheduled, "date_time": ["between", [f"{today} 00:00:00", f"{today} 23:59:59"]]},
+        fields=APPOINTMENT_FIELDS, order_by="date_time asc",
+    )
+    upcoming = frappe.get_all(
+        "Appointment", filters=upcoming_filters,
+        fields=APPOINTMENT_FIELDS, order_by="date_time asc", limit=5,
+    )
     return {
         "active_clients": len(mine),
         "baselines_outstanding": len([c for c in mine if c not in settled]),
-        "today": frappe.get_all(
-            "Appointment",
-            filters={**scheduled, "date_time": ["between", [f"{today} 00:00:00", f"{today} 23:59:59"]]},
-            fields=APPOINTMENT_FIELDS, order_by="date_time asc",
-        ),
+        "today": _attach_referrals(today_rows),
         "overdue": frappe.db.count("Appointment", {**scheduled, "date_time": ["<", now]}),
         "upcoming_count": frappe.db.count("Appointment", upcoming_filters),
-        "upcoming": frappe.get_all(
-            "Appointment", filters=upcoming_filters,
-            fields=APPOINTMENT_FIELDS, order_by="date_time asc", limit=5,
-        ),
+        "upcoming": _attach_referrals(upcoming),
         "sessions_conducted": frappe.db.count("Appointment", {"counsellor_id": user, "status": "Completed"}),
         "followups_pending": frappe.db.count("Appointment", followup_filters),
         "overdue_followups": frappe.db.count("Appointment", {**followup_filters, "date_time": ["<", now]}),
-        "recent_sessions": recent_sessions,
-        "followups": _flag(followups),
+        "recent_sessions": _attach_referrals(recent_sessions),
+        "followups": _attach_referrals(_flag(followups)),
     }
