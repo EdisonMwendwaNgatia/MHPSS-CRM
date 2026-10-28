@@ -5,63 +5,74 @@
         <button type="button" class="rounded-lg p-2 text-[#555860] hover:bg-[#F4F5F7]" aria-label="Open menu" @click="open = true"><Menu :size="21" /></button>
         <span class="text-sm font-semibold text-[#25272B]">{{ pageTitle }}</span>
       </div>
-      <span class="flex h-8 w-8 items-center justify-center rounded-full bg-[#FCE8EB] text-xs font-bold text-[#B30F2A]">{{ initials }}</span>
+      <div class="relative" data-account-menu>
+        <button type="button" class="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/30" aria-label="Account options" :aria-expanded="accountOpen" aria-haspopup="menu" @click="accountOpen = !accountOpen">
+          <span class="flex h-8 w-8 items-center justify-center rounded-full bg-[#FCE8EB] text-xs font-bold text-[#B30F2A]">{{ initials }}</span>
+        </button>
+        <div v-if="accountOpen" class="absolute right-0 top-full z-50 mt-2 w-[260px] overflow-hidden rounded-xl border border-[#E4E6EA] bg-white text-left shadow-[0_14px_36px_rgba(31,35,45,0.16)]" role="menu" aria-label="Account options">
+          <div class="flex items-center gap-3 border-b border-[#ECEDEF] px-4 py-4">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FCE8EB] text-xs font-bold text-[#B30F2A]">{{ initials }}</span>
+            <span class="min-w-0"><span class="block truncate text-sm font-semibold text-[#33353A]">{{ me.data?.full_name }}</span><span class="mt-0.5 block truncate text-xs text-[#858891]">{{ roleLabel }}</span></span>
+          </div>
+          <div class="p-1.5"><button type="button" role="menuitem" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-[#A10E24] hover:bg-[#FCE8EB]" @click="logout"><LogOut :size="17" /> Log out</button></div>
+        </div>
+      </div>
     </header>
     <div v-if="open" class="fixed inset-0 z-40 bg-black/40 md:hidden" @click="open = false"></div>
 
     <aside
-      class="fixed inset-y-0 left-0 z-50 flex w-[248px] flex-col border-r border-[#E4E6EA] bg-white transition-transform duration-200 md:translate-x-0"
-      :class="open ? 'translate-x-0' : '-translate-x-full'"
+      class="fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[#E4E6EA] bg-white transition-[width,transform] duration-200 md:translate-x-0"
+      :class="[open ? 'translate-x-0' : '-translate-x-full', collapsed ? 'w-[248px] md:w-[84px]' : 'w-[248px]']"
     >
-      <div class="flex items-center justify-between border-b border-[#ECEDEF] px-5 py-5">
-        <div class="flex items-center gap-3">
-          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#C8102E] text-sm font-bold tracking-wide text-white">KR</span>
-          <span>
-            <span class="block text-sm font-semibold text-[#25272B]">KRCTI MHPSS</span>
-            <span class="mt-0.5 block text-xs text-[#858891]">Case management</span>
+      <!-- Brand: height matches the top bar so the two border lines meet -->
+      <div class="flex h-[68px] shrink-0 items-center justify-between border-b border-[#E4E6EA] px-4 md:h-[72px]" :class="collapsed ? 'md:px-2' : ''">
+        <div class="flex min-w-0 items-center gap-3" :class="collapsed ? 'md:gap-1' : ''">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#C8102E] text-sm font-semibold tracking-wide text-white" :class="collapsed ? 'md:h-8 md:w-8 md:rounded-lg md:text-xs' : ''">KR</span>
+          <span v-if="!collapsed || open" class="min-w-0 leading-[18px]">
+            <span class="block truncate text-[15px] font-semibold text-[#2B2F36]">KRCTI MHPSS</span>
+            <span class="block truncate text-[13px] text-[#5B616B]">Case management</span>
           </span>
         </div>
-        <button type="button" class="rounded-md p-1.5 text-[#737780] hover:bg-[#F4F5F7] md:hidden" aria-label="Close menu" @click="open = false">
+        <button type="button" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] text-[#5B616B] hover:bg-[#F4F5F7] md:hidden" aria-label="Close menu" @click="open = false">
           <X :size="20" />
         </button>
       </div>
 
-      <div class="px-5 pb-2 pt-6 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#A0A2A8]">Workspace</div>
-      <nav class="flex-1 space-y-1 px-3">
+      <!-- Navigation -->
+      <nav class="flex-1 space-y-1 overflow-y-auto px-3 pt-4" aria-label="Main navigation">
+        <p v-if="!collapsed || open" class="px-3 pb-1.5 text-xs font-medium text-[#5B616B]">Workspace</p>
+        <div v-else class="mx-3 mb-3 hidden h-px bg-[#E4E6EA] md:block" aria-hidden="true"></div>
         <router-link
           v-for="item in items"
           :key="item.name"
           :to="{ name: item.name }"
+          :title="collapsed ? item.label : undefined"
+          :aria-label="collapsed ? item.label : undefined"
+          :aria-current="isActive(item) ? 'page' : undefined"
           :class="linkClass(isActive(item))"
           @click="open = false"
         >
-          <component :is="item.icon" :size="18" />
-          {{ item.label }}
+          <component :is="item.icon" :size="20" class="shrink-0" />
+          <span v-if="!collapsed || open" class="truncate">{{ item.label }}</span>
         </router-link>
-        <a v-if="role === 'admin'" href="/desk" :class="linkClass(false)">
-          <Settings :size="18" />
-          Users and settings
+        <a v-if="role === 'admin'" href="/desk" :title="collapsed ? 'Users and settings' : undefined" :aria-label="collapsed ? 'Users and settings' : undefined" :class="linkClass(false)">
+          <Settings :size="20" class="shrink-0" />
+          <span v-if="!collapsed || open" class="truncate">Users and settings</span>
         </a>
       </nav>
 
-      <div class="border-t border-[#E4E6EA] p-4">
-        <div class="flex items-center gap-3">
-          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FCE8EB] text-xs font-bold text-[#B30F2A]">{{ initials }}</span>
-          <span class="min-w-0"><span class="block truncate text-sm font-semibold text-[#33353A]">{{ me.data?.full_name }}</span><span class="mt-0.5 block truncate text-xs text-[#858891]">{{ roleLabel }}</span></span>
-        </div>
-        <button
-          type="button"
-          class="mt-3 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[#62656D] hover:bg-[#F4F5F7]"
-          @click="session.logout.submit()"
-        >
-          <LogOut :size="18" />
-          Log out
+      <div class="hidden shrink-0 border-t border-[#E4E6EA] p-3 md:block">
+        <button type="button" class="flex h-11 w-full items-center gap-3 rounded-[10px] px-3 text-sm font-medium text-[#4A505A] transition-colors hover:bg-[#F4F5F7] hover:text-[#2B2F36] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40" :class="collapsed ? 'md:justify-center md:px-0' : ''" :title="collapsed ? 'Expand sidebar' : undefined" :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'" :aria-expanded="!collapsed" @click="toggleSidebar">
+          <PanelLeftOpen v-if="collapsed" :size="20" class="shrink-0" />
+          <PanelLeftClose v-else :size="20" class="shrink-0" />
+          <span v-if="!collapsed">Collapse sidebar</span>
         </button>
       </div>
+
     </aside>
 
-    <div class="md:pl-[248px]">
-      <header v-if="me.data" class="sticky top-0 z-30 hidden h-[72px] items-center border-b border-[#E4E6EA] bg-white px-7 lg:flex">
+    <div class="transition-[padding] duration-200" :class="collapsed ? 'md:pl-[84px]' : 'md:pl-[248px]'">
+      <header v-if="me.data" class="sticky top-0 z-30 hidden h-[72px] items-center border-b border-[#E4E6EA] bg-white px-5 lg:px-7 md:flex">
         <div class="flex w-[220px] shrink-0 items-center gap-2 text-sm"><span class="text-[#9A9CA2]">Workspace</span><ChevronRight :size="15" class="text-[#B9BBC1]" /><span class="font-medium text-[#33353A]">{{ pageTitle }}</span></div>
         <div v-if="canSearchClients" class="flex min-w-0 flex-1 justify-center px-8">
           <div class="relative w-full max-w-[460px]" data-client-search>
@@ -108,9 +119,23 @@
             </div>
           </div>
           <span class="h-7 w-px bg-[#E4E6EA]"></span>
-          <div class="flex items-center gap-2.5">
-            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-[#FCE8EB] text-xs font-bold text-[#B30F2A]">{{ initials }}</span>
-            <span><span class="block max-w-[190px] truncate text-sm font-semibold text-[#33353A]">{{ me.data?.full_name }}</span><span class="mt-0.5 block text-xs text-[#858891]">{{ roleLabel }}</span></span>
+          <div class="relative" data-account-menu>
+            <button type="button" class="flex items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition hover:bg-[#F7F7F8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/30" :aria-expanded="accountOpen" aria-haspopup="menu" @click="accountOpen = !accountOpen">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FCE8EB] text-xs font-bold text-[#B30F2A]">{{ initials }}</span>
+              <span class="hidden xl:block"><span class="block max-w-[170px] truncate text-sm font-semibold text-[#33353A]">{{ me.data?.full_name }}</span><span class="mt-0.5 block text-xs text-[#858891]">{{ roleLabel }}</span></span>
+              <ChevronDown :size="16" class="text-[#737780] transition-transform" :class="accountOpen ? 'rotate-180' : ''" />
+            </button>
+            <div v-if="accountOpen" class="absolute right-0 top-full z-40 mt-2 w-[260px] overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_14px_36px_rgba(31,35,45,0.16)]" role="menu" aria-label="Account options">
+              <div class="flex items-center gap-3 border-b border-[#ECEDEF] px-4 py-4">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FCE8EB] text-xs font-bold text-[#B30F2A]">{{ initials }}</span>
+                <span class="min-w-0"><span class="block truncate text-sm font-semibold text-[#33353A]">{{ me.data?.full_name }}</span><span class="mt-0.5 block truncate text-xs text-[#858891]">{{ roleLabel }}</span></span>
+              </div>
+              <div class="p-1.5">
+                <button type="button" role="menuitem" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-[#A10E24] transition hover:bg-[#FCE8EB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/30" @click="logout">
+                  <LogOut :size="17" /> Log out
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -128,7 +153,7 @@
 import { createResource } from "frappe-ui"
 import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import { useRoute } from "vue-router"
-import { Bell, BellRing, CalendarDays, Check, ChevronRight, ClipboardList, LayoutDashboard, LoaderCircle, LogOut, Menu, Search, Settings, Users, X } from "lucide-vue-next"
+import { Bell, BellRing, CalendarDays, Check, ChevronDown, ChevronRight, ClipboardList, LayoutDashboard, LoaderCircle, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, Users, X } from "lucide-vue-next"
 import { me } from "../data/me"
 import { session } from "../data/session"
 
@@ -145,12 +170,18 @@ const LABELS = {
 
 const route = useRoute()
 const open = ref(false)
+const collapsed = ref(typeof localStorage !== "undefined" && localStorage.getItem("krcti-sidebar-collapsed") === "true")
+function toggleSidebar() {
+	collapsed.value = !collapsed.value
+	if (typeof localStorage !== "undefined") localStorage.setItem("krcti-sidebar-collapsed", String(collapsed.value))
+}
 onMounted(() => me.reload())
 watch(() => route.fullPath, () => (open.value = false))
 
 const searchTerm = ref("")
 const searchOpen = ref(false)
 const notificationsOpen = ref(false)
+const accountOpen = ref(false)
 const clientSearch = createResource({ url: "krcti_mhpss.api.counsellor.search_clients" })
 const notificationData = createResource({ url: "krcti_mhpss.api.counsellor.home" })
 const overdueFollowups = computed(() => (notificationData.data?.followups || []).filter((row) => row.overdue))
@@ -179,9 +210,14 @@ function toggleNotifications() {
 	notificationsOpen.value = !notificationsOpen.value
 	if (notificationsOpen.value) notificationData.submit()
 }
+function logout() {
+	accountOpen.value = false
+	session.logout.submit()
+}
 function closeHeaderMenus(event) {
 	if (!event.target.closest("[data-client-search]")) searchOpen.value = false
 	if (!event.target.closest("[data-notification-menu]")) notificationsOpen.value = false
+	if (!event.target.closest("[data-account-menu]")) accountOpen.value = false
 }
 onMounted(() => document.addEventListener("click", closeHeaderMenus))
 onUnmounted(() => {
@@ -198,7 +234,8 @@ const items = computed(() => NAV.filter((item) => item.roles.includes(role.value
 const allowed = computed(() => !route.meta.roles || route.meta.roles.includes(role.value))
 const isActive = (item) => item.match.includes(route.name)
 const linkClass = (active) => [
-	"flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-	active ? "bg-[#FCE8EB] text-[#B30F2A]" : "text-[#62656D] hover:bg-[#F7F7F8] hover:text-[#33353A]",
+	"flex h-11 items-center gap-3 rounded-[10px] px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40",
+	collapsed.value ? "md:justify-center md:px-0" : "",
+	active ? "bg-[#FCE8EB] font-semibold text-[#A10E24]" : "text-[#4A505A] hover:bg-[#F4F5F7] hover:text-[#2B2F36]",
 ]
 </script>
