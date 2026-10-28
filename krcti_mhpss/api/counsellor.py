@@ -131,7 +131,24 @@ def home():
         else set()
     )
     today = nowdate()
+    now = now_datetime()
     scheduled = {"counsellor_id": user, "status": "Scheduled"}
+    upcoming_filters = {**scheduled, "date_time": [">=", now]}
+    followup_filters = {**scheduled, "session_type": "Follow-Up"}
+    recent_sessions = frappe.get_all(
+        "Appointment",
+        filters={"counsellor_id": user, "status": "Completed"},
+        fields=APPOINTMENT_FIELDS,
+        order_by="date_time desc",
+        limit=5,
+    )
+    followups = frappe.get_all(
+        "Appointment",
+        filters=followup_filters,
+        fields=APPOINTMENT_FIELDS,
+        order_by="date_time asc",
+        limit=5,
+    )
     return {
         "active_clients": len(mine),
         "baselines_outstanding": len([c for c in mine if c not in settled]),
@@ -140,9 +157,15 @@ def home():
             filters={**scheduled, "date_time": ["between", [f"{today} 00:00:00", f"{today} 23:59:59"]]},
             fields=APPOINTMENT_FIELDS, order_by="date_time asc",
         ),
-        "overdue": frappe.db.count("Appointment", {**scheduled, "date_time": ["<", now_datetime()]}),
+        "overdue": frappe.db.count("Appointment", {**scheduled, "date_time": ["<", now]}),
+        "upcoming_count": frappe.db.count("Appointment", upcoming_filters),
         "upcoming": frappe.get_all(
-            "Appointment", filters={**scheduled, "date_time": [">=", now_datetime()]},
+            "Appointment", filters=upcoming_filters,
             fields=APPOINTMENT_FIELDS, order_by="date_time asc", limit=5,
         ),
+        "sessions_conducted": frappe.db.count("Appointment", {"counsellor_id": user, "status": "Completed"}),
+        "followups_pending": frappe.db.count("Appointment", followup_filters),
+        "overdue_followups": frappe.db.count("Appointment", {**followup_filters, "date_time": ["<", now]}),
+        "recent_sessions": recent_sessions,
+        "followups": _flag(followups),
     }
