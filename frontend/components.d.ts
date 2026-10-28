@@ -16,6 +16,7 @@ declare module 'vue' {
     ClientForm: typeof import('./src/pages/ClientForm.vue')['default']
     ClientProfile: typeof import('./src/pages/ClientProfile.vue')['default']
     Clients: typeof import('./src/pages/Clients.vue')['default']
+    FollowUps: typeof import('./src/pages/FollowUps.vue')['default']
     Home: typeof import('./src/pages/Home.vue')['default']
     LoadingBar: typeof import('./src/components/LoadingBar.vue')['default']
     Login: typeof import('./src/pages/Login.vue')['default']
@@ -23,6 +24,8 @@ declare module 'vue' {
     Programme: typeof import('./src/pages/Programme.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SessionRecord: typeof import('./src/pages/SessionRecord.vue')['default']
+    SessionRecords: typeof import('./src/pages/SessionRecords.vue')['default']
     Spinner: typeof import('./src/components/Spinner.vue')['default']
   }
 }

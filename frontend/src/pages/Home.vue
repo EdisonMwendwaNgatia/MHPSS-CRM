@@ -56,7 +56,7 @@
                 <h2 class="text-base font-semibold text-[#25272B]">Upcoming appointments</h2>
                 <p class="mt-0.5 text-xs text-[#858891]">Your next scheduled client sessions</p>
               </div>
-              <router-link :to="{ name: 'Appointments' }" class="text-sm font-semibold text-[#B30F2A] hover:underline">View all</router-link>
+              <router-link :to="{ name: 'FollowUps' }" class="text-sm font-semibold text-[#B30F2A] hover:underline">View all</router-link>
             </div>
             <div v-if="home.data.upcoming.length" class="overflow-x-auto">
               <table class="w-full min-w-[600px] text-left">
@@ -80,7 +80,7 @@
               <router-link :to="{ name: 'Appointments' }" class="text-sm font-semibold text-[#B30F2A] hover:underline">View all</router-link>
             </div>
             <div v-if="home.data.followups.length" class="divide-y divide-[#F0F1F3]">
-              <router-link v-for="row in home.data.followups" :key="row.name" :to="{ name: 'AppointmentEdit', params: { name: row.name } }" class="flex items-center gap-3 px-5 py-4 transition hover:bg-[#FCFCFD]">
+              <router-link v-for="row in home.data.followups" :key="row.name" :to="{ name: 'SessionRecord', params: { name: row.name } }" class="flex items-center gap-3 px-5 py-4 transition hover:bg-[#FCFCFD]">
                 <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FCE8EB] text-[#B30F2A]"><UserRound :size="17" /></span>
                 <span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium text-[#33353A]">{{ row.client_name || row.client_id }}</span><span class="mt-1 block text-xs text-[#858891]">{{ fmtDate(row.date_time) }} · {{ fmtTime(row.date_time) }}</span></span>
                 <span class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold" :class="row.overdue ? 'bg-[#FDEBEC] text-[#B42332]' : 'bg-[#FFF4D9] text-[#8A6416]'">{{ row.overdue ? 'Overdue' : 'Upcoming' }}</span>
@@ -91,9 +91,9 @@
         </div>
 
         <section class="mt-5 overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_1px_2px_rgba(20,25,35,0.03)]">
-          <div class="flex items-center justify-between border-b border-[#ECEDEF] px-5 py-4"><div><h2 class="text-base font-semibold text-[#25272B]">Recent session records</h2><p class="mt-0.5 text-xs text-[#858891]">Recently completed appointments</p></div><router-link :to="{ name: 'Appointments' }" class="text-sm font-semibold text-[#B30F2A] hover:underline">View appointments</router-link></div>
+          <div class="flex items-center justify-between border-b border-[#ECEDEF] px-5 py-4"><div><h2 class="text-base font-semibold text-[#25272B]">Recent session records</h2><p class="mt-0.5 text-xs text-[#858891]">Recently completed appointments</p></div><router-link :to="{ name: 'SessionRecords' }" class="text-sm font-semibold text-[#B30F2A] hover:underline">View all records</router-link></div>
           <div v-if="home.data.recent_sessions.length" class="grid divide-y divide-[#F0F1F3] md:grid-cols-2 md:divide-x md:divide-y-0 xl:grid-cols-3">
-            <router-link v-for="row in home.data.recent_sessions" :key="row.name" :to="{ name: 'AppointmentEdit', params: { name: row.name } }" class="flex items-center gap-3 px-5 py-4 transition hover:bg-[#FCFCFD]">
+            <router-link v-for="row in home.data.recent_sessions" :key="row.name" :to="{ name: 'SessionRecord', params: { name: row.name } }" class="flex items-center gap-3 px-5 py-4 transition hover:bg-[#FCFCFD]">
               <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF5EE] text-[#26834B]"><ClipboardCheck :size="17" /></span>
               <span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium text-[#33353A]">{{ row.client_name || row.client_id }}</span><span class="mt-1 block truncate text-xs text-[#858891]">{{ row.session_type }} · {{ fmtDate(row.date_time) }}</span></span>
               <Badge label="Completed" theme="green" />

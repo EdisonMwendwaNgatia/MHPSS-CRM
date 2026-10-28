@@ -18,6 +18,9 @@ const routes = [
 	{ path: "/appointments", name: "Appointments", component: () => import("@/pages/Appointments.vue"), meta: app(COUNSELLOR) },
 	{ path: "/appointments/new", name: "AppointmentNew", component: () => import("@/pages/AppointmentForm.vue"), meta: app(COUNSELLOR) },
 	{ path: "/appointments/:name", name: "AppointmentEdit", component: () => import("@/pages/AppointmentForm.vue"), props: true, meta: app(COUNSELLOR) },
+	{ path: "/follow-ups", name: "FollowUps", component: () => import("@/pages/FollowUps.vue"), meta: app(COUNSELLOR) },
+	{ path: "/sessions", name: "SessionRecords", component: () => import("@/pages/SessionRecords.vue"), meta: app(COUNSELLOR) },
+	{ path: "/sessions/:name", name: "SessionRecord", component: () => import("@/pages/SessionRecord.vue"), props: true, meta: app(COUNSELLOR) },
 	{ path: "/programme", name: "Programme", component: () => import("@/pages/Programme.vue"), meta: app(OVERSIGHT) },
 ]
 

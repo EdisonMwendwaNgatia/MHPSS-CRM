@@ -40,6 +40,7 @@
 
             <div class="flex flex-wrap gap-2.5 sm:justify-end">
               <router-link
+                v-if="c.case_status !== 'Closed'"
                 :to="{ name: 'AppointmentNew', query: { client: c.name } }"
                 class="inline-flex h-11 items-center gap-2 rounded-[10px] border border-[#C8102E] bg-[#C8102E] px-[18px] text-sm font-semibold text-white transition hover:bg-[#A10E24] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40 focus-visible:ring-offset-2"
               >
@@ -104,7 +105,7 @@
             <section class="overflow-hidden rounded-xl border border-[#E4E6EA] bg-white">
               <div class="border-b border-[#E4E6EA] px-5 py-4">
                 <h2 class="text-lg font-semibold leading-6">Case management</h2>
-                <p class="mt-0.5 text-[13px] text-[#5B616B]">Update this client’s current case status</p>
+                <p class="mt-0.5 text-[13px] text-[#5B616B]">{{ c.case_status === 'Closed' ? 'This case is available in read-only mode.' : 'Update this client’s current case status' }}</p>
               </div>
               <div class="p-5">
                 <div class="flex items-center justify-between gap-3 rounded-lg bg-[#F4F5F7] px-4 py-3">
@@ -178,6 +179,7 @@
               <p class="mt-0.5 text-[13px] text-[#5B616B]">{{ history.length }} recorded appointment{{ history.length === 1 ? '' : 's' }}</p>
             </div>
             <router-link
+              v-if="c.case_status !== 'Closed'"
               :to="{ name: 'AppointmentNew', query: { client: c.name } }"
               class="inline-flex h-11 items-center gap-1.5 rounded-[10px] px-2 text-sm font-semibold text-[#A10E24] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40"
             >
@@ -188,7 +190,7 @@
           <ul v-if="history.length" class="divide-y divide-[#E4E6EA]">
             <li v-for="a in history" :key="a.name">
               <router-link
-                :to="{ name: 'AppointmentEdit', params: { name: a.name } }"
+                :to="{ name: a.status === 'Completed' || c.case_status === 'Closed' ? 'SessionRecord' : 'AppointmentEdit', params: { name: a.name } }"
                 class="group flex items-center gap-4 px-5 py-4 transition hover:bg-[#F4F5F7]/70 focus-visible:bg-[#F4F5F7]/70 focus-visible:outline-none sm:px-6"
               >
                 <span
@@ -278,7 +280,6 @@ const detailGroups = computed(() => [
 		fields: [
 			{ label: "Age", value: c.value.age },
 			{ label: "Gender", value: c.value.gender },
-			{ label: "Sex", value: c.value.sex },
 			{ label: "Refugee status", value: yes(c.value.refugee_status) },
 			{ label: "Disability", value: c.value.disability_status ? ["Yes", c.value.disability_type].filter(Boolean).join(": ") : "No", wide: true },
 		],

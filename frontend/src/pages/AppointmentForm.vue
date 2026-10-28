@@ -149,19 +149,16 @@
 
               <div>
                 <p id="mode-label" class="lbl">Mode of contact <span class="text-[#A10E24]">*</span></p>
-                <div class="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="mode-label">
-                  <button
-                    v-for="o in modeOptions"
-                    :key="o.value"
-                    type="button"
-                    role="radio"
-                    class="chip chip-lg"
-                    :class="form.mode_of_contact === o.value ? 'chip-on' : ''"
-                    :aria-checked="form.mode_of_contact === o.value"
-                    @click="form.mode_of_contact = o.value"
-                  >
-                    <Check v-if="form.mode_of_contact === o.value" :size="16" /> {{ o.label }}
+                <div class="relative sm:max-w-sm" data-mode-menu>
+                  <button id="mode" type="button" class="inp flex items-center justify-between text-left focus:border-[#C8102E] focus:outline-none focus:ring-2 focus:ring-[#C8102E]/10" :aria-labelledby="'mode-label mode-value'" :aria-expanded="modeOpen" aria-haspopup="listbox" @click="modeOpen = !modeOpen" @keydown.esc="modeOpen = false">
+                    <span id="mode-value" :class="form.mode_of_contact ? 'text-[#2B2F36]' : 'text-[#777C85]'">{{ selectedMode?.label || 'Select a mode of contact' }}</span>
+                    <ChevronDown :size="17" class="shrink-0 text-[#737780] transition-transform" :class="modeOpen ? 'rotate-180' : ''" />
                   </button>
+                  <div v-if="modeOpen" class="absolute left-0 right-0 z-20 mt-2 overflow-hidden rounded-xl border border-[#E4E6EA] bg-white p-1.5 shadow-[0_12px_30px_rgba(31,35,45,0.14)]" role="listbox" aria-labelledby="mode-label">
+                    <button v-for="o in modeOptions" :key="o.value" type="button" role="option" :aria-selected="form.mode_of_contact === o.value" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition" :class="form.mode_of_contact === o.value ? 'bg-[#FCE8EB] font-semibold text-[#A10E24]' : 'text-[#44474E] hover:bg-[#F7F7F8]'" @click="selectMode(o.value)">
+                      {{ o.label }}<Check v-if="form.mode_of_contact === o.value" :size="16" class="text-[#C8102E]" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -243,9 +240,10 @@ const apptName = computed(() => props.name || route.params.name || "")
 const isNew = computed(() => !apptName.value)
 
 const DURATIONS = [30, 45, 60, 90]
-const form = reactive({ date_time: "", duration_minutes: 60, session_type: "", mode_of_contact: "", location: "", notes: "" })
+const form = reactive({ date_time: "", duration_minutes: 60, session_type: route.query.type === "Follow-Up" ? "Follow-Up" : "", mode_of_contact: "", location: "", notes: "" })
 const physical = computed(() => PHYSICAL_MODES.includes(form.mode_of_contact))
 const sessionTypeOpen = ref(false)
+const modeOpen = ref(false)
 const datePickerOpen = ref(false)
 const localISO = (date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 const pickerToday = localISO(new Date())
@@ -258,8 +256,9 @@ const clientId = ref("")
 // Options may be plain strings or { label, value } objects
 const asOptions = (list) => (list || []).map((o) => (typeof o === "string" ? { label: o, value: o } : { label: o.label ?? o.value, value: o.value ?? o.label }))
 const sessionOptions = computed(() => asOptions(SESSION_TYPES))
-const modeOptions = computed(() => asOptions(MODES))
+const modeOptions = computed(() => asOptions(MODES).filter((option) => option.value))
 const selectedSessionType = computed(() => sessionOptions.value.find((option) => option.value === form.session_type))
+const selectedMode = computed(() => modeOptions.value.find((option) => option.value === form.mode_of_contact))
 const pickerDate = computed(() => form.date_time?.slice(0, 10) || "")
 const pickerTime = computed(() => form.date_time?.slice(11, 16) || "")
 const pickerMonthLabel = computed(() => new Date(`${pickerMonth.value}T00:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" }))
@@ -331,8 +330,14 @@ function selectSessionType(value) {
 	sessionTypeOpen.value = false
 }
 
+function selectMode(value) {
+	form.mode_of_contact = value
+	modeOpen.value = false
+}
+
 function closeSessionTypeMenu(event) {
 	if (!event.target.closest("[data-session-type-menu]")) sessionTypeOpen.value = false
+	if (!event.target.closest("[data-mode-menu]")) modeOpen.value = false
 }
 function closeDatePicker(event) {
 	if (!event.target.closest("[data-datetime-picker]")) datePickerOpen.value = false

@@ -32,8 +32,8 @@ class Appointment(Document):
             frappe.throw(_("The counsellor must be the one assigned to this client."))
         if not is_admin() and self.counsellor_id != frappe.session.user:
             frappe.throw(_("You can only manage your own appointments."), frappe.PermissionError)
-        if self.is_new() and client.case_status == "Closed":
-            frappe.throw(_("This case is closed, so no new appointment can be made."))
+        if client.case_status == "Closed" and not is_admin():
+            frappe.throw(_("This case is closed and its records are read-only."))
         before = self.get_doc_before_save()
         if before and before.client_id != self.client_id:
             frappe.throw(_("The client of an appointment cannot be changed."))
@@ -86,3 +86,16 @@ class Appointment(Document):
         if self.status == "Completed" and before.status != "Completed":
             if self.date_time and get_datetime(self.date_time) > now_datetime():
                 frappe.throw(_("An appointment in the future cannot be marked as Completed."))
+            required = (
+                "session_details", "presenting_issues", "interventions_applied", "risk_assessment", "follow_up_plan",
+            )
+            missing = [frappe.unscrub(field) for field in required if not (self.get(field) or "").strip()]
+            if missing:
+                frappe.throw(_("Complete these session record fields first: {0}.").format(", ".join(missing)))
+            if self.urgency_level not in ("Low", "Moderate", "High", "Immediate"):
+                frappe.throw(_("Choose an urgency level before completing the session."))
+            if self.session_type == "Follow-Up":
+                followup_fields = ("progress_previous_goals", "counsellor_observations", "next_session_focus")
+                missing_followup = [frappe.unscrub(field) for field in followup_fields if not (self.get(field) or "").strip()]
+                if missing_followup:
+                    frappe.throw(_("Complete these follow-up fields first: {0}.").format(", ".join(missing_followup)))

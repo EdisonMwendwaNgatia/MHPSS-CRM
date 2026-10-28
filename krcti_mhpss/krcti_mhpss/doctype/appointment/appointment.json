@@ -26,7 +26,19 @@
   "location",
   "sec_status",
   "status",
-  "notes"
+  "notes",
+  "sec_record",
+  "session_details",
+  "presenting_issues",
+  "issue_subclassifications",
+  "interventions_applied",
+  "referrals_made",
+  "urgency_level",
+  "risk_assessment",
+  "follow_up_plan",
+  "progress_previous_goals",
+  "counsellor_observations",
+  "next_session_focus"
  ],
  "fields": [
   {
@@ -145,6 +157,70 @@
    "fieldname": "notes",
    "fieldtype": "Small Text",
    "label": "Notes"
+  },
+  {
+   "fieldname": "sec_record",
+   "fieldtype": "Section Break",
+   "label": "Session Record"
+  },
+  {
+   "fieldname": "session_details",
+   "fieldtype": "Small Text",
+   "label": "Session details"
+  },
+  {
+   "fieldname": "presenting_issues",
+   "fieldtype": "Small Text",
+   "label": "Presenting issues"
+  },
+  {
+   "fieldname": "issue_subclassifications",
+   "fieldtype": "Small Text",
+   "label": "Issue subclassifications"
+  },
+  {
+   "fieldname": "interventions_applied",
+   "fieldtype": "Small Text",
+   "label": "Interventions applied"
+  },
+  {
+   "fieldname": "referrals_made",
+   "fieldtype": "Small Text",
+   "label": "Referrals made"
+  },
+  {
+   "fieldname": "urgency_level",
+   "fieldtype": "Select",
+   "label": "Urgency level",
+   "options": "\nLow\nModerate\nHigh\nImmediate"
+  },
+  {
+   "fieldname": "risk_assessment",
+   "fieldtype": "Small Text",
+   "label": "Risk assessment"
+  },
+  {
+   "fieldname": "follow_up_plan",
+   "fieldtype": "Small Text",
+   "label": "Follow-up plan"
+  },
+  {
+   "fieldname": "progress_previous_goals",
+   "fieldtype": "Small Text",
+   "label": "Progress on previous goals",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "counsellor_observations",
+   "fieldtype": "Small Text",
+   "label": "Counsellor observations",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "next_session_focus",
+   "fieldtype": "Small Text",
+   "label": "Next session focus",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\""
   }
  ],
  "permissions": [

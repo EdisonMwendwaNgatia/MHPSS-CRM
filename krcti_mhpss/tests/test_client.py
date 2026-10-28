@@ -18,7 +18,7 @@ class TestClient(BaseCase):
 
     def test_every_required_field_is_enforced(self):
         frappe.set_user(self.ann)
-        required = ("scholar_code", "full_name", "phone_number", "age", "gender", "sex", "institution",
+        required = ("full_name", "phone_number", "age", "gender", "institution",
                     "course_programme", "year_of_study", "county_location", "programme_stream", "referral_source")
         for name in required:
             data = client_data("TEST-REQ")

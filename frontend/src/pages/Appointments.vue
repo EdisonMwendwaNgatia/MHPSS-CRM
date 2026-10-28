@@ -5,7 +5,7 @@
       <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 class="text-2xl font-semibold leading-8">Appointments</h1>
-          <p class="mt-0.5 text-[13px] text-[#5B616B]">Your sessions for the selected fortnight, grouped by day</p>
+          <p class="mt-0.5 text-[13px] text-[#5B616B]">Your sessions for the selected date range, grouped by day</p>
         </div>
         <router-link
           :to="{ name: 'AppointmentNew' }"
@@ -35,30 +35,27 @@
         </div>
       </section>
 
-      <!-- Period navigation -->
-      <div class="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E4E6EA] bg-white p-3">
-        <div class="flex items-center gap-2">
-          <button type="button" class="nav-btn" aria-label="Previous two weeks" @click="shift(-14)"><ChevronLeft :size="20" /></button>
-          <button type="button" class="nav-btn" aria-label="Next two weeks" @click="shift(14)"><ChevronRight :size="20" /></button>
-          <div class="ml-2 leading-5">
-            <p class="text-sm font-semibold">{{ fmtDate(from) }} <span class="font-normal text-[#5B616B]">to</span> {{ fmtDate(to) }}</p>
-            <p class="text-[13px] text-[#5B616B]">{{ calendarOpen ? 'Select a date to view its fortnight' : '14-day view' }}</p>
+      <!-- Date range -->
+      <section class="mt-5 rounded-xl border border-[#E4E6EA] bg-white p-4 sm:p-5" aria-label="Appointment date range">
+        <div class="flex flex-wrap items-end gap-x-4 gap-y-4">
+          <div class="w-full sm:w-44">
+            <label for="appointments-from" class="text-sm font-medium">From</label>
+            <input id="appointments-from" v-model="from" type="date" :max="to" class="range-field mt-1.5" :class="invalidRange ? 'range-field-error' : ''" :aria-invalid="invalidRange" />
           </div>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" data-calendar-toggle class="inline-flex h-11 items-center gap-2 rounded-[10px] border border-[#D5D8DE] bg-white px-4 text-sm font-semibold transition hover:bg-[#F4F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40" :aria-expanded="calendarOpen" @click="toggleCalendar">
+          <div class="w-full sm:w-44">
+            <label for="appointments-to" class="text-sm font-medium">To</label>
+            <input id="appointments-to" v-model="to" type="date" :min="from" class="range-field mt-1.5" :class="invalidRange ? 'range-field-error' : ''" :aria-invalid="invalidRange" />
+          </div>
+          <div class="flex flex-wrap gap-2 sm:ml-auto" role="group" aria-label="Quick appointment ranges">
+            <button v-for="preset in presets" :key="preset.label" type="button" class="range-preset" :class="isActivePreset(preset) ? 'range-preset-active' : ''" :aria-pressed="isActivePreset(preset)" @click="applyPreset(preset)">{{ preset.label }}</button>
+          </div>
+          <button type="button" data-calendar-toggle class="inline-flex h-11 shrink-0 items-center gap-2 rounded-[10px] border border-[#D5D8DE] bg-white px-4 text-sm font-semibold transition hover:bg-[#F4F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40" :aria-expanded="calendarOpen" @click="toggleCalendar">
             <CalendarDays :size="18" /> {{ calendarOpen ? 'Hide calendar' : 'Calendar' }} <ChevronDown :size="16" class="transition-transform" :class="calendarOpen ? 'rotate-180' : ''" />
           </button>
-          <button
-            type="button"
-            class="inline-flex h-11 items-center gap-2 rounded-[10px] border border-[#D5D8DE] bg-white px-4 text-sm font-semibold transition hover:bg-[#F4F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40 disabled:cursor-default disabled:text-[#5B616B] disabled:opacity-60 disabled:hover:bg-white"
-            :disabled="from === todayKey"
-            @click="goToday"
-          >
-            <CalendarDays :size="18" /> Today
-          </button>
         </div>
-      </div>
+        <p v-if="invalidRange" class="mt-3 flex items-center gap-1.5 text-[13px] text-[#A10E24]" role="alert"><AlertCircle :size="15" />Choose a valid range of no more than 120 days.</p>
+        <p v-else class="mt-3 text-xs text-[#737780]">{{ fmtDate(from) }} <span class="px-1">to</span> {{ fmtDate(to) }} · {{ rangeDayCount }} days</p>
+      </section>
 
       <section v-if="calendarOpen" class="mt-4 w-full max-w-[440px] overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_8px_28px_rgba(31,35,45,0.06)]" aria-label="Appointment calendar" data-appointment-calendar>
         <div class="flex items-center justify-between gap-3 border-b border-[#ECEDEF] px-4 py-3.5">
@@ -97,7 +94,7 @@
       <div v-else-if="data && !data.appointments.length" class="mt-5 rounded-xl border border-[#E4E6EA] bg-white px-5 py-14 text-center">
         <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F5F7] text-[#5B616B]"><CalendarDays :size="22" /></span>
         <p class="mt-3 text-sm font-semibold">Nothing booked in this period</p>
-        <p class="mx-auto mt-1 max-w-sm text-[13px] leading-5 text-[#5B616B]">Use the arrows to look at another fortnight, or book a new appointment.</p>
+        <p class="mx-auto mt-1 max-w-sm text-[13px] leading-5 text-[#5B616B]">Adjust the date range or book a new appointment.</p>
       </div>
 
       <!-- Days -->
@@ -141,15 +138,20 @@
               <div class="sm:justify-self-end"><Badge :label="apptLabel(a)" :theme="apptTheme(a)" /></div>
 
               <div v-if="a.status === 'Scheduled'" class="flex flex-wrap gap-2 sm:col-span-2 sm:col-start-2">
-                <button type="button" class="act" :disabled="action.loading" @click="setStatus(a, 'Completed')">
-                  <CheckCircle2 :size="17" class="text-[#146C3A]" /> Mark completed
-                </button>
+                <router-link :to="{ name: 'SessionRecord', params: { name: a.name } }" class="act act-primary">
+                  <ClipboardList :size="17" /> In-session
+                </router-link>
                 <router-link :to="{ name: 'AppointmentEdit', params: { name: a.name } }" class="act">
                   <Pencil :size="16" /> Edit
                 </router-link>
                 <button type="button" class="act act-danger" :disabled="action.loading" @click="cancel(a)">
                   <XCircle :size="17" /> Cancel
                 </button>
+              </div>
+              <div v-else-if="a.status === 'Completed'" class="flex flex-wrap gap-2 sm:col-span-2 sm:col-start-2">
+                <router-link :to="{ name: 'SessionRecord', params: { name: a.name } }" class="act">
+                  <ClipboardList :size="17" /> View session record
+                </router-link>
               </div>
             </li>
           </ul>
@@ -161,7 +163,7 @@
 
 <script setup>
 import { createResource } from "frappe-ui"
-import { computed, onMounted, onUnmounted, ref } from "vue"
+import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import {
 	AlertCircle, CalendarClock, CalendarDays, CalendarPlus, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
 	ClipboardList, MapPin, Pencil, XCircle,
@@ -177,7 +179,7 @@ const addDays = (value, n) => {
 
 const todayKey = iso(new Date())
 const from = ref(todayKey)
-const to = computed(() => addDays(from.value, 13))
+const to = ref(addDays(todayKey, 13))
 const calendarOpen = ref(false)
 const selectedDay = ref(todayKey)
 const visibleMonth = ref(`${todayKey.slice(0, 7)}-01`)
@@ -188,6 +190,12 @@ const monthList = createResource({ url: "krcti_mhpss.api.counsellor.my_appointme
 const data = computed(() => list.data)
 const load = () => list.submit({ date_from: from.value, date_to: to.value })
 onMounted(load)
+watch([from, to], () => {
+	if (invalidRange.value) return
+	selectedDay.value = from.value
+	if (calendarOpen.value) visibleMonth.value = `${from.value.slice(0, 7)}-01`
+	load()
+})
 onMounted(() => document.addEventListener("click", closeCalendarOutside))
 onUnmounted(() => document.removeEventListener("click", closeCalendarOutside))
 
@@ -199,6 +207,24 @@ function closeCalendarOutside(event) {
 
 const monthStart = computed(() => visibleMonth.value)
 const monthEnd = computed(() => addDays(addMonths(monthStart.value, 1), -1))
+const rangeDayCount = computed(() => {
+	if (!from.value || !to.value || from.value > to.value) return 0
+	return Math.round((new Date(`${to.value}T00:00:00`) - new Date(`${from.value}T00:00:00`)) / 86400000) + 1
+})
+const invalidRange = computed(() => !from.value || !to.value || from.value > to.value || rangeDayCount.value > 120)
+const presets = [
+	{ label: "Today", range: () => [todayKey, todayKey] },
+	{ label: "Next 14 days", range: () => [todayKey, addDays(todayKey, 13)] },
+	{ label: "Next 30 days", range: () => [todayKey, addDays(todayKey, 29)] },
+	{ label: "This month", range: () => [`${todayKey.slice(0, 7)}-01`, addDays(addMonths(`${todayKey.slice(0, 7)}-01`, 1), -1)] },
+]
+const applyPreset = (preset) => {
+	[from.value, to.value] = preset.range()
+}
+const isActivePreset = (preset) => {
+	const [start, end] = preset.range()
+	return from.value === start && to.value === end
+}
 const monthLabel = computed(() => new Date(`${monthStart.value}T00:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" }))
 const monthCountLabel = computed(() => {
 	if (monthList.loading && !monthList.data) return "Loading appointments…"
@@ -253,21 +279,7 @@ function selectDay(key) {
 		loadMonth()
 	}
 	from.value = key
-	load()
-}
-
-function shift(n) {
-	from.value = addDays(from.value, n)
-	selectedDay.value = from.value
-	visibleMonth.value = `${from.value.slice(0, 7)}-01`
-	if (calendarOpen.value) loadMonth()
-	load()
-}
-function goToday() {
-	from.value = todayKey
-	selectedDay.value = todayKey
-	visibleMonth.value = `${todayKey.slice(0, 7)}-01`
-	load()
+	to.value = addDays(key, 13)
 }
 
 function addMonths(value, amount) {
@@ -316,6 +328,34 @@ function cancel(a) {
 </script>
 
 <style scoped>
+.range-field {
+	display: block;
+	height: 44px;
+	width: 100%;
+	border: 1px solid #d5d8de;
+	border-radius: 8px;
+	background: #fff;
+	padding: 0 12px;
+	font: 14px Inter, system-ui, sans-serif;
+	color: #2b2f36;
+}
+.range-field:focus { outline: none; border-color: #c8102e; box-shadow: 0 0 0 2px rgba(200, 16, 46, .25); }
+.range-field-error { border-color: #a10e24; }
+.range-preset {
+	display: inline-flex;
+	height: 44px;
+	align-items: center;
+	border: 1px solid #d5d8de;
+	border-radius: 10px;
+	background: #fff;
+	padding: 0 14px;
+	font-size: 13px;
+	font-weight: 600;
+	color: #3c3f45;
+	transition: background .15s, border-color .15s, color .15s;
+}
+.range-preset:hover { background: #f4f5f7; }
+.range-preset-active, .range-preset-active:hover { border-color: #c8102e; background: #fce8eb; color: #a10e24; }
 .month-btn {
 	display: inline-flex;
 	height: 40px;
@@ -388,6 +428,8 @@ function cancel(a) {
 }
 .act:hover { background: #f4f5f7; }
 .act:disabled { cursor: wait; opacity: 0.6; }
+.act-primary { border-color: #c8102e; background: #c8102e; color: #fff; }
+.act-primary:hover { border-color: #a10e24; background: #a10e24; }
 .act-danger { color: #a10e24; }
 .act-danger:hover { background: #fce8eb; border-color: #f3c3cb; }
 </style>

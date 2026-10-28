@@ -9,8 +9,8 @@ from krcti_mhpss.tests.base import BaseCase, client_data, survey_data
 ANSWERS = {k: v for k, v in survey_data("x").items() if k not in ("doctype", "client_id", "status")}
 
 
-def payload(code, **extra):
-    data = {k: v for k, v in client_data(code).items() if k != "doctype"}
+def payload(**extra):
+    data = {k: v for k, v in client_data("ignored").items() if k not in ("doctype", "scholar_code")}
     data.update(extra)
     return data
 
@@ -18,13 +18,14 @@ def payload(code, **extra):
 class TestRecords(BaseCase):
     def test_a_client_is_registered_with_server_set_fields_only(self):
         frappe.set_user(self.ann)
-        name = records.save_client(None, payload("test-600"))["name"]
+        name = records.save_client(None, payload(full_name="Auto Code Test"))["name"]
         doc = frappe.get_doc("Client", name)
-        self.assertEqual((doc.scholar_code, doc.assigned_counsellor, doc.case_status), ("TEST-600", self.ann, "Active"))
-        for bad in ({"assigned_counsellor": self.ben}, {"case_status": "Closed"}, {"owner": self.ben},
+        self.assertRegex(doc.scholar_code, r"^WoC-\d{4}$")
+        self.assertEqual((doc.assigned_counsellor, doc.case_status), (self.ann, "Active"))
+        for bad in ({"scholar_code": "TEST-601"}, {"assigned_counsellor": self.ben}, {"case_status": "Closed"}, {"owner": self.ben},
                     {"name": "CL-99999"}, {"docstatus": 1}):
             with self.assertRaises(frappe.ValidationError, msg=str(bad)):
-                records.save_client(None, payload("TEST-601", **bad))
+                records.save_client(None, payload(**bad))
         self.assertFalse(frappe.db.exists("Client", {"scholar_code": "TEST-601"}))
 
     def test_updates_change_only_the_allowed_fields_on_your_own_clients(self):
@@ -122,7 +123,16 @@ class TestRecords(BaseCase):
 
         past = self.appointment(self.ann, client.name, hours=-5)
         frappe.set_user(self.ann)
-        records.set_appointment_status(past.name, "Completed")
+        with self.assertRaises(frappe.ValidationError):
+            records.set_appointment_status(past.name, "Completed")
+        records.record_session(past.name, {
+            "session_details": "Session completed.", "presenting_issues": "Concerns reviewed.",
+            "interventions_applied": "Supportive counselling.", "urgency_level": "Low",
+            "risk_assessment": "No immediate risk identified.", "follow_up_plan": "Review next time.",
+            "progress_previous_goals": "Progress reviewed.", "counsellor_observations": "Engaged.",
+            "next_session_focus": "Continue current goals.",
+        })
+        self.assertEqual(frappe.db.get_value("Appointment", past.name, "status"), "Completed")
         with self.assertRaises(frappe.ValidationError):
             records.set_appointment_status(past.name, "Cancelled")
         with self.assertRaises(frappe.ValidationError):
@@ -161,7 +171,7 @@ class TestRecords(BaseCase):
     def test_nobody_else_can_use_the_write_endpoints(self):
         client = self.client(self.ann, "TEST-670")
         calls = (
-            lambda: records.save_client(None, payload("TEST-671")),
+            lambda: records.save_client(None, payload()),
             lambda: records.save_client(client.name, {"age": 20}),
             lambda: records.set_case_status(client.name, "Active"),
             lambda: records.record_baseline(client.name, {"consent": "Declined"}),

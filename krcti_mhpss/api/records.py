@@ -2,17 +2,17 @@ import frappe
 from frappe import _
 from frappe.utils import get_datetime
 
-from krcti_mhpss.api.counsellor import _client_for_user
+from krcti_mhpss.api.counsellor import _client_for_user, _flag
 from krcti_mhpss.utils import ADMIN_ROLE, COUNSELLOR, is_admin, is_counsellor, require_roles
 
 CLIENT_TEXT = (
-    "full_name", "phone_number", "gender", "sex", "disability_type", "institution", "course_programme",
+    "full_name", "phone_number", "gender", "disability_type", "institution", "course_programme",
     "county_location", "programme_stream", "referral_source", "referral_source_other",
 )
 CLIENT_NUMBERS = ("age", "year_of_study")
 CLIENT_CHECKS = ("disability_status", "refugee_status")
 CLIENT_EDIT = CLIENT_TEXT + CLIENT_NUMBERS + CLIENT_CHECKS
-CLIENT_CREATE = ("scholar_code",) + CLIENT_EDIT
+CLIENT_CREATE = CLIENT_EDIT
 CASE_STATUSES = ("Active", "Follow-Up Pending", "Closed")
 
 BASELINE_SHORT = (
@@ -28,7 +28,19 @@ APPOINTMENT_FIELDS = ("date_time", "duration_minutes", "session_type", "mode_of_
 APPOINTMENT_DETAIL = (
     "name", "client_id", "client_name", "scholar_code", "counsellor_id", "date_time", "end_time",
     "duration_minutes", "session_type", "mode_of_contact", "location", "notes", "status",
+    "session_details", "presenting_issues", "issue_subclassifications", "interventions_applied",
+    "referrals_made", "urgency_level", "risk_assessment", "follow_up_plan",
+    "progress_previous_goals", "counsellor_observations", "next_session_focus",
 )
+SESSION_RECORD_TEXT = (
+    "session_details", "presenting_issues", "issue_subclassifications", "interventions_applied",
+    "referrals_made", "risk_assessment", "follow_up_plan", "progress_previous_goals",
+    "counsellor_observations", "next_session_focus",
+)
+SESSION_RECORD_REQUIRED = (
+    "session_details", "presenting_issues", "interventions_applied", "risk_assessment", "follow_up_plan",
+)
+SESSION_URGENCY_LEVELS = ("Low", "Moderate", "High", "Immediate")
 
 
 def _data(value):
@@ -93,7 +105,6 @@ def save_client(name=None, data=None):
             frappe.throw(_("Register clients while logged in as a counsellor."))
         _only(data, CLIENT_CREATE)
         doc = frappe.new_doc("Client")
-        doc.scholar_code = _short(data.get("scholar_code"), _("The code"), 40)
 
     for key in CLIENT_TEXT:
         if key in data:
@@ -130,6 +141,8 @@ def record_baseline(client=None, data=None):
     """The status and the who-and-when stamps are set here, never taken from the request."""
     require_roles(COUNSELLOR, ADMIN_ROLE)
     owner = _client_for_user(client)
+    if owner.case_status == "Closed":
+        frappe.throw(_("Closed cases are read-only."))
     data = _data(data)
     _only(data, BASELINE_ALLOWED)
     if data.get("consent") not in ("Consented", "Declined"):
@@ -177,6 +190,55 @@ def appointment_detail(name=None):
     return {field: doc.get(field) for field in APPOINTMENT_DETAIL}
 
 
+@frappe.whitelist()
+def session_record_detail(name=None):
+    require_roles(COUNSELLOR, ADMIN_ROLE)
+    doc = _appointment(name)
+    client = _client_for_user(doc.client_id)
+    appointment = {field: doc.get(field) for field in APPOINTMENT_DETAIL}
+    appointment["overdue"] = _flag([appointment])[0]["overdue"]
+    history = frappe.get_list(
+        "Appointment", filters={"client_id": client.name}, fields=list(APPOINTMENT_DETAIL),
+        order_by="date_time asc", limit=0,
+    )
+    return {
+        "appointment": appointment,
+        "case_status": client.case_status,
+        "history": _flag(history),
+    }
+
+
+@frappe.whitelist(methods=["POST"])
+def record_session(name=None, data=None):
+    """Save the clinical session record and complete its scheduled appointment atomically."""
+    require_roles(COUNSELLOR, ADMIN_ROLE)
+    doc = _appointment(name)
+    if doc.status != "Scheduled":
+        frappe.throw(_("Only a scheduled appointment can be recorded."))
+    client = _client_for_user(doc.client_id)
+    if client.case_status == "Closed":
+        frappe.throw(_("Closed cases are read-only."))
+    data = _data(data)
+    allowed = SESSION_RECORD_TEXT
+    _only(data, allowed + ("urgency_level",))
+    for key in SESSION_RECORD_REQUIRED:
+        if not _long(data.get(key), _(key.replace("_", " ")), 4000):
+            frappe.throw(_("Complete the {0} field before saving the session.").format(key.replace("_", " ")))
+    urgency = data.get("urgency_level")
+    if urgency not in SESSION_URGENCY_LEVELS:
+        frappe.throw(_("Choose an urgency level."))
+    if doc.session_type == "Follow-Up":
+        for key in ("progress_previous_goals", "counsellor_observations", "next_session_focus"):
+            if not _long(data.get(key), _(key.replace("_", " ")), 4000):
+                frappe.throw(_("Complete the {0} field for a follow-up session.").format(key.replace("_", " ")))
+    for key in SESSION_RECORD_TEXT:
+        doc.set(key, _long(data.get(key), _(key.replace("_", " ")), 4000))
+    doc.urgency_level = urgency
+    doc.status = "Completed"
+    doc.save()
+    return {"name": doc.name, "status": doc.status}
+
+
 @frappe.whitelist(methods=["POST"])
 def save_appointment(name=None, client=None, data=None):
     """Book an appointment, or change a scheduled one. The counsellor and status are never taken from the request."""
@@ -213,11 +275,13 @@ def save_appointment(name=None, client=None, data=None):
 @frappe.whitelist(methods=["POST"])
 def set_appointment_status(name=None, status=None):
     require_roles(COUNSELLOR, ADMIN_ROLE)
-    if status not in ("Completed", "Cancelled"):
-        frappe.throw(_("An appointment can be marked Completed or Cancelled."))
+    if status == "Completed":
+        frappe.throw(_("Use In-session to complete the session record."))
+    if status != "Cancelled":
+        frappe.throw(_("An appointment can only be cancelled here."))
     doc = _appointment(name)
     if doc.status != "Scheduled":
-        frappe.throw(_("Only a scheduled appointment can be completed or cancelled."))
+        frappe.throw(_("Only a scheduled appointment can be cancelled."))
     doc.status = status
     doc.save()
     return {"status": doc.status}

@@ -109,7 +109,7 @@
               <div v-if="notificationData.loading && !notificationData.data" class="flex items-center gap-2.5 px-4 py-5 text-sm text-[#737780]"><LoaderCircle :size="16" class="animate-spin" /> Checking follow-ups…</div>
               <div v-else-if="notificationData.error" class="px-4 py-5 text-sm text-[#737780]">Couldn’t load follow-ups. Close and reopen notifications to try again.</div>
               <div v-else-if="overdueFollowups.length" class="max-h-[320px] overflow-y-auto divide-y divide-[#F0F1F3]">
-                <router-link v-for="row in overdueFollowups" :key="row.name" :to="{ name: 'AppointmentEdit', params: { name: row.name } }" class="flex items-start gap-3 px-4 py-3.5 transition hover:bg-[#FCFCFD]" @click="notificationsOpen = false">
+                <router-link v-for="row in overdueFollowups" :key="row.name" :to="{ name: 'SessionRecord', params: { name: row.name } }" class="flex items-start gap-3 px-4 py-3.5 transition hover:bg-[#FCFCFD]" @click="notificationsOpen = false">
                   <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FDEBEC] text-[#B42332]"><BellRing :size="15" /></span>
                   <span class="min-w-0 flex-1"><span class="block truncate text-sm font-semibold text-[#33353A]">{{ row.client_name || row.client_id }}</span><span class="mt-0.5 block text-xs text-[#737780]">Overdue follow-up · {{ row.date_time ? new Date(String(row.date_time).replace(' ', 'T')).toLocaleDateString() : '' }}</span></span>
                   <ChevronRight :size="15" class="mt-1 shrink-0 text-[#B9BBC1]" />
@@ -154,7 +154,7 @@
 import { createResource } from "frappe-ui"
 import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import { useRoute } from "vue-router"
-import { Bell, BellRing, CalendarDays, Check, ChevronDown, ChevronRight, ClipboardList, LayoutDashboard, LoaderCircle, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, Users, X } from "lucide-vue-next"
+import { Bell, BellRing, BookOpen, CalendarDays, Check, ChevronDown, ChevronRight, ClipboardList, HeartHandshake, LayoutDashboard, LoaderCircle, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, Users, X } from "lucide-vue-next"
 import { me } from "../data/me"
 import { session } from "../data/session"
 
@@ -162,6 +162,8 @@ const NAV = [
 	{ label: "Dashboard", name: "Home", icon: LayoutDashboard, match: ["Home"], roles: ["counsellor"] },
 	{ label: "Clients", name: "Clients", icon: Users, match: ["Clients", "ClientNew", "ClientProfile", "ClientEdit", "Baseline"], roles: ["counsellor", "admin"] },
 	{ label: "Appointments", name: "Appointments", icon: CalendarDays, match: ["Appointments", "AppointmentNew", "AppointmentEdit"], roles: ["counsellor", "admin"] },
+	{ label: "Follow-ups", name: "FollowUps", icon: HeartHandshake, match: ["FollowUps"], roles: ["counsellor", "admin"] },
+	{ label: "Session records", name: "SessionRecords", icon: BookOpen, match: ["SessionRecords", "SessionRecord"], roles: ["counsellor", "admin"] },
 	{ label: "Programme", name: "Programme", icon: ClipboardList, match: ["Programme"], roles: ["krcti_pm", "woc_pm", "admin"] },
 ]
 const LABELS = {

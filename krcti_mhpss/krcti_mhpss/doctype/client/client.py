@@ -3,11 +3,12 @@ import re
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.model.naming import make_autoname
 from frappe.utils import cint
 
 from krcti_mhpss.utils import COUNSELLOR, is_admin, is_counsellor, normalize_phone
 
-CODE = re.compile(r"^[A-Z0-9][A-Z0-9/_-]{2,39}$")
+CODE = re.compile(r"^(?:WoC-\d{4}|[A-Z0-9][A-Z0-9/_-]{2,39})$")
 
 
 class Client(Document):
@@ -17,6 +18,14 @@ class Client(Document):
             self.assigned_counsellor = frappe.session.user
 
     def validate(self):
+        if not self.scholar_code:
+            while True:
+                generated = make_autoname("WoC-.####")
+                if not re.fullmatch(r"WoC-\d{4}", generated):
+                    frappe.throw(_("The WoC participant code range is exhausted."))
+                if not frappe.db.exists("Client", {"scholar_code": generated}):
+                    self.scholar_code = generated
+                    break
         self.tidy()
         self.check_immutable()
         self.check_code()
@@ -25,7 +34,8 @@ class Client(Document):
         self.check_case_status()
 
     def tidy(self):
-        self.scholar_code = " ".join((self.scholar_code or "").split()).upper()
+        code = " ".join((self.scholar_code or "").split())
+        self.scholar_code = f"WoC-{code[4:]}" if re.fullmatch(r"woc-\d{4}", code, re.IGNORECASE) else code.upper()
         self.full_name = " ".join((self.full_name or "").split())
         self.institution = " ".join((self.institution or "").split())
         self.phone_number = normalize_phone(self.phone_number)

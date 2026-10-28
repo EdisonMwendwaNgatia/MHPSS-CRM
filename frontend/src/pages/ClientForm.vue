@@ -36,21 +36,20 @@
               </div>
 
               <div class="sm:col-span-3">
-                <label class="lbl" for="f-scholar_code">Scholar / participant code <span class="req" aria-hidden="true">*</span></label>
+                <label class="lbl" for="f-scholar_code">Scholar / participant code</label>
                 <div class="relative">
                   <input
                     id="f-scholar_code"
                     v-model="form.scholar_code"
-                    class="inp"
-                    :class="!isNew ? 'pr-11' : ''"
+                    class="inp pr-11"
                     type="text"
-                    :disabled="!isNew"
-                    placeholder="Issued by the WoC programme"
+                    readonly
+                    :placeholder="isNew ? 'Generated automatically on registration' : ''"
                     autocomplete="off"
                   />
-                  <Lock v-if="!isNew" :size="16" class="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#5B616B]" />
+                  <Lock :size="16" class="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#5B616B]" />
                 </div>
-                <p v-if="!isNew" class="hint">The code never changes after registration.</p>
+                <p class="hint">Generated automatically when the client is registered.</p>
               </div>
 
               <div class="sm:col-span-3">
@@ -75,17 +74,6 @@
                 </div>
               </div>
 
-              <div class="sm:col-span-2">
-                <label id="f-sex-label" class="lbl">Sex</label>
-                <div class="relative" data-client-dropdown>
-                  <button id="f-sex" type="button" class="select-control" :class="form.sex ? '' : 'select-placeholder'" :aria-labelledby="'f-sex-label f-sex-value'" :aria-expanded="openDropdown === 'sex'" aria-haspopup="listbox" @click="toggleDropdown('sex')" @keydown.esc="openDropdown = ''">
-                    <span id="f-sex-value">{{ optionLabel(GENDERS, form.sex) }}</span><ChevronDown :size="17" class="text-[#737780] transition-transform" :class="openDropdown === 'sex' ? 'rotate-180' : ''" />
-                  </button>
-                  <div v-if="openDropdown === 'sex'" class="select-menu" role="listbox" aria-labelledby="f-sex-label">
-                    <button v-for="o in opts(GENDERS)" :key="o.value" type="button" role="option" :aria-selected="form.sex === o.value" class="select-option" :class="form.sex === o.value ? 'select-option-active' : ''" @click="chooseOption('sex', o.value)">{{ o.label }}<Check v-if="form.sex === o.value" :size="16" /></button>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -245,13 +233,14 @@ const clientName = computed(() => props.name || route.params.name || "")
 const isNew = computed(() => !clientName.value)
 const back = computed(() => (isNew.value ? { name: "Clients" } : { name: "ClientProfile", params: { name: clientName.value } }))
 
-const TEXT = ["scholar_code", "full_name", "phone_number", "gender", "sex", "disability_type", "institution",
+const TEXT = ["full_name", "phone_number", "gender", "disability_type", "institution",
 	"course_programme", "county_location", "programme_stream", "referral_source", "referral_source_other"]
 const NUMBERS = ["age", "year_of_study"]
 const CHECKS = ["disability_status", "refugee_status"]
 
 const form = reactive({
 	...Object.fromEntries([...TEXT, ...NUMBERS].map((k) => [k, ""])),
+	scholar_code: "",
 	disability_status: false,
 	refugee_status: false,
 })
@@ -274,6 +263,7 @@ const profile = createResource({
 	url: "krcti_mhpss.api.counsellor.client_profile",
 	onSuccess(data) {
 		const c = data.client
+		form.scholar_code = c.scholar_code ?? ""
 		for (const k of [...TEXT, ...NUMBERS]) form[k] = c[k] ?? ""
 		for (const k of CHECKS) form[k] = !!c[k]
 		loading.value = false
@@ -307,7 +297,6 @@ function values() {
 
 function save() {
 	const data = values()
-	if (!isNew.value) delete data.scholar_code // the code never changes
 	saver.submit({ name: clientName.value || undefined, data })
 }
 </script>
@@ -350,6 +339,11 @@ function save() {
 }
 .inp:disabled {
 	cursor: not-allowed;
+	background: #f4f5f7;
+	color: #5b616b;
+}
+.inp:read-only {
+	cursor: default;
 	background: #f4f5f7;
 	color: #5b616b;
 }

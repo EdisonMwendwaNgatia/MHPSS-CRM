@@ -12,7 +12,7 @@ USERS = {"ann": COUNSELLOR, "ben": COUNSELLOR, "kpm": KRCTI_PM, "wpm": WOC_PM, "
 def client_data(code, **extra):
     return {
         "doctype": "Client", "scholar_code": code, "full_name": "Test Scholar", "phone_number": "0700 000 001",
-        "age": 19, "gender": "Female", "sex": "Female", "institution": "Test TVET College",
+        "age": 19, "gender": "Female", "institution": "Test TVET College",
         "course_programme": "Plumbing", "year_of_study": 1, "county_location": "Marsabit",
         "programme_stream": "Scholarship/Education", "referral_source": "School", **extra,
     }
@@ -31,7 +31,8 @@ def survey_data(client, **extra):
 
 def cleanup():
     frappe.set_user("Administrator")
-    clients = frappe.get_all("Client", filters={"scholar_code": ["like", "TEST-%"]}, pluck="name")
+    clients = set(frappe.get_all("Client", filters={"scholar_code": ["like", "TEST-%"]}, pluck="name"))
+    clients.update(frappe.get_all("Client", filters={"full_name": "Auto Code Test"}, pluck="name"))
     for doctype in ("Appointment", "Baseline Survey"):
         for name in frappe.get_all(doctype, filters={"client_id": ["in", clients or ["-"]]}, pluck="name"):
             frappe.delete_doc(doctype, name, force=True, ignore_permissions=True)
@@ -80,6 +81,16 @@ class BaseCase(IntegrationTestCase):
     def complete(self, appointment):
         frappe.set_user(appointment.counsellor_id)
         doc = frappe.get_doc("Appointment", appointment.name)
+        doc.session_details = "Session completed."
+        doc.presenting_issues = "Presenting concerns reviewed."
+        doc.interventions_applied = "Supportive counselling."
+        doc.urgency_level = "Low"
+        doc.risk_assessment = "No immediate risk identified."
+        doc.follow_up_plan = "Review at the next appointment."
+        if doc.session_type == "Follow-Up":
+            doc.progress_previous_goals = "Progress reviewed."
+            doc.counsellor_observations = "Engaged in session."
+            doc.next_session_focus = "Continue current goals."
         doc.status = "Completed"
         doc.save()
         return doc

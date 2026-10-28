@@ -5,7 +5,7 @@ from frappe.utils import add_days, getdate, now_datetime, nowdate
 from krcti_mhpss.utils import ADMIN_ROLE, COUNSELLOR, is_overdue, normalize_phone, require_roles
 
 CLIENT_FIELDS = (
-    "name", "scholar_code", "full_name", "phone_number", "age", "gender", "sex", "disability_status",
+    "name", "scholar_code", "full_name", "phone_number", "age", "gender", "disability_status",
     "disability_type", "institution", "course_programme", "year_of_study", "county_location",
     "refugee_status", "programme_stream", "referral_source", "referral_source_other",
     "assigned_counsellor", "case_status",
@@ -17,8 +17,13 @@ SURVEY_FIELDS = (
     "dependants", "domestic_situation", "conflict_exposure", "exposure_details", "completed_by", "completed_on",
 )
 APPOINTMENT_FIELDS = [
-    "name", "client_id", "client_name", "counsellor_id", "counsellor_name", "date_time", "end_time",
+    "name", "client_id", "client_name", "scholar_code", "counsellor_id", "counsellor_name", "date_time", "end_time",
     "session_type", "mode_of_contact", "location", "status", "notes",
+]
+SESSION_RECORD_FIELDS = [
+    *APPOINTMENT_FIELDS, "session_details", "presenting_issues",
+    "issue_subclassifications", "interventions_applied", "referrals_made", "urgency_level", "risk_assessment",
+    "follow_up_plan", "progress_previous_goals", "counsellor_observations", "next_session_focus",
 ]
 
 
@@ -117,6 +122,28 @@ def my_appointments(date_from=None, date_to=None):
         limit=0,
     )
     return {"appointments": _flag(rows), "overdue_total": len(overdue)}
+
+
+@frappe.whitelist()
+def my_followups():
+    """Scheduled follow-up appointments, with overdue status derived from their set appointment date."""
+    require_roles(COUNSELLOR, ADMIN_ROLE)
+    filters = {"session_type": "Follow-Up", "status": "Scheduled"}
+    rows = frappe.get_list(
+        "Appointment", filters=filters, fields=APPOINTMENT_FIELDS, order_by="date_time asc", limit=0,
+    )
+    flagged = _flag(rows)
+    return {"followups": flagged, "overdue_total": sum(bool(row.overdue) for row in flagged)}
+
+
+@frappe.whitelist()
+def my_session_records():
+    """Completed appointment records in chronological order for the signed-in counsellor."""
+    require_roles(COUNSELLOR, ADMIN_ROLE)
+    return frappe.get_list(
+        "Appointment", filters={"status": "Completed"}, fields=SESSION_RECORD_FIELDS,
+        order_by="date_time desc", limit=500,
+    )
 
 
 @frappe.whitelist()
