@@ -1,49 +1,171 @@
 <template>
-  <main class="mx-auto max-w-4xl px-4 py-6 md:px-8 md:py-8">
-    <div class="flex items-end justify-between gap-3">
-      <h1 class="text-xl font-semibold text-gp-ink">Appointments</h1>
-      <router-link :to="{ name: 'AppointmentNew' }" class="rounded-md bg-gp px-3 py-2 text-sm font-medium text-white hover:bg-gp-light">Book an appointment</router-link>
-    </div>
+  <main class="min-h-[calc(100vh-68px)] bg-[#F4F5F7] px-4 py-6 font-[Inter,system-ui,sans-serif] text-[#2B2F36] sm:px-6 lg:px-8 lg:py-8">
+    <div class="mx-auto max-w-[1200px]">
+      <!-- Page header -->
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-semibold leading-8">Appointments</h1>
+          <p class="mt-0.5 text-[13px] text-[#5B616B]">Your sessions for the selected fortnight, grouped by day</p>
+        </div>
+        <router-link
+          :to="{ name: 'AppointmentNew' }"
+          class="inline-flex h-11 items-center gap-2 rounded-[10px] border border-[#C8102E] bg-[#C8102E] px-[18px] text-sm font-semibold text-white transition hover:bg-[#A10E24] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40 focus-visible:ring-offset-2"
+        >
+          <CalendarPlus :size="18" /> Book an appointment
+        </router-link>
+      </div>
 
-    <div class="mt-4 flex items-center justify-between rounded-lg border border-gp-line bg-white p-3">
-      <Button @click="shift(-14)">&larr; Earlier</Button>
-      <p class="text-sm font-medium text-gp-ink">{{ fmtDate(from) }} to {{ fmtDate(to) }}</p>
-      <Button @click="shift(14)">Later &rarr;</Button>
-    </div>
+      <!-- Overdue alert -->
+      <div v-if="data?.overdue_total" class="mt-5 flex items-start gap-3 rounded-xl bg-[#FBE0E4] px-4 py-3.5 text-sm text-[#A10E24]" role="alert">
+        <AlertCircle :size="20" class="mt-px shrink-0" />
+        <p>
+          <span class="font-semibold">{{ data.overdue_total }} appointment{{ data.overdue_total === 1 ? " has" : "s have" }} passed without being completed.</span>
+          Complete or cancel {{ data.overdue_total === 1 ? "it" : "them" }} to keep your records up to date.
+        </p>
+      </div>
 
-    <p v-if="data?.overdue_total" class="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-gp-ink">
-      {{ data.overdue_total }} appointment{{ data.overdue_total === 1 ? " has" : "s have" }} passed without being completed. Complete or cancel {{ data.overdue_total === 1 ? "it" : "them" }}.
-    </p>
-
-    <ErrorMessage class="mt-3" :message="list.error || action.error" />
-    <PageLoader v-if="list.loading && !data" />
-    <p v-else-if="data && !data.appointments.length" class="mt-3 rounded-lg border border-gp-line bg-white p-4 text-sm text-gp-muted">Nothing booked in this period.</p>
-
-    <section v-for="day in days" :key="day.key" class="mt-4">
-      <h2 class="text-sm font-semibold text-gp-ink">{{ fmtDate(day.key) }}</h2>
-      <div class="mt-2 space-y-2">
-        <div v-for="a in day.rows" :key="a.name" class="rounded-lg border border-gp-line bg-white p-3">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0 text-sm">
-              <router-link :to="{ name: 'ClientProfile', params: { name: a.client_id } }" class="font-medium text-gp">{{ a.client_name }}</router-link>
-              <p class="text-xs text-gp-muted">{{ fmtTime(a.date_time) }} &middot; {{ a.session_type }} &middot; {{ a.mode_of_contact }}<span v-if="a.location"> &middot; {{ a.location }}</span></p>
-            </div>
-            <Badge :label="apptLabel(a)" :theme="apptTheme(a)" />
-          </div>
-          <div v-if="a.status === 'Scheduled'" class="mt-3 flex flex-wrap gap-2">
-            <Button :loading="action.loading" @click="setStatus(a, 'Completed')">Mark completed</Button>
-            <router-link :to="{ name: 'AppointmentEdit', params: { name: a.name } }" class="rounded-md border border-gp-line px-3 py-1.5 text-sm font-medium text-gp hover:border-gp">Edit</router-link>
-            <Button theme="red" :loading="action.loading" @click="cancel(a)">Cancel</Button>
+      <!-- Summary for this period -->
+      <section v-if="data" class="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label="Summary for this period">
+        <div v-for="t in tiles" :key="t.label" class="flex items-center gap-3.5 rounded-xl border border-[#E4E6EA] bg-white p-4">
+          <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px]" :class="t.tile"><component :is="t.icon" :size="20" /></span>
+          <div class="min-w-0">
+            <p class="truncate text-[13px] text-[#5B616B]">{{ t.label }}</p>
+            <p class="text-[28px] font-semibold leading-[34px]">{{ t.value }}</p>
           </div>
         </div>
+      </section>
+
+      <!-- Period navigation -->
+      <div class="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E4E6EA] bg-white p-3">
+        <div class="flex items-center gap-2">
+          <button type="button" class="nav-btn" aria-label="Previous two weeks" @click="shift(-14)"><ChevronLeft :size="20" /></button>
+          <button type="button" class="nav-btn" aria-label="Next two weeks" @click="shift(14)"><ChevronRight :size="20" /></button>
+          <div class="ml-2 leading-5">
+            <p class="text-sm font-semibold">{{ fmtDate(from) }} <span class="font-normal text-[#5B616B]">to</span> {{ fmtDate(to) }}</p>
+            <p class="text-[13px] text-[#5B616B]">{{ calendarOpen ? 'Select a date to view its fortnight' : '14-day view' }}</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" data-calendar-toggle class="inline-flex h-11 items-center gap-2 rounded-[10px] border border-[#D5D8DE] bg-white px-4 text-sm font-semibold transition hover:bg-[#F4F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40" :aria-expanded="calendarOpen" @click="toggleCalendar">
+            <CalendarDays :size="18" /> {{ calendarOpen ? 'Hide calendar' : 'Calendar' }} <ChevronDown :size="16" class="transition-transform" :class="calendarOpen ? 'rotate-180' : ''" />
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-11 items-center gap-2 rounded-[10px] border border-[#D5D8DE] bg-white px-4 text-sm font-semibold transition hover:bg-[#F4F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40 disabled:cursor-default disabled:text-[#5B616B] disabled:opacity-60 disabled:hover:bg-white"
+            :disabled="from === todayKey"
+            @click="goToday"
+          >
+            <CalendarDays :size="18" /> Today
+          </button>
+        </div>
       </div>
-    </section>
+
+      <section v-if="calendarOpen" class="mt-4 w-full max-w-[440px] overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_8px_28px_rgba(31,35,45,0.06)]" aria-label="Appointment calendar" data-appointment-calendar>
+        <div class="flex items-center justify-between gap-3 border-b border-[#ECEDEF] px-4 py-3.5">
+          <div><p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#92949A]">Monthly calendar</p><h2 class="mt-0.5 text-base font-semibold text-[#25272B]">{{ monthLabel }}</h2><p class="mt-0.5 text-xs text-[#737780]">{{ monthCountLabel }}</p></div>
+          <div class="flex items-center gap-2">
+            <button type="button" class="month-btn" aria-label="Previous month" @click="shiftMonth(-1)"><ChevronLeft :size="16" /></button>
+            <button type="button" class="rounded-lg border border-[#E4E6EA] px-2.5 py-1.5 text-xs font-semibold text-[#555860] transition hover:bg-[#F7F7F8]" @click="goMonthToday">Today</button>
+            <button type="button" class="month-btn" aria-label="Next month" @click="shiftMonth(1)"><ChevronRight :size="16" /></button>
+          </div>
+        </div>
+        <div class="p-3.5">
+          <div class="grid grid-cols-7 gap-1">
+            <div v-for="label in weekdayLabels" :key="label" class="pb-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-[#92949A]">{{ label }}</div>
+            <button v-for="cell in calendarCells" :key="cell.key" type="button" class="calendar-day" :class="[
+              !cell.inMonth ? 'calendar-outside' : '',
+              cell.key === todayKey ? 'calendar-today' : '',
+              cell.key === selectedDay ? 'calendar-selected' : '',
+              cell.count ? 'calendar-has-appointments' : '',
+            ]" :aria-label="`${cell.label}${cell.count ? `, ${cell.count} appointment${cell.count === 1 ? '' : 's'}` : ', no appointments'}`" :aria-pressed="cell.key === selectedDay" @click="selectDay(cell.key)">
+              <span class="calendar-number">{{ cell.day }}</span>
+              <span v-if="cell.count" class="calendar-count" :class="cell.key === selectedDay ? 'calendar-count-selected' : ''">{{ cell.count }}</span>
+            </button>
+          </div>
+          <div class="mt-2 flex items-center gap-4 border-t border-[#F0F1F3] pt-3 text-[11px] text-[#737780]">
+            <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-[#C8102E]"></span>Appointments</span>
+            <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full border border-[#C8102E] bg-white"></span>Today</span>
+            <span class="ml-auto text-right text-[#92949A]">Select a date for its 14-day schedule</span>
+          </div>
+        </div>
+      </section>
+
+      <ErrorMessage class="mt-4" :message="list.error || action.error" />
+      <PageLoader v-if="(list.loading && !data) || (calendarOpen && monthList.loading && !monthList.data)" />
+
+      <!-- Empty state -->
+      <div v-else-if="data && !data.appointments.length" class="mt-5 rounded-xl border border-[#E4E6EA] bg-white px-5 py-14 text-center">
+        <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F5F7] text-[#5B616B]"><CalendarDays :size="22" /></span>
+        <p class="mt-3 text-sm font-semibold">Nothing booked in this period</p>
+        <p class="mx-auto mt-1 max-w-sm text-[13px] leading-5 text-[#5B616B]">Use the arrows to look at another fortnight, or book a new appointment.</p>
+      </div>
+
+      <!-- Days -->
+      <div class="mt-6 space-y-6 transition-opacity" :class="list.loading && data ? 'opacity-60' : ''">
+        <section v-for="day in days" :key="day.key" :aria-label="fmtDate(day.key)">
+          <div class="mb-2.5 flex items-center justify-between gap-3 px-1">
+            <div class="flex items-center gap-2.5">
+              <h2 class="text-lg font-semibold leading-6">{{ weekday(day.key) }}</h2>
+              <span v-if="day.key === todayKey" class="rounded-xl bg-[#FCE8EB] px-2.5 py-1 text-xs font-semibold text-[#A10E24]">Today</span>
+              <span class="text-sm text-[#5B616B]">{{ fmtDate(day.key) }}</span>
+            </div>
+            <span class="text-[13px] text-[#5B616B]">{{ day.rows.length }} appointment{{ day.rows.length === 1 ? "" : "s" }}</span>
+          </div>
+
+          <ul class="overflow-hidden rounded-xl border border-[#E4E6EA] bg-white">
+            <li
+              v-for="a in day.rows"
+              :key="a.name"
+              class="grid gap-x-4 gap-y-3 border-l-4 px-4 py-4 border-t border-t-[#E4E6EA] first:border-t-0 sm:grid-cols-[76px_minmax(0,1fr)_auto] sm:px-5"
+              :class="[tone(a).bar, a.status === 'Cancelled' ? 'bg-[#F4F5F7]/50' : '']"
+            >
+              <p class="text-[15px] font-semibold tabular-nums leading-6" :class="tone(a).time">{{ fmtTime(a.date_time) }}</p>
+
+              <div class="min-w-0">
+                <router-link
+                  :to="{ name: 'ClientProfile', params: { name: a.client_id } }"
+                  class="rounded text-[15px] font-semibold leading-6 hover:text-[#A10E24] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40"
+                  :class="a.status === 'Cancelled' ? 'text-[#5B616B] line-through' : ''"
+                >{{ a.client_name }}</router-link>
+                <p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-[#5B616B]">
+                  <span>{{ a.session_type }}</span>
+                  <span class="text-[#D5D8DE]" aria-hidden="true">|</span>
+                  <span>{{ a.mode_of_contact }}</span>
+                  <template v-if="a.location">
+                    <span class="text-[#D5D8DE]" aria-hidden="true">|</span>
+                    <span class="inline-flex items-center gap-1"><MapPin :size="13" />{{ a.location }}</span>
+                  </template>
+                </p>
+              </div>
+
+              <div class="sm:justify-self-end"><Badge :label="apptLabel(a)" :theme="apptTheme(a)" /></div>
+
+              <div v-if="a.status === 'Scheduled'" class="flex flex-wrap gap-2 sm:col-span-2 sm:col-start-2">
+                <button type="button" class="act" :disabled="action.loading" @click="setStatus(a, 'Completed')">
+                  <CheckCircle2 :size="17" class="text-[#146C3A]" /> Mark completed
+                </button>
+                <router-link :to="{ name: 'AppointmentEdit', params: { name: a.name } }" class="act">
+                  <Pencil :size="16" /> Edit
+                </router-link>
+                <button type="button" class="act act-danger" :disabled="action.loading" @click="cancel(a)">
+                  <XCircle :size="17" /> Cancel
+                </button>
+              </div>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </div>
   </main>
 </template>
 
 <script setup>
 import { createResource } from "frappe-ui"
-import { computed, onMounted, ref } from "vue"
+import { computed, onMounted, onUnmounted, ref } from "vue"
+import {
+	AlertCircle, CalendarClock, CalendarDays, CalendarPlus, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
+	ClipboardList, MapPin, Pencil, XCircle,
+} from "lucide-vue-next"
 import { apptLabel, apptTheme, dayKey, fmtDate, fmtTime } from "../data/format"
 
 const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
@@ -53,17 +175,106 @@ const addDays = (value, n) => {
 	return iso(d)
 }
 
-const from = ref(iso(new Date()))
+const todayKey = iso(new Date())
+const from = ref(todayKey)
 const to = computed(() => addDays(from.value, 13))
+const calendarOpen = ref(false)
+const selectedDay = ref(todayKey)
+const visibleMonth = ref(`${todayKey.slice(0, 7)}-01`)
+const weekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 const list = createResource({ url: "krcti_mhpss.api.counsellor.my_appointments" })
+const monthList = createResource({ url: "krcti_mhpss.api.counsellor.my_appointments" })
 const data = computed(() => list.data)
 const load = () => list.submit({ date_from: from.value, date_to: to.value })
 onMounted(load)
+onMounted(() => document.addEventListener("click", closeCalendarOutside))
+onUnmounted(() => document.removeEventListener("click", closeCalendarOutside))
+
+function closeCalendarOutside(event) {
+	if (calendarOpen.value && !event.target.closest("[data-appointment-calendar]") && !event.target.closest("[data-calendar-toggle]")) {
+		calendarOpen.value = false
+	}
+}
+
+const monthStart = computed(() => visibleMonth.value)
+const monthEnd = computed(() => addDays(addMonths(monthStart.value, 1), -1))
+const monthLabel = computed(() => new Date(`${monthStart.value}T00:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" }))
+const monthCountLabel = computed(() => {
+	if (monthList.loading && !monthList.data) return "Loading appointments…"
+	const count = monthList.data?.appointments?.length || 0
+	return `${count} appointment${count === 1 ? "" : "s"} this month`
+})
+const monthCounts = computed(() => {
+	const counts = {}
+	for (const row of monthList.data?.appointments || []) {
+		const key = dayKey(row.date_time)
+		counts[key] = (counts[key] || 0) + 1
+	}
+	return counts
+})
+const calendarCells = computed(() => {
+	const first = new Date(`${monthStart.value}T00:00:00`)
+	const mondayOffset = (first.getDay() + 6) % 7
+	const start = addDays(monthStart.value, -mondayOffset)
+	return Array.from({ length: 42 }, (_, index) => {
+		const key = addDays(start, index)
+		const date = new Date(`${key}T00:00:00`)
+		return {
+			key,
+			day: date.getDate(),
+			label: date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }),
+			inMonth: key.slice(0, 7) === monthStart.value.slice(0, 7),
+			count: monthCounts.value[key] || 0,
+		}
+	})
+})
+
+function loadMonth() {
+	monthList.submit({ date_from: monthStart.value, date_to: monthEnd.value })
+}
+function toggleCalendar() {
+	calendarOpen.value = !calendarOpen.value
+	if (calendarOpen.value) loadMonth()
+}
+function shiftMonth(amount) {
+	visibleMonth.value = addMonths(monthStart.value, amount)
+	loadMonth()
+}
+function goMonthToday() {
+	visibleMonth.value = `${todayKey.slice(0, 7)}-01`
+	selectedDay.value = todayKey
+	loadMonth()
+}
+function selectDay(key) {
+	selectedDay.value = key
+	if (key.slice(0, 7) !== monthStart.value.slice(0, 7)) {
+		visibleMonth.value = `${key.slice(0, 7)}-01`
+		loadMonth()
+	}
+	from.value = key
+	load()
+}
 
 function shift(n) {
 	from.value = addDays(from.value, n)
+	selectedDay.value = from.value
+	visibleMonth.value = `${from.value.slice(0, 7)}-01`
+	if (calendarOpen.value) loadMonth()
 	load()
+}
+function goToday() {
+	from.value = todayKey
+	selectedDay.value = todayKey
+	visibleMonth.value = `${todayKey.slice(0, 7)}-01`
+	load()
+}
+
+function addMonths(value, amount) {
+	const date = new Date(`${value}T00:00:00`)
+	date.setDate(1)
+	date.setMonth(date.getMonth() + amount)
+	return iso(date)
 }
 
 const days = computed(() => {
@@ -72,9 +283,111 @@ const days = computed(() => {
 	return Object.keys(groups).sort().map((key) => ({ key, rows: groups[key] }))
 })
 
+const weekday = (key) => new Date(`${key}T00:00:00`).toLocaleDateString("en-GB", { weekday: "long" })
+
+// Status drives the left accent bar and the time colour
+const TONES = {
+	green: { bar: "border-l-[#146C3A]", time: "text-[#146C3A]" },
+	red: { bar: "border-l-[#C8102E]", time: "text-[#A10E24]" },
+	blue: { bar: "border-l-[#1B4DB1]", time: "text-[#2B2F36]" },
+	grey: { bar: "border-l-[#D5D8DE]", time: "text-[#5B616B]" },
+}
+const tone = (a) => TONES[a.status === "Completed" ? "green" : a.status === "Cancelled" ? "grey" : a.overdue ? "red" : "blue"]
+
+// Period summary
+const tiles = computed(() => {
+	const rows = data.value?.appointments || []
+	const completed = rows.filter((a) => a.status === "Completed").length
+	const overdue = rows.filter((a) => a.status === "Scheduled" && a.overdue).length
+	const upcoming = rows.filter((a) => a.status === "Scheduled" && !a.overdue).length
+	return [
+		{ label: "In this period", value: rows.length, icon: ClipboardList, tile: "bg-[#FCE8EB] text-[#A10E24]" },
+		{ label: "Upcoming", value: upcoming, icon: CalendarClock, tile: "bg-[#E0EAFD] text-[#1B4DB1]" },
+		{ label: "Completed", value: completed, icon: CheckCircle2, tile: "bg-[#DCF3E4] text-[#146C3A]" },
+		{ label: "Overdue", value: overdue, icon: AlertCircle, tile: "bg-[#FBE0E4] text-[#A10E24]" },
+	]
+})
+
 const action = createResource({ url: "krcti_mhpss.api.records.set_appointment_status", onSuccess: load })
 const setStatus = (a, status) => action.submit({ name: a.name, status })
 function cancel(a) {
 	if (window.confirm(`Cancel the appointment with ${a.client_name}?`)) setStatus(a, "Cancelled")
 }
 </script>
+
+<style scoped>
+.month-btn {
+	display: inline-flex;
+	height: 40px;
+	width: 40px;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid #e4e6ea;
+	border-radius: 10px;
+	background: #fff;
+	color: #555860;
+	transition: background .15s, border-color .15s, color .15s;
+}
+.month-btn:hover { background: #f7f7f8; border-color: #d5d8de; color: #25272b; }
+
+/* Grid centring keeps the date number exactly in the middle of the tile.
+   The count badge is absolutely positioned, so it never shifts the number. */
+.calendar-day {
+	position: relative;
+	display: grid;
+	place-items: center;
+	min-height: 42px;
+	min-width: 0;
+	border: 1px solid transparent;
+	border-radius: 9px;
+	padding: 0;
+	color: #3c3f45;
+	transition: background .15s, border-color .15s;
+}
+.calendar-day:hover { background: #f7f7f8; }
+.calendar-day:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.4); }
+.calendar-number { display: grid; height: 26px; width: 26px; place-items: center; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1; }
+.calendar-count { position: absolute; right: 3px; top: 3px; display: grid; min-width: 14px; height: 14px; place-items: center; border-radius: 999px; background: #fce8eb; padding: 0 3px; color: #a10e24; font-size: 9px; font-weight: 700; line-height: 1; }
+.calendar-count-selected { background: #c8102e; color: white; }
+.calendar-outside { color: #c2c4c9; }
+.calendar-today .calendar-number { border: 1.5px solid #c8102e; color: #a10e24; }
+.calendar-selected { border-color: #f3c3cb; background: #fff7f8; }
+.calendar-selected:hover { background: #fff1f3; }
+.calendar-selected .calendar-number { background: #c8102e; color: white; }
+.calendar-has-appointments:not(.calendar-selected) .calendar-number { background: #fce8eb; color: #a10e24; }
+
+.nav-btn {
+	display: inline-flex;
+	height: 44px;
+	width: 44px;
+	align-items: center;
+	justify-content: center;
+	border-radius: 10px;
+	border: 1px solid #d5d8de;
+	background: #fff;
+	color: #2b2f36;
+	transition: background 0.15s;
+}
+.nav-btn:hover { background: #f4f5f7; }
+.nav-btn:focus-visible,
+.act:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.4); }
+
+.act {
+	display: inline-flex;
+	height: 40px;
+	align-items: center;
+	gap: 8px;
+	border-radius: 10px;
+	border: 1px solid #d5d8de;
+	background: #fff;
+	padding: 0 16px;
+	font-size: 14px;
+	font-weight: 600;
+	color: #2b2f36;
+	transition: background 0.15s;
+}
+.act:hover { background: #f4f5f7; }
+.act:disabled { cursor: wait; opacity: 0.6; }
+.act-danger { color: #a10e24; }
+.act-danger:hover { background: #fce8eb; border-color: #f3c3cb; }
+</style>
