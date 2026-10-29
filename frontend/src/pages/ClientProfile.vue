@@ -317,9 +317,9 @@ const survey = computed(() => {
 	if (x.consent === "Declined") return [["Consent", "Declined"], ["Reason", x.declined_reason || "Not recorded"]]
 	return [
 		["Consent", x.consent], ["Wellbeing self-rating", x.wellbeing_self_rating ? `${x.wellbeing_self_rating} / 10` : "Not recorded"], ["Recent stress", x.stress_frequency],
-		["Main concerns", x.main_concerns], ["Support available", x.support_availability], ["Coping ability", x.coping_ability],
-		["Coping behaviour", x.coping_behaviour], ["Interested in support", yes(x.interest_in_support)],
-		["Preferred support", x.preferred_support_type], ["Willing to follow up", yes(x.willingness_for_followup)],
+		["Main concerns", [x.main_concerns, x.main_concerns_other ? `Other: ${x.main_concerns_other}` : ""].filter(Boolean).join("; ")], ["Support available", x.support_availability], ["Coping ability", x.coping_ability],
+		["Coping behaviour", x.coping_behaviour === "Other" ? `Other: ${x.coping_behaviour_other || "Not specified"}` : x.coping_behaviour], ["Interested in support", yes(x.interest_in_support)],
+		["Support that would be most helpful", x.preferred_support_type], ["Willing to follow up", yes(x.willingness_for_followup)],
 		["Marital status", x.marital_status], ["Dependants", x.dependants], ["Domestic situation", x.domestic_situation],
 		["Conflict or disaster exposure", [x.conflict_exposure, x.exposure_details].filter(Boolean).join(": ")],
 	]

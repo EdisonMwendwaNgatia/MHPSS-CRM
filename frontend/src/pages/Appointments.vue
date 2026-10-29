@@ -26,13 +26,13 @@
 
       <!-- Summary for this period -->
       <section v-if="data" class="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label="Summary for this period">
-        <div v-for="t in tiles" :key="t.label" class="flex items-center gap-3.5 rounded-xl border border-[#E4E6EA] bg-white p-4">
+        <button v-for="t in tiles" :key="t.filter" type="button" class="flex items-center gap-3.5 rounded-xl border bg-white p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40" :class="activeFilter === t.filter ? 'border-[#C8102E] ring-1 ring-[#C8102E]/20' : 'border-[#E4E6EA]'" :aria-pressed="activeFilter === t.filter" @click="activeFilter = t.filter">
           <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px]" :class="t.tile"><component :is="t.icon" :size="20" /></span>
           <div class="min-w-0">
             <p class="truncate text-[13px] text-[#5B616B]">{{ t.label }}</p>
             <p class="text-[28px] font-semibold leading-[34px]">{{ t.value }}</p>
           </div>
-        </div>
+        </button>
       </section>
 
       <!-- Date range -->
@@ -91,10 +91,10 @@
       <PageLoader v-if="(list.loading && !data) || (calendarOpen && monthList.loading && !monthList.data)" />
 
       <!-- Empty state -->
-      <div v-else-if="data && !data.appointments.length" class="mt-5 rounded-xl border border-[#E4E6EA] bg-white px-5 py-14 text-center">
+      <div v-else-if="data && !filteredAppointments.length" class="mt-5 rounded-xl border border-[#E4E6EA] bg-white px-5 py-14 text-center">
         <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F5F7] text-[#5B616B]"><CalendarDays :size="22" /></span>
-        <p class="mt-3 text-sm font-semibold">Nothing booked in this period</p>
-        <p class="mx-auto mt-1 max-w-sm text-[13px] leading-5 text-[#5B616B]">Adjust the date range or book a new appointment.</p>
+        <p class="mt-3 text-sm font-semibold">{{ activeFilter === 'all' ? 'Nothing booked in this period' : `No ${activeFilter} appointments in this period` }}</p>
+        <p class="mx-auto mt-1 max-w-sm text-[13px] leading-5 text-[#5B616B]">{{ activeFilter === 'all' ? 'Adjust the date range or book a new appointment.' : 'Choose another summary card or adjust the date range.' }}</p>
       </div>
 
       <!-- Days -->
@@ -216,6 +216,7 @@ const to = ref(addDays(todayKey, 13))
 const calendarOpen = ref(false)
 const selectedDay = ref(todayKey)
 const visibleMonth = ref(`${todayKey.slice(0, 7)}-01`)
+const activeFilter = ref("all")
 const weekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 const list = createResource({ url: "krcti_mhpss.api.counsellor.my_appointments" })
@@ -226,6 +227,13 @@ const referralTo = ref("")
 const referralReason = ref("")
 const referralSelectOpen = ref(false)
 const data = computed(() => list.data)
+const filteredAppointments = computed(() => {
+	const rows = data.value?.appointments || []
+	if (activeFilter.value === "upcoming") return rows.filter((a) => a.status === "Scheduled" && !a.overdue)
+	if (activeFilter.value === "completed") return rows.filter((a) => a.status === "Completed")
+	if (activeFilter.value === "overdue") return rows.filter((a) => a.status === "Scheduled" && a.overdue)
+	return rows
+})
 const load = () => list.submit({ date_from: from.value, date_to: to.value })
 onMounted(load)
 watch([from, to], () => {
@@ -329,7 +337,7 @@ function addMonths(value, amount) {
 
 const days = computed(() => {
 	const groups = {}
-	for (const a of data.value?.appointments || []) (groups[dayKey(a.date_time)] ||= []).push(a)
+	for (const a of filteredAppointments.value) (groups[dayKey(a.date_time)] ||= []).push(a)
 	return Object.keys(groups).sort().map((key) => ({ key, rows: groups[key] }))
 })
 
@@ -351,10 +359,10 @@ const tiles = computed(() => {
 	const overdue = rows.filter((a) => a.status === "Scheduled" && a.overdue).length
 	const upcoming = rows.filter((a) => a.status === "Scheduled" && !a.overdue).length
 	return [
-		{ label: "In this period", value: rows.length, icon: ClipboardList, tile: "bg-[#FCE8EB] text-[#A10E24]" },
-		{ label: "Upcoming", value: upcoming, icon: CalendarClock, tile: "bg-[#E0EAFD] text-[#1B4DB1]" },
-		{ label: "Completed", value: completed, icon: CheckCircle2, tile: "bg-[#DCF3E4] text-[#146C3A]" },
-		{ label: "Overdue", value: overdue, icon: AlertCircle, tile: "bg-[#FBE0E4] text-[#A10E24]" },
+		{ label: "In this period", value: rows.length, filter: "all", icon: ClipboardList, tile: "bg-[#FCE8EB] text-[#A10E24]" },
+		{ label: "Upcoming", value: upcoming, filter: "upcoming", icon: CalendarClock, tile: "bg-[#E0EAFD] text-[#1B4DB1]" },
+		{ label: "Completed", value: completed, filter: "completed", icon: CheckCircle2, tile: "bg-[#DCF3E4] text-[#146C3A]" },
+		{ label: "Overdue", value: overdue, filter: "overdue", icon: AlertCircle, tile: "bg-[#FBE0E4] text-[#A10E24]" },
 	]
 })
 

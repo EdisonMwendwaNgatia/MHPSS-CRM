@@ -12,8 +12,8 @@ CLIENT_FIELDS = (
 )
 SURVEY_FIELDS = (
     "name", "status", "consent", "declined_reason", "wellbeing_self_rating", "stress_frequency",
-    "main_concerns", "support_availability", "coping_ability", "interest_in_support",
-    "preferred_support_type", "willingness_for_followup", "coping_behaviour", "marital_status",
+    "main_concerns", "main_concerns_other", "support_availability", "coping_ability", "interest_in_support",
+	"preferred_support_type", "willingness_for_followup", "coping_behaviour", "coping_behaviour_other", "marital_status",
     "dependants", "domestic_situation", "conflict_exposure", "exposure_details", "completed_by", "completed_on",
 )
 APPOINTMENT_FIELDS = [

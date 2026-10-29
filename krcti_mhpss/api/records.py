@@ -16,10 +16,10 @@ CLIENT_CREATE = CLIENT_EDIT
 CASE_STATUSES = ("Active", "Follow-Up Pending", "Closed")
 
 BASELINE_SHORT = (
-    "stress_frequency", "support_availability", "coping_ability", "preferred_support_type",
-    "marital_status", "conflict_exposure",
+	"stress_frequency", "support_availability", "coping_ability", "coping_behaviour", "preferred_support_type",
+	"marital_status", "conflict_exposure",
 )
-BASELINE_LONG = ("declined_reason", "main_concerns", "coping_behaviour", "domestic_situation", "exposure_details")
+BASELINE_LONG = ("declined_reason", "main_concerns", "main_concerns_other", "coping_behaviour_other", "domestic_situation", "exposure_details")
 BASELINE_NUMBERS = ("wellbeing_self_rating", "dependants")
 BASELINE_CHECKS = ("interest_in_support", "willingness_for_followup")
 BASELINE_ALLOWED = ("consent",) + BASELINE_SHORT + BASELINE_LONG + BASELINE_NUMBERS + BASELINE_CHECKS
@@ -160,6 +160,15 @@ def record_baseline(client=None, data=None):
     _only(data, BASELINE_ALLOWED)
     if data.get("consent") not in ("Consented", "Declined"):
         frappe.throw(_("Record whether the client consented."))
+    if data.get("consent") == "Consented" and data.get("coping_behaviour") == "Other" and not _long(
+        data.get("coping_behaviour_other"), _("The other coping mechanism")
+    ):
+        frappe.throw(_("Describe the other coping mechanism."))
+    concerns = [item.strip() for item in str(data.get("main_concerns") or "").split(",")]
+    if data.get("consent") == "Consented" and "Other" in concerns and not _long(
+        data.get("main_concerns_other"), _("The other concern")
+    ):
+        frappe.throw(_("Describe the other concern."))
 
     doc = frappe.new_doc("Baseline Survey")
     doc.client_id = owner.name

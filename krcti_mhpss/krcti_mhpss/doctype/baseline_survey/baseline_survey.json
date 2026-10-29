@@ -21,10 +21,12 @@
   "wellbeing_self_rating",
   "stress_frequency",
   "main_concerns",
+  "main_concerns_other",
   "col_2",
   "support_availability",
   "coping_ability",
   "coping_behaviour",
+  "coping_behaviour_other",
   "sec_support",
   "interest_in_support",
   "preferred_support_type",
@@ -120,6 +122,13 @@
    "label": "Main concerns"
   },
   {
+   "fieldname": "main_concerns_other",
+   "fieldtype": "Text",
+   "label": "Other concern",
+   "depends_on": "eval:doc.main_concerns && doc.main_concerns.includes(\"Other\")",
+   "mandatory_depends_on": "eval:doc.main_concerns && doc.main_concerns.includes(\"Other\")"
+  },
+  {
    "fieldname": "col_2",
    "fieldtype": "Column Break"
   },
@@ -137,8 +146,16 @@
   },
   {
    "fieldname": "coping_behaviour",
+   "fieldtype": "Select",
+   "label": "Coping behaviour",
+   "options": "\nTalk to friend or family\nKeep it to myself\nPray/spiritual practice\nOther"
+  },
+  {
+   "fieldname": "coping_behaviour_other",
    "fieldtype": "Text",
-   "label": "Coping behaviour"
+   "label": "Other coping mechanism",
+   "depends_on": "eval:doc.coping_behaviour==\"Other\"",
+   "mandatory_depends_on": "eval:doc.coping_behaviour==\"Other\""
   },
   {
    "fieldname": "sec_support",
@@ -154,8 +171,8 @@
   {
    "fieldname": "preferred_support_type",
    "fieldtype": "Select",
-   "label": "Preferred support type",
-   "options": "\nIndividual\nGroup\nTele-counselling\nOther"
+   "label": "What type of support will be more helpful?",
+   "options": "\nIndividual counselling\nGroup session\nStress management\nPeer support\nReferral services\nPsychoeducation"
   },
   {
    "fieldname": "col_3",

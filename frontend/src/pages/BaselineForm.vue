@@ -111,18 +111,28 @@
 							</fieldset>
 						</div>
 						<div v-else-if="step === 4" class="max-w-xl">
-							<FormControl label="Main concerns" type="textarea" v-model="form.main_concerns" />
+							<fieldset class="border-0 p-0">
+								<legend class="mb-3 text-sm font-medium text-[#2B2F36]">Presenting concerns <span class="font-normal text-[#5B616B]">(select all that apply)</span></legend>
+								<div class="grid gap-2 sm:grid-cols-2">
+									<label v-for="concern in mainConcernOptions" :key="concern" class="flex min-h-11 cursor-pointer items-center gap-3 rounded-[10px] border border-[#D5D8DE] px-3.5 text-sm transition hover:border-[#C8102E]" :class="selectedMainConcerns.includes(concern) ? 'border-[#C8102E] bg-[#FFF8F9]' : 'bg-white'">
+										<input v-model="selectedMainConcerns" class="h-[18px] w-[18px] accent-[#C8102E]" type="checkbox" :value="concern" @change="syncConcernDetails" />
+										{{ concern }}
+									</label>
+								</div>
+							</fieldset>
+							<FormControl v-if="selectedMainConcerns.includes('Other')" label="Describe the other concern" type="textarea" v-model="form.main_concerns_other" />
 						</div>
-						<div v-else-if="step === 5" class="max-w-xl">
+						<div v-else-if="step === 5" class="max-w-xl space-y-5">
 							<FormControl label="Support available to the client" type="select" :options="SUPPORT" v-model="form.support_availability" />
+							<FormControl label="What type of support will be more helpful?" type="select" :options="SUPPORT_TYPES" v-model="form.preferred_support_type" />
 						</div>
 						<div v-else-if="step === 6" class="max-w-xl space-y-5">
 							<FormControl label="Coping ability" type="select" :options="COPING" v-model="form.coping_ability" />
-							<FormControl label="Coping behaviour" type="textarea" v-model="form.coping_behaviour" />
+							<FormControl label="Coping behaviour" type="select" :options="COPING_BEHAVIOURS" v-model="form.coping_behaviour" @update:model-value="formError = ''" />
+							<FormControl v-if="form.coping_behaviour === 'Other'" label="Specify the coping mechanism" type="textarea" v-model="form.coping_behaviour_other" />
 						</div>
 						<div v-else-if="step === 7" class="max-w-xl space-y-5">
 							<FormControl type="checkbox" label="Interested in MHPSS support" v-model="form.interest_in_support" />
-							<FormControl label="Preferred support type" type="select" :options="SUPPORT_TYPES" v-model="form.preferred_support_type" />
 							<FormControl type="checkbox" label="Willing to take part in follow-up" v-model="form.willingness_for_followup" />
 						</div>
 						<div v-else class="max-w-xl space-y-5">
@@ -133,6 +143,7 @@
 							<FormControl v-if="form.conflict_exposure === 'Yes'" label="Exposure details" type="textarea" v-model="form.exposure_details" />
 						</div>
 
+						<p v-if="formError" class="mt-5 text-sm text-[#A10E24]" role="alert">{{ formError }}</p>
 						<ErrorMessage class="mt-5" :message="saver.error" />
 						<p v-if="step === sections.length" class="mt-5 text-xs text-[#5B616B]">Once submitted, the survey is locked. Only a System Manager can change it.</p>
 						<div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#E4E6EA] pt-5">
@@ -152,13 +163,14 @@
 import { createResource } from "frappe-ui"
 import { computed, onMounted, reactive, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { COPING, EXPOSURE, MARITAL, RATINGS, STRESS, SUPPORT, SUPPORT_TYPES } from "../data/options"
+import { COPING, COPING_BEHAVIOURS, EXPOSURE, MARITAL, RATINGS, STRESS, SUPPORT, SUPPORT_TYPES } from "../data/options"
 
 const props = defineProps({ name: { type: String, default: "" } })
 const route = useRoute()
 const router = useRouter()
 const clientName = computed(() => props.name || route.params.name)
 const step = ref(1)
+const formError = ref("")
 
 const sections = [
 	{ title: "Student information", heading: "Student information", description: "Confirm the client record before beginning the survey." },
@@ -170,6 +182,10 @@ const sections = [
 	{ title: "Interest in MHPSS support", heading: "Section 7: Interest in MHPSS support", description: "Record the client’s support preferences and follow-up consent." },
 	{ title: "Family background", heading: "Section 8: Family background", description: "Record the family and home context shared by the client." },
 ]
+const mainConcernOptions = [
+	"Academic pressure", "Financial challenges", "Family issues", "Relationships",
+	"Loneliness", "Health Concerns", "Substance/Gambling", "Other",
+]
 const currentSection = computed(() => sections[step.value - 1])
 const consentOptions = [
 	{ label: "Select consent decision", value: "" },
@@ -178,9 +194,10 @@ const consentOptions = [
 ]
 const form = reactive({
 	consent: "", wellbeing_self_rating: "", dependants: "", interest_in_support: false, willingness_for_followup: false,
-	declined_reason: "", stress_frequency: "", main_concerns: "", support_availability: "", coping_ability: "",
-	coping_behaviour: "", preferred_support_type: "", marital_status: "", domestic_situation: "", conflict_exposure: "", exposure_details: "",
+	declined_reason: "", stress_frequency: "", main_concerns: "", main_concerns_other: "", support_availability: "", coping_ability: "",
+	coping_behaviour: "", coping_behaviour_other: "", preferred_support_type: "", marital_status: "", domestic_situation: "", conflict_exposure: "", exposure_details: "",
 })
+const selectedMainConcerns = ref([])
 
 const profile = createResource({ url: "krcti_mhpss.api.counsellor.client_profile" })
 onMounted(() => profile.submit({ name: clientName.value }))
@@ -213,17 +230,33 @@ function next() {
 function previous() {
 	if (step.value > 1) step.value -= 1
 }
+function syncConcernDetails() {
+	formError.value = ""
+	if (!selectedMainConcerns.value.includes("Other")) form.main_concerns_other = ""
+}
 function changeConsent() {
 	form.consent = form.consent === "Consented" ? "Declined" : ""
 }
 function submit() {
+	formError.value = ""
+	if (form.consent === "Consented" && form.coping_behaviour === "Other" && !form.coping_behaviour_other.trim()) {
+		step.value = 6
+		formError.value = "Describe the other coping mechanism before submitting."
+		return
+	}
+	if (form.consent === "Consented" && selectedMainConcerns.value.includes("Other") && !form.main_concerns_other.trim()) {
+		step.value = 4
+		formError.value = "Describe the other concern before submitting."
+		return
+	}
 	const data = { consent: form.consent }
 	if (form.consent === "Declined") {
 		data.declined_reason = form.declined_reason
 	} else {
-		for (const key of ["stress_frequency", "main_concerns", "support_availability", "coping_ability", "coping_behaviour", "preferred_support_type", "marital_status", "domestic_situation", "conflict_exposure", "exposure_details"]) {
+		for (const key of ["stress_frequency", "main_concerns_other", "support_availability", "coping_ability", "coping_behaviour", "coping_behaviour_other", "preferred_support_type", "marital_status", "domestic_situation", "conflict_exposure", "exposure_details"]) {
 			data[key] = form[key]
 		}
+		data.main_concerns = selectedMainConcerns.value.join(", ")
 		data.wellbeing_self_rating = form.wellbeing_self_rating === "" ? "" : Number(form.wellbeing_self_rating)
 		data.dependants = form.dependants === "" ? 0 : Number(form.dependants)
 		data.interest_in_support = form.interest_in_support ? 1 : 0

@@ -62,8 +62,19 @@
           <form class="space-y-5 p-5 sm:p-6" @submit.prevent="save">
             <fieldset :disabled="isReadOnly" class="space-y-5">
               <div class="grid gap-4 sm:grid-cols-2">
+                <div data-issue-dropdown>
+                  <label id="presenting-issues-label" class="block text-sm font-medium text-[#33353A]">Presenting issues *</label>
+                  <div class="relative mt-1.5">
+                    <button type="button" class="field flex items-center justify-between text-left" :class="form.presenting_issues ? '' : 'text-[#737780]'" aria-labelledby="presenting-issues-label presenting-issues-value" :aria-expanded="issueDropdownOpen" aria-haspopup="listbox" :disabled="isReadOnly" @click="issueDropdownOpen = !issueDropdownOpen" @keydown.esc="issueDropdownOpen = false">
+                      <span id="presenting-issues-value" class="truncate">{{ form.presenting_issues || 'Select presenting issue' }}</span>
+                      <ChevronDown :size="17" class="shrink-0 text-[#737780] transition-transform" :class="issueDropdownOpen ? 'rotate-180' : ''" />
+                    </button>
+                    <div v-if="issueDropdownOpen" class="issue-menu" role="listbox" aria-labelledby="presenting-issues-label">
+                      <button v-for="issue in presentingIssueTypes" :key="issue" type="button" role="option" class="issue-option" :class="form.presenting_issues === issue ? 'issue-option-active' : ''" :aria-selected="form.presenting_issues === issue" @click="choosePresentingIssue(issue)">{{ issue }}<Check v-if="form.presenting_issues === issue" :size="16" /></button>
+                    </div>
+                  </div>
+                </div>
                 <Field label="Session details" required><textarea v-model="form.session_details" class="field" rows="3" required /></Field>
-                <Field label="Presenting issues" required><textarea v-model="form.presenting_issues" class="field" rows="3" required /></Field>
                 <Field label="Issue subclassifications"><textarea v-model="form.issue_subclassifications" class="field" rows="3" placeholder="Add relevant categories or descriptors" /></Field>
                 <Field label="Interventions applied" required><textarea v-model="form.interventions_applied" class="field" rows="3" required /></Field>
                 <Field label="Referrals made"><textarea v-model="form.referrals_made" class="field" rows="3" placeholder="Enter referral or write None" /></Field>
@@ -119,9 +130,9 @@
 
 <script setup>
 import { createResource, FileUploader } from "frappe-ui"
-import { computed, h, onMounted, reactive, ref } from "vue"
+import { computed, h, onMounted, onUnmounted, reactive, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { ArrowLeft, Check, Loader2, Upload } from "lucide-vue-next"
+import { ArrowLeft, Check, ChevronDown, Loader2, Upload } from "lucide-vue-next"
 import { fmtDateTime } from "../data/format"
 
 const props = defineProps({ name: { type: String, default: "" } })
@@ -129,6 +140,15 @@ const route = useRoute()
 const router = useRouter()
 const name = computed(() => props.name || route.params.name || "")
 const urgencyLevels = ["Low", "Moderate", "High", "Immediate"]
+const presentingIssueTypes = [
+	"Substance-Related and Addictive Disorders",
+	"Anxiety Disorders",
+	"Trauma and Stressor-Related Disorders",
+	"GBV / safeguarding issues",
+	"Depressive Disorders",
+	"Other Presenting Issues",
+]
+const issueDropdownOpen = ref(false)
 const recordFields = [
 	"session_details", "presenting_issues", "issue_subclassifications", "interventions_applied", "referrals_made",
 	"urgency_level", "risk_assessment", "follow_up_plan", "progress_previous_goals", "counsellor_observations", "next_session_focus",
@@ -165,6 +185,15 @@ const backTo = computed(() => !canManage.value
 		? { name: "FollowUps" }
 		: { name: "Appointments" })
 onMounted(() => resource.submit({ name: name.value }))
+function closeIssueDropdown(event) {
+	if (!event.target.closest("[data-issue-dropdown]")) issueDropdownOpen.value = false
+}
+onMounted(() => document.addEventListener("click", closeIssueDropdown))
+onUnmounted(() => document.removeEventListener("click", closeIssueDropdown))
+function choosePresentingIssue(issue) {
+	form.presenting_issues = issue
+	issueDropdownOpen.value = false
+}
 
 const saver = createResource({
 	url: "krcti_mhpss.api.records.record_session",
@@ -190,4 +219,9 @@ const Field = (props, { slots }) => h("label", { class: "block text-sm font-medi
 .field { display:block; width:100%; min-height:44px; border:1px solid #d5d8de; border-radius:10px; background:#fff; padding:10px 12px; font:14px/20px Inter,system-ui,sans-serif; color:#2b2f36; }
 .field:focus { outline:none; border-color:#c8102e; box-shadow:0 0 0 3px rgba(200,16,46,.12); }
 fieldset:disabled .field { background:#f4f5f7; color:#5b616b; }
+.field:disabled { cursor:default; }
+.issue-menu { position:absolute; z-index:30; top:calc(100% + 8px); left:0; width:100%; max-height:240px; overflow-y:auto; border:1px solid #e4e6ea; border-radius:12px; background:#fff; padding:6px; box-shadow:0 12px 30px rgba(31,35,45,.14); }
+.issue-option { display:flex; min-height:40px; width:100%; align-items:center; justify-content:space-between; gap:10px; border-radius:8px; padding:8px 10px; text-align:left; font-size:14px; color:#44474e; }
+.issue-option:hover { background:#f7f7f8; }
+.issue-option-active, .issue-option-active:hover { background:#fce8eb; color:#a10e24; font-weight:600; }
 </style>
