@@ -90,11 +90,8 @@ def appointment_has_permission(doc, ptype=None, user=None, **kwargs):
 # ---- user accounts: one role each, strong passwords, role changes on record ----
 
 def validate_user_roles(doc, method=None):
-    if doc.name == "Administrator":
-        return
-    held = sorted({row.role for row in doc.roles} & set(SINGLE_ROLES))
-    if len(held) > 1:
-        frappe.throw(_("Each user holds exactly one role. This user has: {0}.").format(", ".join(held)))
+    # One-role enforcement disabled: users may hold any combination of roles.
+    return
 
 
 def validate_user_password(doc, method=None):
