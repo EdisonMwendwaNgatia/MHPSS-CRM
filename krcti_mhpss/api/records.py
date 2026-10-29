@@ -6,7 +6,7 @@ from krcti_mhpss.api.counsellor import _client_for_user, _flag
 from krcti_mhpss.utils import ADMIN_ROLE, COUNSELLOR, is_admin, is_counsellor, require_roles
 
 CLIENT_TEXT = (
-    "full_name", "phone_number", "gender", "disability_type", "institution", "course_programme",
+    "full_name", "phone_number", "gender", "disability_type", "institution", "institution_county", "course_programme",
     "county_location", "programme_stream", "referral_source", "referral_source_other",
 )
 CLIENT_NUMBERS = ("age", "year_of_study")

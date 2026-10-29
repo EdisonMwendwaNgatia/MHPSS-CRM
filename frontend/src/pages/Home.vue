@@ -56,7 +56,7 @@
                 <h2 class="text-base font-semibold text-[#25272B]">Upcoming appointments</h2>
                 <p class="mt-0.5 text-xs text-[#858891]">Your next scheduled client sessions</p>
               </div>
-              <router-link :to="{ name: 'FollowUps' }" class="text-sm font-semibold text-[#B30F2A] hover:underline">View all</router-link>
+              <router-link :to="{ name: 'Appointments' }" class="text-sm font-semibold text-[#B30F2A] hover:underline">View all</router-link>
             </div>
             <div v-if="home.data.upcoming.length" class="overflow-x-auto">
               <table class="w-full min-w-[600px] text-left">
@@ -77,7 +77,7 @@
           <section class="overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_1px_2px_rgba(20,25,35,0.03)]">
             <div class="flex items-center justify-between border-b border-[#ECEDEF] px-5 py-4">
               <div><h2 class="text-base font-semibold text-[#25272B]">Follow-up actions</h2><p class="mt-0.5 text-xs text-[#858891]">Scheduled follow-up sessions</p></div>
-              <router-link :to="{ name: 'Appointments' }" class="text-sm font-semibold text-[#B30F2A] hover:underline">View all</router-link>
+              <router-link :to="{ name: 'FollowUps' }" class="text-sm font-semibold text-[#B30F2A] hover:underline">View all</router-link>
             </div>
             <div v-if="home.data.followups.length" class="divide-y divide-[#F0F1F3]">
               <router-link v-for="row in home.data.followups" :key="row.name" :to="{ name: 'SessionRecord', params: { name: row.name } }" class="flex items-center gap-3 px-5 py-4 transition hover:bg-[#FCFCFD]">

@@ -58,12 +58,13 @@
               </div>
 
               <div class="sm:col-span-2">
-                <label class="lbl" for="f-age">Age</label>
-                <input id="f-age" v-model="form.age" class="inp" type="number" inputmode="numeric" min="0" />
+                <label class="lbl" for="f-age">Age <span class="req" aria-hidden="true">*</span></label>
+                <input id="f-age" v-model="form.age" class="inp" type="number" inputmode="numeric" min="10" max="100" step="1" required :aria-invalid="!!ageError" :aria-describedby="ageError ? 'f-age-error' : undefined" />
+                <p v-if="ageError" id="f-age-error" class="mt-1 text-xs text-[#A10E24]" role="alert">{{ ageError }}</p>
               </div>
 
               <div class="sm:col-span-2">
-                <label id="f-gender-label" class="lbl">Gender</label>
+                <label id="f-gender-label" class="lbl">Sex <span class="req" aria-hidden="true">*</span></label>
                 <div class="relative" data-client-dropdown>
                   <button id="f-gender" type="button" class="select-control" :class="form.gender ? '' : 'select-placeholder'" :aria-labelledby="'f-gender-label f-gender-value'" :aria-expanded="openDropdown === 'gender'" aria-haspopup="listbox" @click="toggleDropdown('gender')" @keydown.esc="openDropdown = ''">
                     <span id="f-gender-value">{{ optionLabel(GENDERS, form.gender) }}</span><ChevronDown :size="17" class="text-[#737780] transition-transform" :class="openDropdown === 'gender' ? 'rotate-180' : ''" />
@@ -79,7 +80,7 @@
         </section>
 
         <!-- Circumstances -->
-        <section class="overflow-hidden rounded-xl border border-[#E4E6EA] bg-white">
+        <section class="overflow-visible rounded-xl border border-[#E4E6EA] bg-white" :class="openDropdown === 'disability_type' ? 'relative z-20' : ''">
           <div class="grid gap-x-8 gap-y-5 px-5 py-6 sm:px-6 lg:grid-cols-[210px_minmax(0,1fr)]">
             <div class="flex items-center gap-3 lg:items-start">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#FCE8EB] text-[#A10E24]"><Heart :size="19" /></span>
@@ -109,15 +110,22 @@
               </label>
 
               <div v-if="form.disability_status" class="sm:col-span-2">
-                <label class="lbl" for="f-disability_type">Type of disability</label>
-                <input id="f-disability_type" v-model="form.disability_type" class="inp" type="text" autocomplete="off" />
+                <label id="f-disability_type-label" class="lbl">Type of disability <span class="req" aria-hidden="true">*</span></label>
+                <div class="relative" data-client-dropdown>
+                  <button id="f-disability_type" type="button" class="select-control" :class="form.disability_type ? '' : 'select-placeholder'" :aria-labelledby="'f-disability_type-label f-disability_type-value'" :aria-expanded="openDropdown === 'disability_type'" aria-haspopup="listbox" @click="toggleDropdown('disability_type')" @keydown.esc="openDropdown = ''">
+                    <span id="f-disability_type-value">{{ optionLabel(DISABILITY_TYPES, form.disability_type) }}</span><ChevronDown :size="17" class="text-[#737780] transition-transform" :class="openDropdown === 'disability_type' ? 'rotate-180' : ''" />
+                  </button>
+                  <div v-if="openDropdown === 'disability_type'" class="select-menu" role="listbox" aria-labelledby="f-disability_type-label">
+                    <button v-for="o in opts(DISABILITY_TYPES)" :key="o.value" type="button" role="option" :aria-selected="form.disability_type === o.value" class="select-option" :class="form.disability_type === o.value ? 'select-option-active' : ''" @click="chooseOption('disability_type', o.value)">{{ o.label }}<Check v-if="form.disability_type === o.value" :size="16" /></button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         <!-- Education -->
-        <section class="overflow-hidden rounded-xl border border-[#E4E6EA] bg-white">
+        <section class="overflow-visible rounded-xl border border-[#E4E6EA] bg-white" :class="openDropdown === 'institution_county' ? 'relative z-20' : ''">
           <div class="grid gap-x-8 gap-y-5 px-5 py-6 sm:px-6 lg:grid-cols-[210px_minmax(0,1fr)]">
             <div class="flex items-center gap-3 lg:items-start">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#FCE8EB] text-[#A10E24]"><GraduationCap :size="19" /></span>
@@ -129,23 +137,38 @@
 
             <div class="grid gap-x-4 gap-y-5 sm:grid-cols-6">
               <div class="sm:col-span-6">
-                <label class="lbl" for="f-institution">College or learning institution</label>
-                <input id="f-institution" v-model="form.institution" class="inp" type="text" autocomplete="off" />
+                <label class="lbl" for="f-institution">College or learning institution <span class="req" aria-hidden="true">*</span></label>
+                <input id="f-institution" v-model="form.institution" class="inp" type="text" autocomplete="off" required />
               </div>
               <div class="sm:col-span-4">
-                <label class="lbl" for="f-course_programme">Course or programme</label>
-                <input id="f-course_programme" v-model="form.course_programme" class="inp" type="text" autocomplete="off" />
+                <label class="lbl" for="f-course_programme">Course or programme <span class="req" aria-hidden="true">*</span></label>
+                <input id="f-course_programme" v-model="form.course_programme" class="inp" type="text" autocomplete="off" required />
               </div>
               <div class="sm:col-span-2">
-                <label class="lbl" for="f-year_of_study">Year of study</label>
-                <input id="f-year_of_study" v-model="form.year_of_study" class="inp" type="number" inputmode="numeric" min="0" />
+                <label class="lbl" for="f-year_of_study">Year of study <span class="req" aria-hidden="true">*</span></label>
+                <input id="f-year_of_study" v-model="form.year_of_study" class="inp" type="number" inputmode="numeric" min="1" max="8" step="1" required />
+              </div>
+              <div class="sm:col-span-3">
+                <label id="f-institution_county-label" class="lbl">County of school <span class="req" aria-hidden="true">*</span></label>
+                <div class="relative" data-client-dropdown>
+                  <button id="f-institution_county" type="button" class="select-control" :class="form.institution_county ? '' : 'select-placeholder'" :aria-labelledby="'f-institution_county-label f-institution_county-value'" :aria-expanded="openDropdown === 'institution_county'" aria-haspopup="listbox" @click="toggleDropdown('institution_county')" @keydown.esc="openDropdown = ''">
+                    <span id="f-institution_county-value">{{ optionLabel(KENYA_COUNTIES, form.institution_county) }}</span><ChevronDown :size="17" class="text-[#737780] transition-transform" :class="openDropdown === 'institution_county' ? 'rotate-180' : ''" />
+                  </button>
+                  <div v-if="openDropdown === 'institution_county'" class="select-menu" aria-labelledby="f-institution_county-label">
+                    <input v-model="countySearch.institution_county" class="select-search" type="search" placeholder="Search counties…" aria-label="Search school counties" autocomplete="off" @keydown.esc="openDropdown = ''" />
+                    <div role="listbox" aria-label="School county options">
+                      <button v-for="o in filteredCounties('institution_county')" :key="o.value" type="button" role="option" :aria-selected="form.institution_county === o.value" class="select-option" :class="form.institution_county === o.value ? 'select-option-active' : ''" @click="chooseOption('institution_county', o.value)">{{ o.label }}<Check v-if="form.institution_county === o.value" :size="16" /></button>
+                      <p v-if="!filteredCounties('institution_county').length" class="select-empty">No counties match your search.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         <!-- Programme -->
-        <section class="overflow-visible rounded-xl border border-[#E4E6EA] bg-white">
+        <section class="overflow-visible rounded-xl border border-[#E4E6EA] bg-white" :class="openDropdown === 'county_location' ? 'relative z-20' : ''">
           <div class="grid gap-x-8 gap-y-5 px-5 py-6 sm:px-6 lg:grid-cols-[210px_minmax(0,1fr)]">
             <div class="flex items-center gap-3 lg:items-start">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#FCE8EB] text-[#A10E24]"><MapPin :size="19" /></span>
@@ -157,8 +180,19 @@
 
             <div class="grid gap-x-4 gap-y-5 sm:grid-cols-2">
               <div>
-                <label class="lbl" for="f-county_location">County location</label>
-                <input id="f-county_location" v-model="form.county_location" class="inp" type="text" autocomplete="off" />
+                <label id="f-county_location-label" class="lbl">County location <span class="req" aria-hidden="true">*</span></label>
+                <div class="relative" data-client-dropdown>
+                  <button id="f-county_location" type="button" class="select-control" :class="form.county_location ? '' : 'select-placeholder'" :aria-labelledby="'f-county_location-label f-county_location-value'" :aria-expanded="openDropdown === 'county_location'" aria-haspopup="listbox" @click="toggleDropdown('county_location')" @keydown.esc="openDropdown = ''">
+                    <span id="f-county_location-value">{{ optionLabel(KENYA_COUNTIES, form.county_location) }}</span><ChevronDown :size="17" class="text-[#737780] transition-transform" :class="openDropdown === 'county_location' ? 'rotate-180' : ''" />
+                  </button>
+                  <div v-if="openDropdown === 'county_location'" class="select-menu" aria-labelledby="f-county_location-label">
+                    <input v-model="countySearch.county_location" class="select-search" type="search" placeholder="Search counties…" aria-label="Search programme counties" autocomplete="off" @keydown.esc="openDropdown = ''" />
+                    <div role="listbox" aria-label="Programme county options">
+                      <button v-for="o in filteredCounties('county_location')" :key="o.value" type="button" role="option" :aria-selected="form.county_location === o.value" class="select-option" :class="form.county_location === o.value ? 'select-option-active' : ''" @click="chooseOption('county_location', o.value)">{{ o.label }}<Check v-if="form.county_location === o.value" :size="16" /></button>
+                      <p v-if="!filteredCounties('county_location').length" class="select-empty">No counties match your search.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div>
                 <label id="f-programme_stream-label" class="lbl">WoC programme stream</label>
@@ -190,9 +224,10 @@
           </div>
         </section>
 
-        <div v-if="saver.error" class="flex items-start gap-3 rounded-xl bg-[#FBE0E4] px-4 py-3.5 text-sm text-[#A10E24]" role="alert">
+        <div v-if="formError || saver.error" class="flex items-start gap-3 rounded-xl bg-[#FBE0E4] px-4 py-3.5 text-sm text-[#A10E24]" role="alert">
           <AlertCircle :size="20" class="mt-px shrink-0" />
-          <ErrorMessage :message="saver.error" />
+          <span v-if="formError">{{ formError }}</span>
+          <ErrorMessage v-else :message="saver.error" />
         </div>
 
         <!-- Action bar -->
@@ -224,7 +259,7 @@ import { createResource } from "frappe-ui"
 import { computed, onMounted, onUnmounted, reactive, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { AlertCircle, ArrowLeft, Check, ChevronDown, GraduationCap, Heart, Loader2, Lock, MapPin, UserRound } from "lucide-vue-next"
-import { GENDERS, REFERRALS, STREAMS } from "../data/options"
+import { DISABILITY_TYPES, GENDERS, KENYA_COUNTIES, REFERRALS, STREAMS } from "../data/options"
 
 const props = defineProps({ name: { type: String, default: "" } })
 const route = useRoute()
@@ -233,7 +268,7 @@ const clientName = computed(() => props.name || route.params.name || "")
 const isNew = computed(() => !clientName.value)
 const back = computed(() => (isNew.value ? { name: "Clients" } : { name: "ClientProfile", params: { name: clientName.value } }))
 
-const TEXT = ["full_name", "phone_number", "gender", "disability_type", "institution",
+const TEXT = ["full_name", "phone_number", "gender", "disability_type", "institution", "institution_county",
 	"course_programme", "county_location", "programme_stream", "referral_source", "referral_source_other"]
 const NUMBERS = ["age", "year_of_study"]
 const CHECKS = ["disability_status", "refugee_status"]
@@ -246,17 +281,36 @@ const form = reactive({
 })
 const loading = ref(false)
 const openDropdown = ref("")
+const formError = ref("")
+const countySearch = reactive({ institution_county: "", county_location: "" })
+const ageError = computed(() => {
+	if (form.age === "" || form.age === null) return ""
+	const age = Number(form.age)
+	if (!Number.isInteger(age) || age < 10 || age > 100) return "Enter an age from 10 to 100."
+	return ""
+})
 
 // Option lists may be plain strings or { label, value } objects
 const opts = (list) => (list || []).map((o) => (o !== null && typeof o === "object" ? { label: o.label ?? o.value, value: o.value ?? o.label } : { label: o, value: o }))
 const optionLabel = (list, value) => opts(list).find((option) => option.value === value)?.label || "Select"
-const toggleDropdown = (field) => { openDropdown.value = openDropdown.value === field ? "" : field }
+const toggleDropdown = (field) => {
+	openDropdown.value = openDropdown.value === field ? "" : field
+	if (field === "institution_county" || field === "county_location") countySearch[field] = ""
+}
 const chooseOption = (field, value) => {
 	form[field] = value
+	if (field === "institution_county" || field === "county_location") countySearch[field] = ""
 	openDropdown.value = ""
 }
+const filteredCounties = (field) => opts(KENYA_COUNTIES).filter((county) =>
+	county.value && county.label.toLocaleLowerCase().includes(countySearch[field].trim().toLocaleLowerCase()),
+)
 function closeDropdownOutside(event) {
-	if (!event.target.closest("[data-client-dropdown]")) openDropdown.value = ""
+	if (!event.target.closest("[data-client-dropdown]")) {
+		openDropdown.value = ""
+		countySearch.institution_county = ""
+		countySearch.county_location = ""
+	}
 }
 
 const profile = createResource({
@@ -296,6 +350,24 @@ function values() {
 }
 
 function save() {
+	formError.value = ""
+	if (form.age === "" || form.age === null) {
+		formError.value = "Age is required."
+		return
+	}
+	if (ageError.value) {
+		formError.value = ageError.value
+		return
+	}
+	if (!form.gender || !form.institution.trim() || !form.course_programme.trim() || !form.year_of_study ||
+		Number(form.year_of_study) < 1 || Number(form.year_of_study) > 8 || !form.institution_county || !form.county_location) {
+		formError.value = "Complete the required identity, education, and county fields before saving."
+		return
+	}
+	if (form.disability_status && !form.disability_type) {
+		formError.value = "Choose the type of disability."
+		return
+	}
 	const data = values()
 	saver.submit({ name: clientName.value || undefined, data })
 }
@@ -381,6 +453,20 @@ function save() {
 	padding: 6px;
 	box-shadow: 0 12px 30px rgba(31, 35, 45, .14);
 }
+.select-search {
+	display: block;
+	width: 100%;
+	height: 40px;
+	margin-bottom: 5px;
+	border: 1px solid #e4e6ea;
+	border-radius: 8px;
+	background: #fff;
+	padding: 0 10px;
+	font: 400 13px/18px Inter, system-ui, sans-serif;
+	color: #2b2f36;
+}
+.select-search:focus { outline: none; border-color: #c8102e; box-shadow: 0 0 0 2px rgba(200, 16, 46, .12); }
+.select-empty { padding: 12px 10px; font-size: 13px; color: #737780; }
 .select-option {
 	display: flex;
 	min-height: 40px;

@@ -25,6 +25,7 @@
   "institution",
   "course_programme",
   "year_of_study",
+  "institution_county",
   "col_3",
   "county_location",
   "programme_stream",
@@ -79,7 +80,7 @@
   {
    "fieldname": "gender",
    "fieldtype": "Select",
-   "label": "Gender",
+   "label": "Sex",
    "options": "\nMale\nFemale\nOther",
    "reqd": 1
   },
@@ -95,8 +96,9 @@
   },
   {
    "fieldname": "disability_type",
-   "fieldtype": "Data",
+   "fieldtype": "Select",
    "label": "Type of disability",
+   "options": "\nVisual impairment / Blindness\nHearing impairment / Deafness\nIntellectual disability\nPhysical disability / Mobility impairment\nOther",
    "depends_on": "disability_status",
    "mandatory_depends_on": "eval:doc.disability_status"
   },
@@ -134,13 +136,21 @@
    "reqd": 1
   },
   {
+   "fieldname": "institution_county",
+   "fieldtype": "Select",
+   "label": "County of school",
+   "options": "\nBaringo\nBomet\nBungoma\nBusia\nElgeyo-Marakwet\nEmbu\nGarissa\nHoma Bay\nIsiolo\nKajiado\nKakamega\nKericho\nKiambu\nKilifi\nKirinyaga\nKisii\nKisumu\nKitui\nKwale\nLaikipia\nLamu\nMachakos\nMakueni\nMandera\nMarsabit\nMeru\nMigori\nMombasa\nMurang'a\nNairobi\nNakuru\nNandi\nNarok\nNyamira\nNyandarua\nNyeri\nSamburu\nSiaya\nTaita-Taveta\nTana River\nTharaka-Nithi\nTrans Nzoia\nTurkana\nUasin Gishu\nVihiga\nWajir\nWest Pokot",
+   "reqd": 1
+  },
+  {
    "fieldname": "col_3",
    "fieldtype": "Column Break"
   },
   {
    "fieldname": "county_location",
-   "fieldtype": "Data",
+   "fieldtype": "Select",
    "label": "County location",
+   "options": "\nBaringo\nBomet\nBungoma\nBusia\nElgeyo-Marakwet\nEmbu\nGarissa\nHoma Bay\nIsiolo\nKajiado\nKakamega\nKericho\nKiambu\nKilifi\nKirinyaga\nKisii\nKisumu\nKitui\nKwale\nLaikipia\nLamu\nMachakos\nMakueni\nMandera\nMarsabit\nMeru\nMigori\nMombasa\nMurang'a\nNairobi\nNakuru\nNandi\nNarok\nNyamira\nNyandarua\nNyeri\nSamburu\nSiaya\nTaita-Taveta\nTana River\nTharaka-Nithi\nTrans Nzoia\nTurkana\nUasin Gishu\nVihiga\nWajir\nWest Pokot",
    "reqd": 1
   },
   {

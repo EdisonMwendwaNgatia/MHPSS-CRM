@@ -158,13 +158,13 @@
 import { createResource } from "frappe-ui"
 import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import { useRoute } from "vue-router"
-import { Bell, BellRing, BookOpen, CalendarDays, Check, ChevronDown, ChevronRight, ClipboardList, HeartHandshake, LayoutDashboard, LoaderCircle, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, Users, X } from "lucide-vue-next"
+import { Bell, BellRing, BookOpen, CalendarDays, Check, ChevronDown, ChevronRight, ClipboardList, HeartHandshake, LayoutDashboard, LoaderCircle, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, Users, UsersRound, X } from "lucide-vue-next"
 import { me } from "../data/me"
 import { session } from "../data/session"
 
 const NAV = [
 	{ label: "Dashboard", name: "Home", icon: LayoutDashboard, match: ["Home"], roles: ["counsellor"] },
-	{ label: "Clients", name: "Clients", icon: Users, match: ["Clients", "ClientNew", "ClientProfile", "ClientEdit", "Baseline"], roles: ["counsellor", "admin"] },
+	{ label: "Clients", name: "Clients", icon: UsersRound, match: ["Clients", "ClientNew", "ClientProfile", "ClientEdit", "Baseline"], roles: ["counsellor", "admin"] },
 	{ label: "Appointments", name: "Appointments", icon: CalendarDays, match: ["Appointments", "AppointmentNew", "AppointmentEdit"], roles: ["counsellor", "admin"] },
 	{ label: "Follow-ups", name: "FollowUps", icon: HeartHandshake, match: ["FollowUps"], roles: ["counsellor", "admin"] },
 	{ label: "Session records", name: "SessionRecords", icon: BookOpen, match: ["SessionRecords", "SessionRecord"], roles: ["counsellor", "admin"] },

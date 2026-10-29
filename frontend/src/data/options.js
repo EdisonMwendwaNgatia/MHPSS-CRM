@@ -1,6 +1,18 @@
 const list = (values, blank = "Select") => values.map((v) => ({ label: v || blank, value: v }))
 
 export const GENDERS = list(["", "Male", "Female", "Other"])
+export const KENYA_COUNTIES = list([
+	"", "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo-Marakwet", "Embu", "Garissa", "Homa Bay",
+	"Isiolo", "Kajiado", "Kakamega", "Kericho", "Kiambu", "Kilifi", "Kirinyaga", "Kisii", "Kisumu",
+	"Kitui", "Kwale", "Laikipia", "Lamu", "Machakos", "Makueni", "Mandera", "Marsabit", "Meru",
+	"Migori", "Mombasa", "Murang'a", "Nairobi", "Nakuru", "Nandi", "Narok", "Nyamira", "Nyandarua",
+	"Nyeri", "Samburu", "Siaya", "Taita-Taveta", "Tana River", "Tharaka-Nithi", "Trans Nzoia",
+	"Turkana", "Uasin Gishu", "Vihiga", "Wajir", "West Pokot",
+])
+export const DISABILITY_TYPES = list([
+	"", "Visual impairment / Blindness", "Hearing impairment / Deafness", "Intellectual disability",
+	"Physical disability / Mobility impairment", "Other",
+])
 export const STREAMS = list(["", "Scholarship/Education", "Enterprise Development", "Workforce Development"])
 export const REFERRALS = list(["", "School", "Peer", "Self", "Other"])
 export const SESSION_TYPES = list(["", "First Session", "Follow-Up", "Termination"])
