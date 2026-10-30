@@ -26,6 +26,8 @@
   "location",
   "sec_status",
   "status",
+  "overdue_notification_read",
+  "overdue_notification_emailed",
   "notes",
   "sec_record",
   "session_details",
@@ -36,9 +38,25 @@
   "urgency_level",
   "risk_assessment",
   "follow_up_plan",
+  "followup_goals_discussed",
   "progress_previous_goals",
+  "followup_challenges",
+  "followup_new_issues_present",
+  "followup_new_issues",
+  "followup_evident_changes_present",
+  "followup_evident_changes",
+  "followup_coping_support",
+  "followup_support_effectiveness",
+  "followup_additional_support",
+  "followup_mood_affect",
+  "followup_mood_other",
+  "followup_engagement_level",
+  "followup_risk_concerns",
   "counsellor_observations",
+  "followup_recommendations",
+  "followup_takeaways",
   "next_session_focus",
+  "followup_action",
   "audio_recording",
   "referral_history"
  ],
@@ -156,6 +174,20 @@
    "in_standard_filter": 1
   },
   {
+   "default": "0",
+   "fieldname": "overdue_notification_read",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Overdue notification read"
+  },
+  {
+   "default": "0",
+   "fieldname": "overdue_notification_emailed",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Overdue notification emailed"
+  },
+  {
    "fieldname": "notes",
    "fieldtype": "Small Text",
    "label": "Notes"
@@ -209,8 +241,96 @@
   {
    "fieldname": "progress_previous_goals",
    "fieldtype": "Small Text",
-   "label": "Progress on previous goals",
+   "label": "What progress or changes has the student made?",
    "depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_goals_discussed",
+   "fieldtype": "Small Text",
+   "label": "Goals/issues discussed last time",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_challenges",
+   "fieldtype": "Small Text",
+   "label": "Challenges or setbacks noted",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_new_issues_present",
+   "fieldtype": "Select",
+   "label": "Any new issues or stressors?",
+   "options": "\nYes\nNo",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\"",
+   "mandatory_depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_new_issues",
+   "fieldtype": "Small Text",
+   "label": "New issues or stressors shared",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_evident_changes_present",
+   "fieldtype": "Select",
+   "label": "Any evident changes?",
+   "options": "\nYes\nNo",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\"",
+   "mandatory_depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_evident_changes",
+   "fieldtype": "Small Text",
+   "label": "Evident changes",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_coping_support",
+   "fieldtype": "Small Text",
+   "label": "Coping skills or supports the client is using",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_support_effectiveness",
+   "fieldtype": "Small Text",
+   "label": "How effective do they seem?",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_additional_support",
+   "fieldtype": "Small Text",
+   "label": "Additional support needed",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_mood_affect",
+   "fieldtype": "Select",
+   "label": "Mood and affect",
+   "options": "\nStable\nImproved\nLow\nAnxious\nWithdrawn\nOther",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\"",
+   "mandatory_depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_mood_other",
+   "fieldtype": "Small Text",
+   "label": "Other mood or affect",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\" && doc.followup_mood_affect==\"Other\""
+  },
+  {
+   "fieldname": "followup_engagement_level",
+   "fieldtype": "Select",
+   "label": "Engagement level",
+   "options": "\nActive\nModerate\nPassive",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\"",
+   "mandatory_depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_risk_concerns",
+   "fieldtype": "Select",
+   "label": "Risk concerns",
+   "options": "\nNone\nMild\nModerate\nHigh",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\"",
+   "mandatory_depends_on": "eval:doc.session_type==\"Follow-Up\""
   },
   {
    "fieldname": "counsellor_observations",
@@ -221,7 +341,25 @@
   {
    "fieldname": "next_session_focus",
    "fieldtype": "Small Text",
-   "label": "Next session focus",
+   "label": "Focus for next session",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_recommendations",
+   "fieldtype": "Small Text",
+   "label": "Recommendations",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_takeaways",
+   "fieldtype": "Small Text",
+   "label": "Key takeaways or interventions used today",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_action",
+   "fieldtype": "Small Text",
+   "label": "Follow-up action (if any)",
    "depends_on": "eval:doc.session_type==\"Follow-Up\""
   },
   {

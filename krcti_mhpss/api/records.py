@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from frappe.utils import get_datetime, now_datetime
+from frappe.utils import get_datetime, get_url, now_datetime
 
 from krcti_mhpss.api.counsellor import _client_for_user, _flag
 from krcti_mhpss.utils import ADMIN_ROLE, COUNSELLOR, is_admin, is_counsellor, require_roles
@@ -30,7 +30,11 @@ APPOINTMENT_DETAIL = (
     "duration_minutes", "session_type", "mode_of_contact", "location", "notes", "status",
     "session_details", "presenting_issues", "issue_subclassifications", "interventions_applied",
     "referrals_made", "urgency_level", "risk_assessment", "follow_up_plan",
-    "progress_previous_goals", "counsellor_observations", "next_session_focus", "audio_recording",
+    "progress_previous_goals", "followup_goals_discussed", "followup_challenges", "followup_new_issues_present", "followup_new_issues",
+    "followup_evident_changes_present", "followup_evident_changes", "followup_coping_support", "followup_support_effectiveness",
+    "followup_additional_support", "followup_mood_affect", "followup_mood_other", "followup_engagement_level",
+    "followup_risk_concerns", "counsellor_observations", "followup_recommendations", "followup_takeaways",
+    "next_session_focus", "followup_action", "audio_recording",
 )
 
 
@@ -48,12 +52,24 @@ def _referral_rows(appointment_name):
 SESSION_RECORD_TEXT = (
     "session_details", "presenting_issues", "issue_subclassifications", "interventions_applied",
     "referrals_made", "risk_assessment", "follow_up_plan", "progress_previous_goals",
-    "counsellor_observations", "next_session_focus",
+    "followup_goals_discussed", "followup_challenges", "followup_new_issues", "followup_evident_changes",
+    "followup_coping_support", "followup_support_effectiveness", "followup_additional_support",
+    "followup_mood_other", "counsellor_observations", "followup_recommendations", "followup_takeaways",
+    "next_session_focus", "followup_action",
 )
 SESSION_RECORD_REQUIRED = (
     "session_details", "presenting_issues", "interventions_applied", "risk_assessment", "follow_up_plan",
 )
 SESSION_URGENCY_LEVELS = ("Low", "Moderate", "High", "Immediate")
+FOLLOWUP_SELECT_FIELDS = {
+    "followup_mood_affect": ("Stable", "Improved", "Low", "Anxious", "Withdrawn", "Other"),
+    "followup_engagement_level": ("Active", "Moderate", "Passive"),
+    "followup_risk_concerns": ("None", "Mild", "Moderate", "High"),
+}
+FOLLOWUP_YN_FIELDS = {
+    "followup_new_issues_present": ("Yes", "No"),
+    "followup_evident_changes_present": ("Yes", "No"),
+}
 
 
 def _data(value):
@@ -250,20 +266,46 @@ def record_session(name=None, data=None):
         frappe.throw(_("Closed cases are read-only."))
     data = _data(data)
     allowed = SESSION_RECORD_TEXT
-    _only(data, allowed + ("urgency_level",))
-    for key in SESSION_RECORD_REQUIRED:
+    _only(data, allowed + ("urgency_level", "mode_of_contact") + tuple(FOLLOWUP_SELECT_FIELDS) + tuple(FOLLOWUP_YN_FIELDS))
+    required = (
+        ("session_details", "presenting_issues", "risk_assessment", "followup_takeaways")
+        if doc.session_type == "Follow-Up" else SESSION_RECORD_REQUIRED
+    )
+    for key in required:
         if not _long(data.get(key), _(key.replace("_", " ")), 4000):
             frappe.throw(_("Complete the {0} field before saving the session.").format(key.replace("_", " ")))
     urgency = data.get("urgency_level")
     if urgency not in SESSION_URGENCY_LEVELS:
         frappe.throw(_("Choose an urgency level."))
     if doc.session_type == "Follow-Up":
-        for key in ("progress_previous_goals", "counsellor_observations", "next_session_focus"):
-            if not _long(data.get(key), _(key.replace("_", " ")), 4000):
-                frappe.throw(_("Complete the {0} field for a follow-up session.").format(key.replace("_", " ")))
+        if data.get("mode_of_contact") not in ("Physical Individual", "Tele-counselling"):
+            frappe.throw(_("Choose Physical Individual or Tele-counselling as the mode of counseling."))
+        for key, options in FOLLOWUP_SELECT_FIELDS.items():
+            if data.get(key) not in options:
+                frappe.throw(_("Choose a valid {0} for the follow-up session.").format(_(key.replace("_", " "))))
+        for key, options in FOLLOWUP_YN_FIELDS.items():
+            if data.get(key) not in options:
+                frappe.throw(_("Choose Yes or No for {0}.").format(_(key.replace("_", " "))))
+        for answer_field, detail_field, label in (
+            ("followup_new_issues_present", "followup_new_issues", _("new issues or stressors")),
+            ("followup_evident_changes_present", "followup_evident_changes", _("evident changes")),
+        ):
+            if data[answer_field] == "Yes" and not _long(data.get(detail_field), _(detail_field.replace("_", " ")), 4000):
+                frappe.throw(_("Describe the {0} selected as Yes.").format(label))
+            if data[answer_field] == "No":
+                data[detail_field] = ""
     for key in SESSION_RECORD_TEXT:
         doc.set(key, _long(data.get(key), _(key.replace("_", " ")), 4000))
+    if doc.session_type == "Follow-Up":
+        doc.mode_of_contact = data["mode_of_contact"]
+        for key in FOLLOWUP_YN_FIELDS:
+            doc.set(key, data[key])
+        for key in FOLLOWUP_SELECT_FIELDS:
+            doc.set(key, data[key])
     doc.urgency_level = urgency
+    # Clear any dismissal when this overdue follow-up is completed. Completed
+    # appointments no longer qualify for the overdue-notification query.
+    doc.overdue_notification_read = 0
     doc.status = "Completed"
     doc.save()
     return {"name": doc.name, "status": doc.status}
@@ -288,11 +330,16 @@ def save_appointment(name=None, client=None, data=None):
 
     if "date_time" in data or not name:
         doc.date_time = _when(data.get("date_time"))
+        doc.overdue_notification_read = 0
+        doc.overdue_notification_emailed = 0
     if "duration_minutes" in data:
         doc.duration_minutes = _int(data["duration_minutes"], _("the duration"))
     for key in ("session_type", "mode_of_contact"):
         if key in data:
             doc.set(key, _short(data[key], key.replace("_", " "), 40))
+            if key == "session_type":
+                doc.overdue_notification_read = 0
+                doc.overdue_notification_emailed = 0
     if "location" in data:
         doc.location = _short(data["location"], _("The location"))
     if "notes" in data:
@@ -345,7 +392,24 @@ def refer_appointment(name=None, to_counsellor=None, reason=None):
         doc.save()
     finally:
         frappe.flags.allow_appointment_referral = False
+    _email_referral_notification(frappe.session.user, to_counsellor, doc.name)
     return {"name": doc.name, "counsellor_id": doc.counsellor_id}
+
+
+def _email_referral_notification(from_counsellor, to_counsellor, appointment_name):
+    """Queue a brief email for both counsellors without exposing client details."""
+    appointment_url = get_url("/frontend")
+    for user, subject, message in (
+        (to_counsellor, _("An appointment has been referred to you"), _("Appointment {0} has been referred to you. Sign in to the MHPSS case management system to review it: {1}").format(appointment_name, appointment_url)),
+        (from_counsellor, _("Your appointment referral was recorded"), _("Your referral for appointment {0} was recorded. View the case in the MHPSS case management system: {1}").format(appointment_name, appointment_url)),
+    ):
+        email = frappe.db.get_value("User", user, "email")
+        if not email:
+            continue
+        try:
+            frappe.sendmail(recipients=email, subject=subject, message=message)
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), _("Could not email an appointment referral notification"))
 
 
 @frappe.whitelist()
@@ -378,17 +442,32 @@ def referral_notifications():
             "to_name": frappe.db.get_value("User", row.to_counsellor, "full_name") or row.to_counsellor,
             "reason": row.reason,
             "referred_on": row.referred_on,
-            "direction": "sent" if source else "received",
+            "direction": "sent" if row.from_counsellor == user else "received",
         })
-    unread = frappe.db.count("Appointment Referral", {"from_counsellor": user, "source_seen": 0})
-    unread += frappe.db.count("Appointment Referral", {"to_counsellor": user, "target_seen": 0})
-    return {"notifications": result, "unread_count": unread}
+    result = [
+        item for item in result
+        if not (item["direction"] == "sent" and frappe.db.get_value("Appointment Referral", item["id"], "source_seen"))
+        and not (item["direction"] == "received" and frappe.db.get_value("Appointment Referral", item["id"], "target_seen"))
+    ]
+    return {"notifications": result, "unread_count": len(result)}
 
 
 @frappe.whitelist(methods=["POST"])
-def mark_referral_notifications_read():
+def mark_referral_notifications_read(name=None):
     require_roles(COUNSELLOR)
     user = frappe.session.user
+    if name:
+        row = frappe.db.get_value(
+            "Appointment Referral", name,
+            ["from_counsellor", "to_counsellor", "source_seen", "target_seen"],
+            as_dict=True,
+        )
+        if not row or user not in (row.from_counsellor, row.to_counsellor):
+            frappe.throw(_("Referral notification not found."), frappe.PermissionError)
+        field = "source_seen" if row.from_counsellor == user else "target_seen"
+        frappe.db.set_value("Appointment Referral", name, field, 1, update_modified=False)
+        return {"ok": True}
+
     for field, party_field in (("source_seen", "from_counsellor"), ("target_seen", "to_counsellor")):
         names = frappe.get_all("Appointment Referral", filters={party_field: user, field: 0}, pluck="name", limit=0)
         for name in names:

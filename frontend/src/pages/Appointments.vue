@@ -7,12 +7,6 @@
           <h1 class="text-2xl font-semibold leading-8">Appointments</h1>
           <p class="mt-0.5 text-[13px] text-[#5B616B]">Your sessions for the selected date range, grouped by day</p>
         </div>
-        <router-link
-          :to="{ name: 'AppointmentNew' }"
-          class="inline-flex h-11 items-center gap-2 rounded-[10px] border border-[#C8102E] bg-[#C8102E] px-[18px] text-sm font-semibold text-white transition hover:bg-[#A10E24] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40 focus-visible:ring-offset-2"
-        >
-          <CalendarPlus :size="18" /> Book an appointment
-        </router-link>
       </div>
 
       <!-- Overdue alert -->
@@ -197,7 +191,7 @@
 import { createResource } from "frappe-ui"
 import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import {
-	AlertCircle, CalendarClock, CalendarDays, CalendarPlus, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
+	AlertCircle, CalendarClock, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
 	ClipboardList, Loader2, MapPin, Pencil, Share2, XCircle,
 } from "lucide-vue-next"
 import { apptLabel, apptTheme, dayKey, fmtDate, fmtTime } from "../data/format"

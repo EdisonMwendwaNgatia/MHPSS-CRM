@@ -18,12 +18,16 @@ SURVEY_FIELDS = (
 )
 APPOINTMENT_FIELDS = [
     "name", "client_id", "client_name", "scholar_code", "counsellor_id", "counsellor_name", "date_time", "end_time",
-    "session_type", "mode_of_contact", "location", "status", "notes",
+    "session_type", "mode_of_contact", "location", "status", "notes", "overdue_notification_read",
 ]
 SESSION_RECORD_FIELDS = [
     *APPOINTMENT_FIELDS, "session_details", "presenting_issues",
     "issue_subclassifications", "interventions_applied", "referrals_made", "urgency_level", "risk_assessment",
-    "follow_up_plan", "progress_previous_goals", "counsellor_observations", "next_session_focus", "audio_recording",
+    "follow_up_plan", "progress_previous_goals", "followup_goals_discussed", "followup_challenges",
+    "followup_new_issues", "followup_evident_changes", "followup_coping_support", "followup_support_effectiveness",
+    "followup_additional_support", "followup_mood_affect", "followup_mood_other", "followup_engagement_level",
+    "followup_risk_concerns", "counsellor_observations", "followup_recommendations", "followup_takeaways",
+    "next_session_focus", "followup_action", "audio_recording",
 ]
 
 
@@ -79,7 +83,7 @@ def search_clients(term=None, limit=20):
     if len(term) < 2:
         return []
     like = f"%{term}%"
-    or_filters = [[f, "like", like] for f in ("scholar_code", "full_name", "phone_number", "institution")]
+    or_filters = [[f, "like", like] for f in ("name", "scholar_code", "full_name", "phone_number", "institution")]
     digits = normalize_phone(term)
     if len(digits) >= 6:
         or_filters.append(["phone_number", "like", f"%{digits[-9:]}%"])
@@ -212,6 +216,17 @@ def home():
         order_by="date_time asc",
         limit=5,
     )
+    overdue_notifications = frappe.get_all(
+        "Appointment",
+        filters={
+            **followup_filters,
+            "date_time": ["<", now],
+            "overdue_notification_read": 0,
+        },
+        fields=APPOINTMENT_FIELDS,
+        order_by="date_time asc",
+        limit=0,
+    )
     today_rows = frappe.get_all(
         "Appointment",
         filters={**scheduled, "date_time": ["between", [f"{today} 00:00:00", f"{today} 23:59:59"]]},
@@ -230,7 +245,62 @@ def home():
         "upcoming": _attach_referrals(upcoming),
         "sessions_conducted": frappe.db.count("Appointment", {"counsellor_id": user, "status": "Completed"}),
         "followups_pending": frappe.db.count("Appointment", followup_filters),
-        "overdue_followups": frappe.db.count("Appointment", {**followup_filters, "date_time": ["<", now]}),
+        "overdue_followups": frappe.db.count("Appointment", {**followup_filters, "date_time": ["<", now], "overdue_notification_read": 0}),
         "recent_sessions": _attach_referrals(recent_sessions),
         "followups": _attach_referrals(_flag(followups)),
+        "overdue_notifications": _flag(overdue_notifications),
     }
+
+
+@frappe.whitelist(methods=["POST"])
+def mark_overdue_followup_notifications_read(name=None):
+    require_roles(COUNSELLOR)
+    user = frappe.session.user
+    filters = {
+        "counsellor_id": user,
+        "session_type": "Follow-Up",
+        "status": "Scheduled",
+        "date_time": ["<", now_datetime()],
+        "overdue_notification_read": 0,
+    }
+    if name:
+        filters["name"] = name
+        if not frappe.db.exists("Appointment", filters):
+            frappe.throw(_("Overdue follow-up notification not found."), frappe.PermissionError)
+        frappe.db.set_value("Appointment", name, "overdue_notification_read", 1, update_modified=False)
+        return {"ok": True}
+
+    names = frappe.get_all("Appointment", filters=filters, pluck="name", limit=0)
+    for appointment in names:
+        frappe.db.set_value("Appointment", appointment, "overdue_notification_read", 1, update_modified=False)
+    return {"ok": True, "count": len(names)}
+
+
+def notify_overdue_followups():
+    """Email each counsellor once when one of their scheduled follow-ups becomes overdue."""
+    now = now_datetime()
+    rows = frappe.get_all(
+        "Appointment",
+        filters={
+            "session_type": "Follow-Up",
+            "status": "Scheduled",
+            "date_time": ["<", now],
+            "overdue_notification_emailed": 0,
+        },
+        fields=["name", "counsellor_id", "date_time"],
+        limit=0,
+    )
+    for row in rows:
+        email = frappe.db.get_value("User", row.counsellor_id, "email")
+        if not email:
+            continue
+        try:
+            frappe.sendmail(
+                recipients=email,
+                subject=_("Overdue follow-up appointment"),
+                message=_("A follow-up appointment ({0}) is overdue. Sign in to the MHPSS case management system to review it.").format(row.name),
+            )
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), _("Could not email an overdue follow-up notification"))
+            continue
+        frappe.db.set_value("Appointment", row.name, "overdue_notification_emailed", 1, update_modified=False)

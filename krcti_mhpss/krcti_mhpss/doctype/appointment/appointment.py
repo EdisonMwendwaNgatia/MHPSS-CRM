@@ -93,7 +93,9 @@ class Appointment(Document):
             if self.date_time and get_datetime(self.date_time) > now_datetime():
                 frappe.throw(_("An appointment in the future cannot be marked as Completed."))
             required = (
-                "session_details", "presenting_issues", "interventions_applied", "risk_assessment", "follow_up_plan",
+                ("session_details", "presenting_issues", "risk_assessment", "followup_takeaways")
+                if self.session_type == "Follow-Up"
+                else ("session_details", "presenting_issues", "interventions_applied", "risk_assessment", "follow_up_plan")
             )
             missing = [frappe.unscrub(field) for field in required if not (self.get(field) or "").strip()]
             if missing:
@@ -101,7 +103,24 @@ class Appointment(Document):
             if self.urgency_level not in ("Low", "Moderate", "High", "Immediate"):
                 frappe.throw(_("Choose an urgency level before completing the session."))
             if self.session_type == "Follow-Up":
-                followup_fields = ("progress_previous_goals", "counsellor_observations", "next_session_focus")
-                missing_followup = [frappe.unscrub(field) for field in followup_fields if not (self.get(field) or "").strip()]
+                if self.mode_of_contact not in ("Physical Individual", "Tele-counselling"):
+                    frappe.throw(_("Choose Physical Individual or Tele-counselling as the mode of counseling."))
+                followup_yes_no = {
+                    "followup_new_issues_present": ("Yes", "No"),
+                    "followup_evident_changes_present": ("Yes", "No"),
+                }
+                missing_yes_no = [frappe.unscrub(field) for field, choices in followup_yes_no.items() if self.get(field) not in choices]
+                if missing_yes_no:
+                    frappe.throw(_("Choose Yes or No for: {0}.").format(", ".join(missing_yes_no)))
+                if self.followup_new_issues_present == "Yes" and not (self.followup_new_issues or "").strip():
+                    frappe.throw(_("Describe the new issues or stressors."))
+                if self.followup_evident_changes_present == "Yes" and not (self.followup_evident_changes or "").strip():
+                    frappe.throw(_("Describe the evident changes."))
+                followup_choices = {
+                    "followup_mood_affect": ("Stable", "Improved", "Low", "Anxious", "Withdrawn", "Other"),
+                    "followup_engagement_level": ("Active", "Moderate", "Passive"),
+                    "followup_risk_concerns": ("None", "Mild", "Moderate", "High"),
+                }
+                missing_followup = [frappe.unscrub(field) for field, choices in followup_choices.items() if self.get(field) not in choices]
                 if missing_followup:
-                    frappe.throw(_("Complete these follow-up fields first: {0}.").format(", ".join(missing_followup)))
+                    frappe.throw(_("Choose valid follow-up observations for: {0}.").format(", ".join(missing_followup)))

@@ -306,5 +306,11 @@ doc_events = {
 # Recreate any missing role whenever the site is updated
 after_migrate = ["krcti_mhpss.install.after_migrate"]
 
+scheduler_events = {
+    "cron": {
+        "*/15 * * * *": ["krcti_mhpss.api.counsellor.notify_overdue_followups"],
+    },
+}
+
 # The Frappe UI app at /frontend
 website_route_rules = [{"from_route": "/frontend/<path:app_path>", "to_route": "frontend"}]
