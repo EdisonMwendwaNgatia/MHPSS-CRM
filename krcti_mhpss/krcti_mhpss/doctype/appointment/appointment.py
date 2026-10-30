@@ -102,6 +102,8 @@ class Appointment(Document):
                 frappe.throw(_("Complete these session record fields first: {0}.").format(", ".join(missing)))
             if self.urgency_level not in ("Low", "Moderate", "High", "Immediate"):
                 frappe.throw(_("Choose an urgency level before completing the session."))
+            if self.session_type == "First Session" and self.mode_of_contact not in ("Tele counselling Session", "Physical Session"):
+                frappe.throw(_("Choose Tele counselling Session or Physical Session as the mode of counselling."))
             if self.session_type == "Follow-Up":
                 if self.mode_of_contact not in ("Physical Individual", "Tele-counselling"):
                     frappe.throw(_("Choose Physical Individual or Tele-counselling as the mode of counseling."))

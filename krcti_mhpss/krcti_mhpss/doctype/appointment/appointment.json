@@ -151,7 +151,7 @@
    "label": "Mode of contact",
    "reqd": 1,
    "in_standard_filter": 1,
-   "options": "\nPhysical Individual\nPhysical Group\nTele-counselling\nPhone Call\nSchool Campaign"
+   "options": "\nPhysical Individual\nPhysical Group\nTele-counselling\nPhone Call\nSchool Campaign\nTele counselling Session\nPhysical Session"
   },
   {
    "fieldname": "location",

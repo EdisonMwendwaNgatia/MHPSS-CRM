@@ -133,14 +133,14 @@
 
 						<!-- Follow-up counseling mode -->
 						<div v-else-if="currentSection.key === 'mode'" class="max-w-2xl">
-							<label id="mode-of-counseling-label" class="lbl">Mode of counseling <span class="req" aria-hidden="true">*</span></label>
+							<label id="mode-of-counseling-label" class="lbl">Mode of counselling <span class="req" aria-hidden="true">*</span></label>
 							<div class="relative" data-mode-dropdown>
 								<button type="button" class="field flex items-center justify-between gap-3 text-left" :class="form.mode_of_contact ? '' : 'is-empty'" aria-labelledby="mode-of-counseling-label mode-of-counseling-value" :aria-expanded="modeDropdownOpen" aria-haspopup="listbox" :disabled="!canSave" @click="modeDropdownOpen = !modeDropdownOpen" @keydown.esc="modeDropdownOpen = false">
-									<span id="mode-of-counseling-value" class="truncate">{{ form.mode_of_contact || 'Select mode of counseling' }}</span>
+									<span id="mode-of-counseling-value" class="truncate">{{ form.mode_of_contact || 'Select mode of counselling' }}</span>
 									<ChevronDown :size="17" class="shrink-0 text-[#5B616B] transition-transform" :class="modeDropdownOpen ? 'rotate-180' : ''" />
 								</button>
 								<div v-if="modeDropdownOpen" class="issue-menu" role="listbox" aria-labelledby="mode-of-counseling-label">
-									<button v-for="option in counselingModes" :key="option" type="button" role="option" class="issue-option" :class="form.mode_of_contact === option ? 'issue-option-active' : ''" :aria-selected="form.mode_of_contact === option" @click="chooseCounselingMode(option)">{{ option }}<Check v-if="form.mode_of_contact === option" :size="16" /></button>
+									<button v-for="option in activeCounselingModes" :key="option" type="button" role="option" class="issue-option" :class="form.mode_of_contact === option ? 'issue-option-active' : ''" :aria-selected="form.mode_of_contact === option" @click="chooseCounselingMode(option)">{{ option }}<Check v-if="form.mode_of_contact === option" :size="16" /></button>
 								</div>
 							</div>
 						</div>
@@ -327,7 +327,8 @@ const urgencyLevels = ["Low", "Moderate", "High", "Immediate"]
 const moodAffectOptions = ["Stable", "Improved", "Low", "Anxious", "Withdrawn", "Other"]
 const engagementLevels = ["Active", "Moderate", "Passive"]
 const followupRiskLevels = ["None", "Mild", "Moderate", "High"]
-const counselingModes = ["Physical Individual", "Tele-counselling"]
+const followUpCounselingModes = ["Physical Individual", "Tele-counselling"]
+const firstSessionCounselingModes = ["Tele counselling Session", "Physical Session"]
 const yesNoOptions = ["Yes", "No"]
 const presentingIssueTypes = [
 	"Substance-Related and Addictive Disorders",
@@ -368,11 +369,12 @@ const resource = createResource({
 	url: "krcti_mhpss.api.records.session_record_detail",
 	onSuccess(data) {
 		for (const field of recordFields) form[field] = data.appointment[field] ?? ""
-		if (data.appointment.session_type === "Follow-Up" && !counselingModes.includes(form.mode_of_contact)) form.mode_of_contact = ""
+		if (data.appointment.status === "Scheduled" && !activeCounselingModes.value.includes(form.mode_of_contact)) form.mode_of_contact = ""
 	},
 })
 const record = computed(() => resource.data?.appointment)
 const isFollowUp = computed(() => record.value?.session_type === "Follow-Up")
+const activeCounselingModes = computed(() => isFollowUp.value ? followUpCounselingModes : firstSessionCounselingModes)
 const history = computed(() => resource.data?.history || [])
 const caseClosed = computed(() => resource.data?.case_status === "Closed")
 const canManage = computed(() => resource.data?.can_manage === true)
@@ -457,6 +459,7 @@ const sections = computed(() => {
 			)
 		} else {
 			list.push(
+				{ key: "mode", title: "Mode of counselling", heading: "Mode of counselling", description: "Choose how this first counselling session is being held." },
 				{ key: "presenting", title: "Presenting issues", heading: "Presenting issues", description: "Record what brought the client in and what was discussed." },
 				{ key: "interventions", title: "Interventions", heading: "Interventions", description: "Record the support given and any referrals made." },
 				{ key: "urgency", title: "Urgency and risk", heading: "Urgency and risk", description: "Record how urgent the case is and the risk assessment." },

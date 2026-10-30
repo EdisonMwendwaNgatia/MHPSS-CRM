@@ -277,6 +277,8 @@ def record_session(name=None, data=None):
     urgency = data.get("urgency_level")
     if urgency not in SESSION_URGENCY_LEVELS:
         frappe.throw(_("Choose an urgency level."))
+    if doc.session_type == "First Session" and data.get("mode_of_contact") not in ("Tele counselling Session", "Physical Session"):
+        frappe.throw(_("Choose Tele counselling Session or Physical Session as the mode of counselling."))
     if doc.session_type == "Follow-Up":
         if data.get("mode_of_contact") not in ("Physical Individual", "Tele-counselling"):
             frappe.throw(_("Choose Physical Individual or Tele-counselling as the mode of counseling."))
@@ -296,8 +298,9 @@ def record_session(name=None, data=None):
                 data[detail_field] = ""
     for key in SESSION_RECORD_TEXT:
         doc.set(key, _long(data.get(key), _(key.replace("_", " ")), 4000))
-    if doc.session_type == "Follow-Up":
+    if doc.session_type in ("First Session", "Follow-Up"):
         doc.mode_of_contact = data["mode_of_contact"]
+    if doc.session_type == "Follow-Up":
         for key in FOLLOWUP_YN_FIELDS:
             doc.set(key, data[key])
         for key in FOLLOWUP_SELECT_FIELDS:
