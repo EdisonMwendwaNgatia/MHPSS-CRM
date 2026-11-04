@@ -374,6 +374,7 @@ const resource = createResource({
 })
 const record = computed(() => resource.data?.appointment)
 const isFollowUp = computed(() => record.value?.session_type === "Follow-Up")
+const isTermination = computed(() => record.value?.session_type === "Termination")
 const activeCounselingModes = computed(() => isFollowUp.value ? followUpCounselingModes : firstSessionCounselingModes)
 const history = computed(() => resource.data?.history || [])
 const caseClosed = computed(() => resource.data?.case_status === "Closed")
@@ -463,8 +464,10 @@ const sections = computed(() => {
 				{ key: "presenting", title: "Presenting issues", heading: "Presenting issues", description: "Record what brought the client in and what was discussed." },
 				{ key: "interventions", title: "Interventions", heading: "Interventions", description: "Record the support given and any referrals made." },
 				{ key: "urgency", title: "Urgency and risk", heading: "Urgency and risk", description: "Record how urgent the case is and the risk assessment." },
-				{ key: "plan", title: "Follow-up plan", heading: "Follow-up plan", description: "Record what happens next for this client." },
 			)
+			if (!isTermination.value) {
+				list.push({ key: "plan", title: "Follow-up plan", heading: "Follow-up plan", description: "Record what happens next for this client." })
+			}
 		}
 		list.push({ key: "audio", title: "Session audio", heading: "Session audio (optional)", description: "Upload an audio recording if one is available. The file is stored privately with this session." })
 	}
@@ -529,6 +532,7 @@ const banner = computed(() => {
 	if (r.status === "Completed") return { text: "This session has been recorded. The summary is locked and read-only.", label: "Recorded", pill: TONES.green }
 	if (r.status === "Cancelled") return { text: "This appointment was cancelled, so it cannot be recorded.", label: "Cancelled", pill: TONES.gray }
 	if (!canManage.value) return { text: `This appointment was referred to ${r.counsellor_name || r.counsellor_id} and is now on their schedule.`, label: "Referred", pill: TONES.blue }
+	if (r.session_type === "Termination") return { text: "Review the case history, then record the termination session. Saving this session will close the case.", label: "Scheduled", pill: TONES.blue }
 	return r.overdue
 		? { text: "This session has passed. Review the case history, then record it below.", label: "Overdue", pill: TONES.amber }
 		: { text: "Review the case history, then record the session details, issues, interventions, urgency, risk and follow-up plan.", label: "Scheduled", pill: TONES.blue }

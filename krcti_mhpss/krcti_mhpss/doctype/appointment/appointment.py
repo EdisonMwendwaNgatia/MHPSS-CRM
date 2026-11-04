@@ -38,7 +38,7 @@ class Appointment(Document):
                 frappe.throw(_("A referral must be recorded before changing the appointment counsellor."), frappe.PermissionError)
         elif is_admin() and client.assigned_counsellor != self.counsellor_id and not counsellor_in_case(self.client_id, self.counsellor_id):
             frappe.throw(_("The appointment counsellor must be assigned to or involved in this case."))
-        if client.case_status == "Closed" and not is_admin():
+        if client.case_status == "Closed":
             frappe.throw(_("This case is closed and its records are read-only."))
         before = self.get_doc_before_save()
         if before and before.client_id != self.client_id:
@@ -57,6 +57,16 @@ class Appointment(Document):
     def check_slot(self):
         if self.status != "Scheduled" or not self.date_time:
             return
+        pending_for_client = frappe.db.exists(
+            "Appointment",
+            {
+                "client_id": self.client_id,
+                "status": "Scheduled",
+                "name": ["!=", self.name or ""],
+            },
+        )
+        if pending_for_client:
+            frappe.throw(_("This client already has a scheduled appointment. Complete or cancel it before booking another."))
         if self.mode_of_contact not in GROUP_MODES:
             clash = frappe.db.exists(
                 "Appointment",
@@ -95,6 +105,8 @@ class Appointment(Document):
             required = (
                 ("session_details", "presenting_issues", "risk_assessment", "followup_takeaways")
                 if self.session_type == "Follow-Up"
+                else ("session_details", "presenting_issues", "interventions_applied", "risk_assessment")
+                if self.session_type == "Termination"
                 else ("session_details", "presenting_issues", "interventions_applied", "risk_assessment", "follow_up_plan")
             )
             missing = [frappe.unscrub(field) for field in required if not (self.get(field) or "").strip()]

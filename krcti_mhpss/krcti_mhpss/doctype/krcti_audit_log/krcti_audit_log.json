@@ -1,0 +1,25 @@
+{
+ "doctype": "DocType",
+ "name": "KRCTI Audit Log",
+ "module": "Krcti Mhpss",
+ "custom": 0,
+ "autoname": "hash",
+ "engine": "InnoDB",
+ "track_changes": 0,
+ "field_order": ["actor", "action", "affected_record", "module", "outcome", "details"],
+ "fields": [
+  {"fieldname": "actor", "fieldtype": "Link", "label": "User who performed the action", "options": "User", "read_only": 1, "in_list_view": 1},
+  {"fieldname": "action", "fieldtype": "Data", "label": "Action", "read_only": 1, "in_list_view": 1, "reqd": 1},
+  {"fieldname": "affected_record", "fieldtype": "Data", "label": "Affected record", "read_only": 1, "in_list_view": 1},
+  {"fieldname": "module", "fieldtype": "Data", "label": "Module", "read_only": 1, "in_list_view": 1},
+  {"fieldname": "outcome", "fieldtype": "Select", "label": "Outcome", "options": "Success\nFailure", "default": "Success", "read_only": 1, "in_list_view": 1},
+  {"fieldname": "details", "fieldtype": "Small Text", "label": "Details", "read_only": 1}
+ ],
+ "permissions": [
+  {"role": "System Manager", "permlevel": 0, "read": 1},
+  {"role": "KRCTI System Administrator", "permlevel": 0, "read": 1},
+  {"role": "KRCS Data Protection Officer", "permlevel": 0, "read": 1}
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC"
+}

@@ -8,10 +8,12 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ActivityTable: typeof import('./src/components/ActivityTable.vue')['default']
     App: typeof import('./src/App.vue')['default']
     AppointmentForm: typeof import('./src/pages/AppointmentForm.vue')['default']
     Appointments: typeof import('./src/pages/Appointments.vue')['default']
     AppShell: typeof import('./src/components/AppShell.vue')['default']
+    AuditLogs: typeof import('./src/pages/AuditLogs.vue')['default']
     BaselineForm: typeof import('./src/pages/BaselineForm.vue')['default']
     ClientForm: typeof import('./src/pages/ClientForm.vue')['default']
     ClientProfile: typeof import('./src/pages/ClientProfile.vue')['default']
@@ -27,5 +29,6 @@ declare module 'vue' {
     SessionRecord: typeof import('./src/pages/SessionRecord.vue')['default']
     SessionRecords: typeof import('./src/pages/SessionRecords.vue')['default']
     Spinner: typeof import('./src/components/Spinner.vue')['default']
+    SystemAdmin: typeof import('./src/pages/SystemAdmin.vue')['default']
   }
 }

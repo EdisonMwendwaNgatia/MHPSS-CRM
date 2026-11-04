@@ -40,12 +40,15 @@
 
             <div class="flex flex-wrap gap-2.5 sm:justify-end">
               <router-link
-                v-if="c.case_status !== 'Closed'"
+                v-if="c.case_status !== 'Closed' && !hasScheduledAppointment"
                 :to="{ name: 'AppointmentNew', query: { client: c.name } }"
                 class="inline-flex h-11 items-center gap-2 rounded-[10px] border border-[#C8102E] bg-[#C8102E] px-[18px] text-sm font-semibold text-white transition hover:bg-[#A10E24] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40 focus-visible:ring-offset-2"
               >
                 <CalendarPlus :size="18" /> Book appointment
               </router-link>
+              <span v-else-if="c.case_status !== 'Closed' && hasScheduledAppointment" class="inline-flex h-11 items-center rounded-[10px] bg-[#FDECC8] px-3.5 text-[13px] font-medium text-[#8A4B00]">
+                Complete or cancel the scheduled appointment first
+              </span>
               <router-link
                 v-if="c.case_status !== 'Closed' || role === 'admin'"
                 :to="{ name: 'ClientEdit', params: { name: c.name } }"
@@ -179,12 +182,15 @@
               <p class="mt-0.5 text-[13px] text-[#5B616B]">{{ history.length }} recorded appointment{{ history.length === 1 ? '' : 's' }}</p>
             </div>
             <router-link
-              v-if="c.case_status !== 'Closed'"
+              v-if="c.case_status !== 'Closed' && !hasScheduledAppointment"
               :to="{ name: 'AppointmentNew', query: { client: c.name } }"
               class="inline-flex h-11 items-center gap-1.5 rounded-[10px] px-2 text-sm font-semibold text-[#A10E24] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40"
             >
               <CalendarPlus :size="17" /> Add session
             </router-link>
+            <p v-if="c.case_status !== 'Closed' && hasScheduledAppointment" class="text-[13px] text-[#8A4B00]">
+              Complete or cancel the scheduled appointment before adding another.
+            </p>
           </div>
 
           <ul v-if="history.length" class="divide-y divide-[#E4E6EA]">
@@ -217,6 +223,7 @@
             <p class="mt-3 text-sm font-semibold">No sessions recorded yet</p>
             <p class="mx-auto mt-1 max-w-sm text-[13px] leading-5 text-[#5B616B]">Schedule an appointment to begin this client’s session history.</p>
             <router-link
+              v-if="c.case_status !== 'Closed' && !hasScheduledAppointment"
               :to="{ name: 'AppointmentNew', query: { client: c.name } }"
               class="mt-5 inline-flex h-11 items-center gap-2 rounded-[10px] border border-[#C8102E] bg-[#C8102E] px-[18px] text-sm font-semibold text-white transition hover:bg-[#A10E24] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40 focus-visible:ring-offset-2"
             >
@@ -252,6 +259,7 @@ onMounted(load)
 const c = computed(() => profile.data?.client || {})
 const s = computed(() => profile.data?.survey)
 const history = computed(() => [...(profile.data?.appointments || [])].reverse())
+const hasScheduledAppointment = computed(() => (profile.data?.appointments || []).some((appointment) => appointment.status === "Scheduled"))
 const canClose = computed(
 	() => c.value.case_status !== "Closed" &&
 		(profile.data?.appointments || []).some((a) => a.session_type === "Termination" && a.status === "Completed"),

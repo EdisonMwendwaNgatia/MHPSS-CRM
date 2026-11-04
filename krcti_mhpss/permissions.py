@@ -114,6 +114,8 @@ def client_has_permission(doc, ptype=None, user=None, **kwargs):
 
 
 def baseline_has_permission(doc, ptype=None, user=None, **kwargs):
+    if is_admin(user):
+        return ptype in ("read", "report", "export", "print")
     owner = frappe.db.get_value("Client", doc.get("client_id"), "assigned_counsellor") if doc.get("client_id") else None
     return _only_own(doc, ptype, user, owner) or (
         ptype in ("read", "write") and counsellor_in_case(doc.get("client_id"), user)
@@ -121,6 +123,8 @@ def baseline_has_permission(doc, ptype=None, user=None, **kwargs):
 
 
 def appointment_has_permission(doc, ptype=None, user=None, **kwargs):
+    if is_admin(user):
+        return ptype in ("read", "report", "export", "print")
     return _only_own(doc, ptype, user, doc.get("counsellor_id")) or (
         ptype == "read" and counsellor_in_case(doc.get("client_id"), user)
     ) or (
@@ -151,21 +155,60 @@ def validate_user_password(doc, method=None):
         frappe.throw(_("The password needs at least 8 characters, with an uppercase letter, a number and a special character."))
 
 
-def log_role_changes(doc, method=None):
-    before = doc.get_doc_before_save()
-    old = {row.role for row in before.roles} & set(SINGLE_ROLES) if before else set()
-    new = {row.role for row in doc.roles} & set(SINGLE_ROLES)
-    if old == new:
+def write_audit_log(action, affected_record=None, module="System administration", outcome="Success", details=None, actor=None):
+    """Insert minimal activity metadata into the append-only audit log."""
+    if not frappe.db.exists("DocType", "KRCTI Audit Log"):
         return
-    text = _("Role changed by {0}: {1} -> {2}").format(
-        frappe.session.user, ", ".join(sorted(old)) or "none", ", ".join(sorted(new)) or "none"
-    )
-    frappe.get_doc(
-        {
-            "doctype": "Comment",
-            "comment_type": "Info",
-            "reference_doctype": "User",
-            "reference_name": doc.name,
-            "content": text,
-        }
-    ).insert(ignore_permissions=True)
+    frappe.get_doc({
+        "doctype": "KRCTI Audit Log",
+        "actor": actor or frappe.session.user,
+        "action": str(action)[:140],
+        "affected_record": str(affected_record or "")[:140],
+        "module": str(module or "")[:80],
+        "outcome": outcome if outcome in ("Success", "Failure") else "Success",
+        "details": str(details or "")[:500],
+    }).insert(ignore_permissions=True)
+
+
+def log_user_created(doc, method=None):
+    if doc.name != "Administrator":
+        write_audit_log("User account created", doc.name, "User management")
+
+
+def log_user_updated(doc, method=None):
+    before = doc.get_doc_before_save()
+    if not before or doc.name == "Administrator":
+        return
+    old = {row.role for row in before.roles} & set(SINGLE_ROLES)
+    new = {row.role for row in doc.roles} & set(SINGLE_ROLES)
+    if old != new:
+        write_audit_log("User role changed", doc.name, "Role management", details=f"{', '.join(sorted(old)) or 'none'} → {', '.join(sorted(new)) or 'none'}")
+    if before.enabled != doc.enabled:
+        write_audit_log("User account activated" if doc.enabled else "User account deactivated", doc.name, "User management")
+    if before.first_name != doc.first_name or before.last_name != doc.last_name or before.user_type != doc.user_type:
+        write_audit_log("User account updated", doc.name, "User management")
+
+
+def log_role_changes(doc, method=None):
+    """Compatibility alias for sites with the earlier cached User hook name."""
+    return log_user_updated(doc, method)
+
+
+def log_user_login(login_manager):
+    if frappe.session.user and frappe.session.user != "Guest":
+        write_audit_log("User logged in", frappe.session.user, "Authentication")
+
+
+def log_client_registration(doc, method=None):
+    write_audit_log("Client registered", doc.name, "Client management")
+
+
+def log_appointment_activity(doc, method=None):
+    before = doc.get_doc_before_save()
+    if not before:
+        write_audit_log("Appointment booked", doc.name, "Appointments")
+        return
+    if before.status != doc.status and doc.status == "Completed":
+        write_audit_log("Session completed", doc.name, "Session records")
+    elif before.status != doc.status and doc.status == "Cancelled":
+        write_audit_log("Appointment cancelled", doc.name, "Appointments")

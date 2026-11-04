@@ -3,8 +3,16 @@
     <div class="mx-auto max-w-[1200px]">
       <!-- Page header -->
       <div>
-        <h1 class="text-2xl font-semibold leading-8">Programme overview</h1>
-        <p class="mt-0.5 text-sm text-[#5B616B]">{{ data?.scope === "WoC" ? "The WoC scholarship programme" : "All KRCTI counsellors" }}</p>
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 class="text-2xl font-semibold leading-8">{{ data?.scope === "WoC" ? "WoC Programme Dashboard" : "KRCTI PM Dashboard" }}</h1>
+            <p class="mt-0.5 text-sm text-[#5B616B]">{{ data?.scope === "WoC" ? "WoC Scholarship Fund aggregate service monitoring" : "Service delivery across KRCTI counsellors" }}</p>
+          </div>
+          <div class="flex gap-2 no-print">
+            <button type="button" class="export-button" @click="exportCsv"><Download :size="16" /> Export Excel (CSV)</button>
+            <button type="button" class="export-button" @click="exportPdf"><Printer :size="16" /> Export PDF</button>
+          </div>
+        </div>
         <p class="mt-3 inline-flex items-start gap-2 rounded-lg bg-[#E0EAFD] px-3.5 py-2.5 text-[13px] leading-[18px] text-[#1B4DB1]">
           <LockKeyhole :size="16" class="mt-px shrink-0" />
           Totals only. Client records and session notes are never shown here.
@@ -135,7 +143,7 @@
               <section class="overflow-hidden rounded-xl border border-[#E4E6EA] bg-white">
                 <div class="border-b border-[#E4E6EA] px-5 py-4">
                   <h2 class="text-lg font-semibold leading-6">Baseline surveys</h2>
-                  <p class="mt-0.5 text-[13px] text-[#5B616B]">Initial wellbeing assessments</p>
+                  <p class="mt-0.5 text-[13px] text-[#5B616B]">Aggregate completion and declination only</p>
                 </div>
                 <ul v-if="baselineRows.length" class="divide-y divide-[#E4E6EA]">
                   <li v-for="[s, n] in baselineRows" :key="s" class="flex items-center justify-between gap-3 px-5 py-3.5">
@@ -148,20 +156,44 @@
             </div>
           </div>
 
-          <p class="mt-5 flex items-center gap-2 text-[13px] text-[#5B616B]"><Info :size="15" class="shrink-0" />Referral figures arrive with the session form in the next release.</p>
+          <div class="mt-5 grid gap-5 lg:grid-cols-2">
+            <section class="overflow-hidden rounded-xl border border-[#E4E6EA] bg-white">
+              <div class="border-b border-[#E4E6EA] px-5 py-4"><h2 class="text-lg font-semibold leading-6">Referral analytics</h2><p class="mt-0.5 text-[13px] text-[#5B616B]">Recorded referrals by type in this period</p></div>
+              <ul v-if="referralRows.length" class="divide-y divide-[#E4E6EA]">
+                <li v-for="[type, count] in referralRows" :key="type" class="flex items-center justify-between gap-3 px-5 py-3.5"><span class="text-sm font-medium">{{ type }}</span><span class="text-[15px] font-semibold tabular-nums">{{ count }}</span></li>
+              </ul>
+              <p v-else class="px-5 py-8 text-center text-sm text-[#5B616B]">No referrals recorded in this period.</p>
+            </section>
+            <section class="overflow-hidden rounded-xl border border-[#E4E6EA] bg-white">
+              <div class="border-b border-[#E4E6EA] px-5 py-4"><h2 class="text-lg font-semibold leading-6">Appointment trends</h2><p class="mt-0.5 text-[13px] text-[#5B616B]">Appointments by date, all statuses</p></div>
+              <div v-if="trendRows.length" class="space-y-3 p-5">
+                <div v-for="row in trendRows" :key="row.date" class="grid grid-cols-[84px_1fr_34px] items-center gap-3 text-sm"><span class="text-xs tabular-nums text-[#5B616B]">{{ formatDay(row.date) }}</span><div class="h-2.5 overflow-hidden rounded-full bg-[#F4F5F7]"><div class="h-full rounded-full bg-[#C8102E]" :style="{ width: trendBar(row.total) }"></div></div><span class="text-right font-semibold tabular-nums">{{ row.total }}</span></div>
+              </div>
+              <p v-else class="px-5 py-8 text-center text-sm text-[#5B616B]">No appointments in this period.</p>
+            </section>
+          </div>
         </div>
       </template>
 
-      <!-- Counsellor calendar (programme managers and admins) -->
-      <section v-if="showCalendar && calendar.data?.length" class="mt-5 overflow-hidden rounded-xl border border-[#E4E6EA] bg-white">
+      <!-- Shared programme appointment calendar -->
+      <section v-if="showCalendar && calendar.data" class="mt-5 overflow-hidden rounded-xl border border-[#E4E6EA] bg-white">
         <div class="flex items-center justify-between gap-3 border-b border-[#E4E6EA] px-5 py-4">
           <div>
-            <h2 class="text-lg font-semibold leading-6">Counsellor calendar</h2>
-            <p class="mt-0.5 text-[13px] text-[#5B616B]">{{ calendar.data.length }} session{{ calendar.data.length === 1 ? "" : "s" }} in this period</p>
+            <h2 class="text-lg font-semibold leading-6">{{ data?.scope === "WoC" ? "WoC appointment calendar" : "KRCTI counsellor calendar" }}</h2>
+            <p class="mt-0.5 text-[13px] text-[#5B616B]">{{ filteredCalendar.length }} appointment{{ filteredCalendar.length === 1 ? "" : "s" }} in this period</p>
           </div>
           <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#FCE8EB] text-[#A10E24]"><CalendarDays :size="19" /></span>
         </div>
-        <div class="overflow-x-auto">
+        <div class="flex flex-wrap items-end gap-3 border-b border-[#E4E6EA] px-5 py-4">
+          <label for="calendar-counsellor" class="w-full max-w-sm text-sm font-medium text-[#3A3F47]">View appointments for counsellor
+            <select id="calendar-counsellor" v-model="selectedCounsellor" class="field mt-1.5">
+              <option value="">Select a counsellor</option>
+              <option value="__all__">All counsellors</option>
+              <option v-for="counsellor in counsellorOptions" :key="counsellor" :value="counsellor">{{ counsellor }}</option>
+            </select>
+          </label>
+        </div>
+        <div v-if="filteredCalendar.length" class="overflow-x-auto">
           <table class="w-full text-left text-sm">
             <thead>
               <tr class="bg-[#F4F5F7] text-xs uppercase tracking-[0.04em] text-[#5B616B]">
@@ -172,8 +204,11 @@
                 <th class="whitespace-nowrap px-5 py-2.5 font-semibold">Status</th>
               </tr>
             </thead>
-            <tbody>
-              <tr v-for="(r, i) in calendar.data" :key="i" class="border-t border-[#E4E6EA] transition hover:bg-[#F4F5F7]/60">
+            <tbody v-for="group in calendarGroups" :key="group.scholar_code">
+              <tr class="border-t border-[#D5D8DE] bg-[#F4F5F7]">
+                <th colspan="5" class="px-5 py-3 text-left text-sm font-semibold text-[#2B2F36]">Scholar/Participant Code: <span class="text-[#A10E24]">{{ group.scholar_code }}</span></th>
+              </tr>
+              <tr v-for="(r, i) in group.appointments" :key="`${group.scholar_code}-${i}`" class="border-t border-[#E4E6EA] transition hover:bg-[#F4F5F7]/60">
                 <td class="whitespace-nowrap px-5 py-3.5 font-medium tabular-nums">{{ fmtDateTime(r.start) }}</td>
                 <td class="whitespace-nowrap px-3 py-3.5">{{ r.counsellor }}</td>
                 <td class="whitespace-nowrap px-3 py-3.5">{{ r.session_type }}</td>
@@ -183,6 +218,7 @@
             </tbody>
           </table>
         </div>
+        <p v-else class="px-5 py-8 text-center text-sm text-[#5B616B]">{{ selectedCounsellor ? "No appointments for this counsellor in the selected period." : "Select a counsellor to view appointments, or choose All counsellors." }}</p>
       </section>
     </div>
   </main>
@@ -191,7 +227,7 @@
 <script setup>
 import { createResource } from "frappe-ui"
 import { computed, onMounted, ref, watch } from "vue"
-import { AlertCircle, Archive, CalendarDays, ClipboardCheck, Clock, Info, LockKeyhole, Users } from "lucide-vue-next"
+import { AlertCircle, Archive, CalendarDays, ClipboardCheck, Clock, Download, LockKeyhole, Printer, Users } from "lucide-vue-next"
 import { fmtDateTime } from "../data/format"
 import { me } from "../data/me"
 
@@ -202,8 +238,9 @@ const from = ref(daysAgo(30))
 
 const summary = createResource({ url: "krcti_mhpss.api.oversight.programme_summary" })
 const calendar = createResource({ url: "krcti_mhpss.api.oversight.programme_calendar" })
+const selectedCounsellor = ref("")
 const data = computed(() => summary.data)
-const showCalendar = computed(() => ["krcti_pm", "admin"].includes(me.data?.role))
+const showCalendar = computed(() => ["krcti_pm", "woc_pm", "admin"].includes(me.data?.role))
 const invalidRange = computed(() => !!from.value && !!to.value && from.value > to.value)
 
 function load() {
@@ -234,7 +271,32 @@ const mostSessions = computed(() => Math.max(1, ...modes.value.map(([, n]) => n)
 const bar = (n) => `${Math.round((n / mostSessions.value) * 100)}%`
 const share = (n) => (totalSessions.value ? `${Math.round((n / totalSessions.value) * 100)}%` : "0%")
 const statusRows = computed(() => Object.entries(data.value?.appointments_by_status || {}))
-const baselineRows = computed(() => Object.entries(data.value?.baseline || {}))
+const baselineRows = computed(() => ["Completed", "Declined", "Pending"].map((s) => [s, data.value?.baseline?.[s] || 0]))
+const referralRows = computed(() => Object.entries(data.value?.referrals || {}))
+const trendRows = computed(() => data.value?.appointment_trends || [])
+const counsellorOptions = computed(() => [...new Set((calendar.data || []).map((appointment) => appointment.counsellor).filter(Boolean))].sort((a, b) => a.localeCompare(b)))
+watch(counsellorOptions, (options) => {
+	if (selectedCounsellor.value && selectedCounsellor.value !== "__all__" && !options.includes(selectedCounsellor.value)) selectedCounsellor.value = ""
+})
+const filteredCalendar = computed(() => {
+	if (!selectedCounsellor.value) return []
+	if (selectedCounsellor.value === "__all__") return calendar.data || []
+	return (calendar.data || []).filter((appointment) => appointment.counsellor === selectedCounsellor.value)
+})
+const calendarGroups = computed(() => {
+	const groups = new Map()
+	for (const appointment of filteredCalendar.value) {
+		const scholar_code = appointment.scholar_code || "Code unavailable"
+		if (!groups.has(scholar_code)) groups.set(scholar_code, [])
+		groups.get(scholar_code).push(appointment)
+	}
+	return [...groups.entries()]
+		.sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+		.map(([scholar_code, appointments]) => ({ scholar_code, appointments }))
+})
+const maxTrend = computed(() => Math.max(1, ...trendRows.value.map((r) => r.total)))
+const trendBar = (n) => `${Math.round((n / maxTrend.value) * 100)}%`
+const formatDay = (day) => new Date(`${day}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })
 
 const statusTheme = (s) => ({ Completed: "green", Cancelled: "gray", Scheduled: "blue", Overdue: "red" })[s] || "gray"
 const initials = (name) => (name || "?").split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase()
@@ -243,11 +305,33 @@ const tiles = computed(() => {
 	const c = data.value?.caseload || {}
 	return [
 		{ label: "Active clients", value: c.Active ?? 0, icon: Users, tile: "bg-[#FCE8EB] text-[#A10E24]" },
-		{ label: "Follow-up pending", value: c["Follow-Up Pending"] ?? 0, icon: Clock, tile: "bg-[#FDECC8] text-[#8A4B00]" },
+		{ label: "Pending follow-ups", value: data.value?.pending_followups ?? c["Follow-Up Pending"] ?? 0, icon: Clock, tile: "bg-[#FDECC8] text-[#8A4B00]" },
 		{ label: "Closed cases", value: c.Closed ?? 0, icon: Archive, tile: "bg-[#E4E6EA] text-[#3A3F47]" },
 		{ label: "Sessions completed", value: totalSessions.value, icon: ClipboardCheck, tile: "bg-[#DCF3E4] text-[#146C3A]" },
 	]
 })
+
+function exportCsv() {
+	const rows = [
+		[`${data.value?.scope || "Programme"} aggregate report`, `${from.value} to ${to.value}`],
+		["Overview", "Count"],
+		...tiles.value.map((tile) => [tile.label, tile.value]),
+		["Sessions by contact mode", "Count"], ...modes.value,
+		["Appointments by status", "Count"], ...statusRows.value,
+		["Appointment date", "Count"], ...trendRows.value.map((r) => [r.date, r.total]),
+		["Referral type", "Count"], ...referralRows.value,
+		["Baseline survey status", "Count"], ...baselineRows.value,
+	]
+	if (data.value?.by_counsellor) rows.push(["Counsellor", "Active caseload", "Completed sessions", "Upcoming", "Overdue"], ...data.value.by_counsellor.map((r) => [r.counsellor, r.active_caseload, r.completed_in_range, r.upcoming, r.overdue]))
+	const csv = rows.map((row) => row.map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(",")).join("\r\n")
+	const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }))
+	const link = document.createElement("a")
+	link.href = url
+	link.download = `${data.value?.scope === "WoC" ? "woc" : "krcti"}-programme-report-${from.value}-to-${to.value}.csv`
+	link.click()
+	setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+function exportPdf() { window.print() }
 </script>
 
 <style scoped>
@@ -264,4 +348,12 @@ const tiles = computed(() => {
 }
 .field:focus { outline: none; border-color: #c8102e; box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.25); }
 .field-error { border-color: #a10e24; }
+.export-button { display: inline-flex; height: 40px; align-items: center; gap: 8px; border: 1px solid #d5d8de; border-radius: 9px; background: white; padding: 0 12px; color: #383c44; font-size: 13px; font-weight: 600; }
+.export-button:hover { background: #f4f5f7; }
+@media print {
+	.no-print, .field, button { display: none !important; }
+	main { min-height: 0 !important; background: white !important; padding: 0 !important; }
+	main > div { max-width: none !important; }
+	section, .rounded-xl { break-inside: avoid; box-shadow: none !important; }
+}
 </style>

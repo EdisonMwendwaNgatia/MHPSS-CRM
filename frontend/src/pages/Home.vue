@@ -130,7 +130,9 @@ watch(
 	role,
 	(value) => {
 		if (value === "counsellor") home.submit()
-		else if (["krcti_pm", "woc_pm", "admin"].includes(value)) router.replace({ name: "Programme" })
+		else if (["krcti_pm", "woc_pm"].includes(value)) router.replace({ name: "Programme" })
+		else if (value === "admin") router.replace({ name: "SystemAdmin" })
+		else if (value === "dpo") router.replace({ name: "AuditLogs" })
 	},
 	{ immediate: true },
 )

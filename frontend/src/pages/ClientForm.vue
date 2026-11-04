@@ -11,7 +11,7 @@
       <div class="mt-1">
         <h1 class="text-2xl font-semibold leading-8">{{ isNew ? "Register a client" : "Edit client details" }}</h1>
         <p class="mt-0.5 text-[13px] text-[#5B616B]">
-          {{ isNew ? "Add a participant to your caseload. You can record their baseline survey afterwards." : `Update the record for ${form.full_name || "this client"}.` }}
+          {{ isNew ? (isProgrammeManager ? "Register a participant and assign a counsellor to their case." : "Add a participant to your caseload. You can record their baseline survey afterwards.") : `Update the record for ${form.full_name || "this client"}.` }}
         </p>
       </div>
 
@@ -76,6 +76,16 @@
               </div>
 
             </div>
+          </div>
+        </section>
+
+        <section v-if="isNew && isProgrammeManager" class="overflow-visible rounded-xl border border-[#E4E6EA] bg-white" :class="openDropdown === 'assigned_counsellor' ? 'relative z-20' : ''">
+          <div class="grid gap-x-8 gap-y-5 px-5 py-6 sm:px-6 lg:grid-cols-[210px_minmax(0,1fr)]">
+            <div class="flex items-center gap-3 lg:items-start"><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#FCE8EB] text-[#A10E24]"><UserRound :size="19" /></span><div><h2 class="text-lg font-semibold leading-6">Counsellor assignment</h2><p class="text-[13px] leading-[18px] text-[#5B616B]">Choose who will manage this client’s case</p></div></div>
+            <div><label id="f-assigned_counsellor-label" class="lbl">Assigned counsellor <span class="req" aria-hidden="true">*</span></label><div class="relative" data-client-dropdown>
+              <button id="f-assigned_counsellor" type="button" class="select-control" :class="form.assigned_counsellor ? '' : 'select-placeholder'" :aria-labelledby="'f-assigned_counsellor-label f-assigned_counsellor-value'" :aria-expanded="openDropdown === 'assigned_counsellor'" aria-haspopup="listbox" @click="toggleDropdown('assigned_counsellor')" @keydown.esc="openDropdown = ''"><span id="f-assigned_counsellor-value">{{ selectedCounsellorLabel }}</span><ChevronDown :size="17" class="text-[#737780] transition-transform" :class="openDropdown === 'assigned_counsellor' ? 'rotate-180' : ''" /></button>
+              <div v-if="openDropdown === 'assigned_counsellor'" class="select-menu" role="listbox" aria-labelledby="f-assigned_counsellor-label"><input v-model="counsellorSearch" class="select-search" type="search" placeholder="Search counsellors…" aria-label="Search counsellors" autocomplete="off" @keydown.esc="openDropdown = ''" /><button v-for="person in filteredCounsellors" :key="person.name" type="button" role="option" :aria-selected="form.assigned_counsellor === person.name" class="select-option" :class="form.assigned_counsellor === person.name ? 'select-option-active' : ''" @click="form.assigned_counsellor = person.name; openDropdown = ''; counsellorSearch = ''"><span>{{ person.full_name || person.name }}</span><Check v-if="form.assigned_counsellor === person.name" :size="16" /></button><p v-if="!filteredCounsellors.length" class="select-empty">{{ counsellors.loading ? 'Loading counsellors…' : 'No active counsellors found.' }}</p></div>
+            </div><p v-if="counsellors.error" class="mt-2 text-xs text-[#A10E24]">Counsellor list could not be loaded. Reopen the form to try again.</p></div>
           </div>
         </section>
 
@@ -194,7 +204,10 @@
                   </div>
                 </div>
               </div>
-              <div>
+              <div v-if="isWoCProgrammeManager">
+                <label class="lbl">WoC programme stream</label><div class="inp flex items-center bg-[#F4F5F7]">{{ optionLabel(STREAMS, form.programme_stream) }}</div>
+              </div>
+              <div v-else>
                 <label id="f-programme_stream-label" class="lbl">WoC programme stream</label>
                 <div class="relative" data-client-dropdown>
                   <button id="f-programme_stream" type="button" class="select-control" :class="form.programme_stream ? '' : 'select-placeholder'" :aria-labelledby="'f-programme_stream-label f-programme_stream-value'" :aria-expanded="openDropdown === 'programme_stream'" aria-haspopup="listbox" @click="toggleDropdown('programme_stream')" @keydown.esc="openDropdown = ''">
@@ -260,13 +273,17 @@ import { computed, onMounted, onUnmounted, reactive, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { AlertCircle, ArrowLeft, Check, ChevronDown, GraduationCap, Heart, Loader2, Lock, MapPin, UserRound } from "lucide-vue-next"
 import { DISABILITY_TYPES, GENDERS, KENYA_COUNTIES, REFERRALS, STREAMS } from "../data/options"
+import { me } from "../data/me"
 
 const props = defineProps({ name: { type: String, default: "" } })
 const route = useRoute()
 const router = useRouter()
 const clientName = computed(() => props.name || route.params.name || "")
 const isNew = computed(() => !clientName.value)
-const back = computed(() => (isNew.value ? { name: "Clients" } : { name: "ClientProfile", params: { name: clientName.value } }))
+const role = computed(() => me.data?.role)
+const isProgrammeManager = computed(() => ["krcti_pm", "woc_pm"].includes(role.value))
+const isWoCProgrammeManager = computed(() => role.value === "woc_pm")
+const back = computed(() => (isNew.value ? (isProgrammeManager.value ? { name: "Programme" } : { name: "Clients" }) : { name: "ClientProfile", params: { name: clientName.value } }))
 
 const TEXT = ["full_name", "phone_number", "gender", "disability_type", "institution", "institution_county",
 	"course_programme", "county_location", "programme_stream", "referral_source", "referral_source_other"]
@@ -278,11 +295,16 @@ const form = reactive({
 	scholar_code: "",
 	disability_status: false,
 	refugee_status: false,
+	assigned_counsellor: "",
 })
 const loading = ref(false)
 const openDropdown = ref("")
 const formError = ref("")
 const countySearch = reactive({ institution_county: "", county_location: "" })
+const counsellorSearch = ref("")
+const counsellors = createResource({ url: "krcti_mhpss.api.records.programme_counsellors" })
+const filteredCounsellors = computed(() => (counsellors.data || []).filter((person) => `${person.full_name || ""} ${person.name}`.toLowerCase().includes(counsellorSearch.value.trim().toLowerCase())))
+const selectedCounsellorLabel = computed(() => (counsellors.data || []).find((person) => person.name === form.assigned_counsellor)?.full_name || form.assigned_counsellor || "Select a counsellor")
 const ageError = computed(() => {
 	if (form.age === "" || form.age === null) return ""
 	const age = Number(form.age)
@@ -325,6 +347,10 @@ const profile = createResource({
 })
 
 onMounted(() => {
+	if (isProgrammeManager.value) {
+		counsellors.submit()
+		if (isWoCProgrammeManager.value) form.programme_stream = "Scholarship/Education"
+	}
 	if (!isNew.value) {
 		loading.value = true
 		profile.submit({ name: clientName.value })
@@ -334,9 +360,9 @@ onMounted(() => document.addEventListener("click", closeDropdownOutside))
 onUnmounted(() => document.removeEventListener("click", closeDropdownOutside))
 
 const saver = createResource({
-	url: "krcti_mhpss.api.records.save_client",
+	url: isProgrammeManager.value ? "krcti_mhpss.api.records.register_programme_client" : "krcti_mhpss.api.records.save_client",
 	onSuccess(result) {
-		router.replace({ name: "ClientProfile", params: { name: result.name } })
+		router.replace(isProgrammeManager.value ? { name: "Programme" } : { name: "ClientProfile", params: { name: result.name } })
 	},
 })
 const updater = saver // the template may still mention it
@@ -368,8 +394,13 @@ function save() {
 		formError.value = "Choose the type of disability."
 		return
 	}
+	if (isProgrammeManager.value && !form.assigned_counsellor) {
+		formError.value = "Choose a counsellor to assign to this client."
+		return
+	}
 	const data = values()
-	saver.submit({ name: clientName.value || undefined, data })
+	if (isProgrammeManager.value) saver.submit({ data, assigned_counsellor: form.assigned_counsellor })
+	else saver.submit({ name: clientName.value || undefined, data })
 }
 </script>
 

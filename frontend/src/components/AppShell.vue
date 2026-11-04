@@ -5,6 +5,21 @@
         <button type="button" class="rounded-lg p-2 text-[#555860] hover:bg-[#F4F5F7]" aria-label="Open menu" @click="open = true"><Menu :size="21" /></button>
         <span class="text-sm font-semibold text-[#25272B]">{{ pageTitle }}</span>
       </div>
+      <div v-if="isProgrammeManager" class="relative" data-programme-notification-menu>
+        <button type="button" class="relative flex h-10 w-10 items-center justify-center rounded-xl text-[#62656D] hover:bg-[#F4F5F7]" aria-label="Programme notifications" :aria-expanded="programmeNotificationsOpen" @click="toggleProgrammeNotifications">
+          <Bell :size="19" />
+          <span v-if="programmeNotificationCount" class="absolute right-1 top-1 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border-2 border-white bg-[#C8102E] px-1 text-[9px] font-bold leading-none text-white">{{ programmeNotificationCount > 9 ? '9+' : programmeNotificationCount }}</span>
+        </button>
+        <div v-if="programmeNotificationsOpen" class="absolute right-0 top-full z-50 mt-2 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[#E4E6EA] bg-white text-left shadow-[0_14px_36px_rgba(31,35,45,0.16)]">
+          <div class="flex items-center justify-between border-b border-[#ECEDEF] px-4 py-3.5"><div><h2 class="text-sm font-semibold text-[#25272B]">Programme notifications</h2><p class="mt-0.5 text-xs text-[#858891]">Appointments and completed sessions</p></div><button v-if="programmeNotificationCount" type="button" class="text-[11px] font-semibold text-[#A10E24] hover:underline" @click="markAllProgrammeNotificationsRead">Mark all read</button></div>
+          <div v-if="programmeNotificationData.loading && !programmeNotificationData.data" class="px-4 py-5 text-sm text-[#737780]">Checking programme activity…</div>
+          <div v-else-if="programmeNotificationData.error" class="px-4 py-5 text-sm text-[#737780]">Couldn’t load programme notifications.</div>
+          <div v-else-if="programmeNotifications.length" class="max-h-[360px] divide-y divide-[#F0F1F3] overflow-y-auto">
+            <div v-for="item in programmeNotifications" :key="item.name" class="flex items-start gap-3 px-4 py-3.5"><span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E0EAFD] text-[#1B4DB1]"><BellRing :size="15" /></span><div class="min-w-0 flex-1"><p class="text-sm font-semibold text-[#33353A]">{{ item.title }}</p><p class="mt-0.5 text-xs text-[#737780]">{{ item.description }}</p><p class="mt-1 text-[11px] text-[#858891]">{{ formatNotificationDate(item.creation) }}</p><button type="button" class="mt-1 text-xs font-semibold text-[#A10E24] hover:underline" @click="markProgrammeNotificationRead(item.name)">Mark as read</button></div></div>
+          </div>
+          <div v-else class="px-5 py-8 text-center"><span class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#EAF5EE] text-[#26834B]"><Check :size="19" /></span><p class="mt-3 text-sm font-semibold text-[#33353A]">You’re all caught up</p></div>
+        </div>
+      </div>
       <div class="relative" data-account-menu>
         <button type="button" class="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/30" aria-label="Account options" :aria-expanded="accountOpen" aria-haspopup="menu" @click="accountOpen = !accountOpen">
           <span class="flex h-8 w-8 items-center justify-center rounded-full bg-[#FCE8EB] text-xs font-bold text-[#B30F2A]">{{ initials }}</span>
@@ -47,19 +62,15 @@
           v-for="item in items"
           :key="item.name"
           :to="{ name: item.name }"
-          :title="collapsed ? item.label : undefined"
-          :aria-label="collapsed ? item.label : undefined"
+          :title="collapsed ? navLabel(item) : undefined"
+          :aria-label="collapsed ? navLabel(item) : undefined"
           :aria-current="isActive(item) ? 'page' : undefined"
           :class="linkClass(isActive(item))"
           @click="open = false"
         >
           <component :is="item.icon" :size="20" class="shrink-0" />
-          <span v-if="!collapsed || open" class="truncate">{{ item.label }}</span>
+          <span v-if="!collapsed || open" class="truncate">{{ navLabel(item) }}</span>
         </router-link>
-        <a v-if="role === 'admin'" href="/desk" :title="collapsed ? 'Users and settings' : undefined" :aria-label="collapsed ? 'Users and settings' : undefined" :class="linkClass(false)">
-          <Settings :size="20" class="shrink-0" />
-          <span v-if="!collapsed || open" class="truncate">Users and settings</span>
-        </a>
       </nav>
 
       <div class="hidden shrink-0 border-t border-[#E4E6EA] p-3 md:block">
@@ -123,6 +134,21 @@
               <div v-else class="px-5 py-8 text-center"><span class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#EAF5EE] text-[#26834B]"><Check :size="19" /></span><p class="mt-3 text-sm font-semibold text-[#33353A]">You’re all caught up</p><p class="mt-1 text-xs text-[#858891]">No overdue follow-ups or referral updates.</p></div>
             </div>
           </div>
+          <div v-if="isProgrammeManager" class="relative" data-programme-notification-menu>
+            <button type="button" class="relative flex h-10 w-10 items-center justify-center rounded-xl text-[#62656D] transition hover:bg-[#F4F5F7]" aria-label="Programme notifications" :aria-expanded="programmeNotificationsOpen" @click="toggleProgrammeNotifications">
+              <Bell :size="19" />
+              <span v-if="programmeNotificationCount" class="absolute right-1 top-1 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border-2 border-white bg-[#C8102E] px-1 text-[9px] font-bold leading-none text-white">{{ programmeNotificationCount > 9 ? '9+' : programmeNotificationCount }}</span>
+            </button>
+            <div v-if="programmeNotificationsOpen" class="absolute right-0 top-full z-40 mt-3 w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_14px_36px_rgba(31,35,45,0.16)]">
+              <div class="flex items-center justify-between border-b border-[#ECEDEF] px-4 py-3.5"><div><h2 class="text-sm font-semibold text-[#25272B]">Programme notifications</h2><p class="mt-0.5 text-xs text-[#858891]">Appointments and completed sessions</p></div><button v-if="programmeNotificationCount" type="button" class="text-[11px] font-semibold text-[#A10E24] hover:underline" @click="markAllProgrammeNotificationsRead">Mark all read</button></div>
+              <div v-if="programmeNotificationData.loading && !programmeNotificationData.data" class="px-4 py-5 text-sm text-[#737780]">Checking programme activity…</div>
+              <div v-else-if="programmeNotificationData.error" class="px-4 py-5 text-sm text-[#737780]">Couldn’t load programme notifications.</div>
+              <div v-else-if="programmeNotifications.length" class="max-h-[360px] divide-y divide-[#F0F1F3] overflow-y-auto">
+                <div v-for="item in programmeNotifications" :key="item.name" class="flex items-start gap-3 px-4 py-3.5"><span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E0EAFD] text-[#1B4DB1]"><BellRing :size="15" /></span><div class="min-w-0 flex-1"><p class="text-sm font-semibold text-[#33353A]">{{ item.title }}</p><p class="mt-0.5 text-xs text-[#737780]">{{ item.description }}</p><p class="mt-1 text-[11px] text-[#858891]">{{ formatNotificationDate(item.creation) }}</p><button type="button" class="mt-1 text-xs font-semibold text-[#A10E24] hover:underline" @click="markProgrammeNotificationRead(item.name)">Mark as read</button></div></div>
+              </div>
+              <div v-else class="px-5 py-8 text-center"><span class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#EAF5EE] text-[#26834B]"><Check :size="19" /></span><p class="mt-3 text-sm font-semibold text-[#33353A]">You’re all caught up</p></div>
+            </div>
+          </div>
           <span class="h-7 w-px bg-[#E4E6EA]"></span>
           <div class="relative" data-account-menu>
             <button type="button" class="flex items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition hover:bg-[#F7F7F8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/30" :aria-expanded="accountOpen" aria-haspopup="menu" @click="accountOpen = !accountOpen">
@@ -158,21 +184,24 @@
 import { createResource } from "frappe-ui"
 import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import { useRoute } from "vue-router"
-import { Bell, BellRing, BookOpen, CalendarDays, Check, ChevronDown, ChevronRight, ClipboardList, HeartHandshake, LayoutDashboard, LoaderCircle, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, Users, UsersRound, X } from "lucide-vue-next"
+import { Bell, BellRing, BookOpen, CalendarDays, Check, ChevronDown, ChevronRight, ClipboardCheck, ClipboardList, HeartHandshake, LayoutDashboard, LoaderCircle, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Shield, UserRoundPlus, Users, UsersRound, X } from "lucide-vue-next"
 import { me } from "../data/me"
 import { session } from "../data/session"
 
 const NAV = [
 	{ label: "Dashboard", name: "Home", icon: LayoutDashboard, match: ["Home"], roles: ["counsellor"] },
-	{ label: "Clients", name: "Clients", icon: UsersRound, match: ["Clients", "ClientNew", "ClientProfile", "ClientEdit", "Baseline"], roles: ["counsellor", "admin"] },
-	{ label: "Appointments", name: "Appointments", icon: CalendarDays, match: ["Appointments", "AppointmentNew", "AppointmentEdit"], roles: ["counsellor", "admin"] },
-	{ label: "Follow-ups", name: "FollowUps", icon: HeartHandshake, match: ["FollowUps"], roles: ["counsellor", "admin"] },
-	{ label: "Session records", name: "SessionRecords", icon: BookOpen, match: ["SessionRecords", "SessionRecord"], roles: ["counsellor", "admin"] },
-	{ label: "Programme", name: "Programme", icon: ClipboardList, match: ["Programme"], roles: ["krcti_pm", "woc_pm", "admin"] },
+	{ label: "Clients", name: "Clients", icon: UsersRound, match: ["Clients", "ClientNew", "ClientProfile", "ClientEdit", "Baseline"], roles: ["counsellor"] },
+	{ label: "Appointments", name: "Appointments", icon: CalendarDays, match: ["Appointments", "AppointmentNew", "AppointmentEdit"], roles: ["counsellor"] },
+	{ label: "Follow-ups", name: "FollowUps", icon: HeartHandshake, match: ["FollowUps"], roles: ["counsellor"] },
+	{ label: "Session records", name: "SessionRecords", icon: BookOpen, match: ["SessionRecords", "SessionRecord"], roles: ["counsellor"] },
+	{ label: "Programme", name: "Programme", icon: ClipboardList, match: ["Programme"], roles: ["krcti_pm", "woc_pm"] },
+	{ label: "Register client", name: "ProgrammeClientNew", icon: UserRoundPlus, match: ["ProgrammeClientNew"], roles: ["krcti_pm", "woc_pm"] },
+	{ label: "System administration", name: "SystemAdmin", icon: Shield, match: ["SystemAdmin"], roles: ["admin"] },
+	{ label: "Audit logs", name: "AuditLogs", icon: ClipboardCheck, match: ["AuditLogs"], roles: ["admin", "dpo"] },
 ]
 const LABELS = {
 	admin: "System Administrator", counsellor: "Counsellor", krcti_pm: "KRCTI Programme Manager",
-	woc_pm: "WoC Programme Manager", client: "Client",
+	woc_pm: "WoC Programme Manager", client: "Client", dpo: "KRCS Data Protection Officer",
 }
 
 const route = useRoute()
@@ -192,10 +221,16 @@ watch(() => route.fullPath, () => (open.value = false))
 const searchTerm = ref("")
 const searchOpen = ref(false)
 const notificationsOpen = ref(false)
+const programmeNotificationsOpen = ref(false)
 const accountOpen = ref(false)
 const clientSearch = createResource({ url: "krcti_mhpss.api.counsellor.search_clients" })
 const notificationData = createResource({ url: "krcti_mhpss.api.counsellor.home" })
 const referralNotificationData = createResource({ url: "krcti_mhpss.api.records.referral_notifications" })
+const programmeNotificationData = createResource({ url: "krcti_mhpss.api.oversight.programme_notifications" })
+const markProgrammeNotificationsRead = createResource({
+	url: "krcti_mhpss.api.oversight.mark_programme_notifications_read",
+	onSuccess() { programmeNotificationData.submit() },
+})
 const markReferralNotificationsRead = createResource({
 	url: "krcti_mhpss.api.records.mark_referral_notifications_read",
 	onSuccess() { referralNotificationData.submit() },
@@ -206,6 +241,8 @@ const markOverdueNotificationsRead = createResource({
 })
 const overdueFollowups = computed(() => notificationData.data?.overdue_notifications || [])
 const referralEvents = computed(() => referralNotificationData.data?.notifications || [])
+const programmeNotifications = computed(() => programmeNotificationData.data?.notifications || [])
+const programmeNotificationCount = computed(() => programmeNotificationData.data?.unread_count || 0)
 const notificationCount = computed(() => (notificationData.data?.overdue_followups || 0) + (referralNotificationData.data?.unread_count || 0))
 let searchTimer = null
 let notificationTimer = null
@@ -222,6 +259,8 @@ watch(() => me.data?.role, (value) => {
 	if (value === "counsellor") {
 		notificationData.submit()
 		referralNotificationData.submit()
+	} else if (["krcti_pm", "woc_pm"].includes(value)) {
+		programmeNotificationData.submit()
 	}
 }, { immediate: true })
 function clientInitials(name) {
@@ -238,6 +277,19 @@ function toggleNotifications() {
 		referralNotificationData.submit()
 	}
 }
+function toggleProgrammeNotifications() {
+	programmeNotificationsOpen.value = !programmeNotificationsOpen.value
+	if (programmeNotificationsOpen.value) programmeNotificationData.submit()
+}
+function markProgrammeNotificationRead(name) {
+	markProgrammeNotificationsRead.submit({ name })
+}
+function markAllProgrammeNotificationsRead() {
+	markProgrammeNotificationsRead.submit()
+}
+function formatNotificationDate(value) {
+	return value ? new Date(String(value).replace(" ", "T")).toLocaleString() : ""
+}
 function markAllNotificationsRead() {
 	markReferralNotificationsRead.submit()
 	markOverdueNotificationsRead.submit()
@@ -249,6 +301,7 @@ function logout() {
 function closeHeaderMenus(event) {
 	if (!event.target.closest("[data-client-search]")) searchOpen.value = false
 	if (!event.target.closest("[data-notification-menu]")) notificationsOpen.value = false
+	if (!event.target.closest("[data-programme-notification-menu]")) programmeNotificationsOpen.value = false
 	if (!event.target.closest("[data-account-menu]")) accountOpen.value = false
 }
 onMounted(() => document.addEventListener("click", closeHeaderMenus))
@@ -256,6 +309,8 @@ notificationTimer = setInterval(() => {
 	if (role.value === "counsellor" && !notificationsOpen.value) {
 		notificationData.submit()
 		referralNotificationData.submit()
+	} else if (isProgrammeManager.value && !programmeNotificationsOpen.value) {
+		programmeNotificationData.submit()
 	}
 }, 60000)
 onUnmounted(() => {
@@ -265,10 +320,20 @@ onUnmounted(() => {
 })
 
 const role = computed(() => me.data?.role)
-const canSearchClients = computed(() => ["counsellor", "admin"].includes(role.value))
+const isProgrammeManager = computed(() => ["krcti_pm", "woc_pm"].includes(role.value))
+const canSearchClients = computed(() => role.value === "counsellor")
 const roleLabel = computed(() => LABELS[role.value] || "")
-const pageTitle = computed(() => NAV.find((item) => item.match.includes(route.name))?.label || "Dashboard")
+const pageTitle = computed(() => {
+	const item = NAV.find((entry) => entry.match.includes(route.name))
+	return item ? navLabel(item) : "Dashboard"
+})
 const initials = computed(() => (me.data?.full_name || "KR").split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase())
+function navLabel(item) {
+	if (item.name !== "Programme") return item.label
+	if (role.value === "krcti_pm") return "KRCTI PM Dashboard"
+	if (role.value === "woc_pm") return "WoC PM Dashboard"
+	return "Programme Dashboard"
+}
 const items = computed(() => NAV.filter((item) => item.roles.includes(role.value)))
 const allowed = computed(() => !route.meta.roles || route.meta.roles.includes(role.value))
 const isActive = (item) => item.match.includes(route.name)

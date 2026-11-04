@@ -295,13 +295,23 @@ has_permission = {
 
 doc_events = {
     "User": {
+        "after_insert": "krcti_mhpss.permissions.log_user_created",
         "validate": [
             "krcti_mhpss.permissions.validate_user_roles",
             "krcti_mhpss.permissions.validate_user_password",
         ],
-        "on_update": "krcti_mhpss.permissions.log_role_changes",
+        "on_update": "krcti_mhpss.permissions.log_user_updated",
+    },
+    "Client": {
+        "after_insert": "krcti_mhpss.permissions.log_client_registration",
+    },
+    "Appointment": {
+        "after_insert": "krcti_mhpss.permissions.log_appointment_activity",
+        "on_update": "krcti_mhpss.permissions.log_appointment_activity",
     }
 }
+
+on_login = "krcti_mhpss.permissions.log_user_login"
 
 # Recreate any missing role whenever the site is updated
 after_migrate = ["krcti_mhpss.install.after_migrate"]

@@ -2,8 +2,8 @@ import { session } from "@/data/session"
 import { userResource } from "@/data/user"
 import { createRouter, createWebHistory } from "vue-router"
 
-const COUNSELLOR = ["counsellor", "admin"]
-const OVERSIGHT = ["krcti_pm", "woc_pm", "admin"]
+const COUNSELLOR = ["counsellor"]
+const OVERSIGHT = ["krcti_pm", "woc_pm"]
 const app = (roles) => ({ app: true, roles })
 
 const routes = [
@@ -22,6 +22,9 @@ const routes = [
 	{ path: "/sessions", name: "SessionRecords", component: () => import("@/pages/SessionRecords.vue"), meta: app(COUNSELLOR) },
 	{ path: "/sessions/:name", name: "SessionRecord", component: () => import("@/pages/SessionRecord.vue"), props: true, meta: app(COUNSELLOR) },
 	{ path: "/programme", name: "Programme", component: () => import("@/pages/Programme.vue"), meta: app(OVERSIGHT) },
+	{ path: "/programme/clients/new", name: "ProgrammeClientNew", component: () => import("@/pages/ClientForm.vue"), meta: app(OVERSIGHT) },
+	{ path: "/system-admin", name: "SystemAdmin", component: () => import("@/pages/SystemAdmin.vue"), meta: app(["admin"]) },
+	{ path: "/audit-logs", name: "AuditLogs", component: () => import("@/pages/AuditLogs.vue"), meta: app(["admin", "dpo"]) },
 ]
 
 const router = createRouter({ history: createWebHistory("/frontend"), routes })

@@ -3,7 +3,8 @@ from frappe import _
 from frappe.utils import get_datetime, get_url, now_datetime
 
 from krcti_mhpss.api.counsellor import _client_for_user, _flag
-from krcti_mhpss.utils import ADMIN_ROLE, COUNSELLOR, is_admin, is_counsellor, require_roles
+from krcti_mhpss.api.oversight import notify_programme_managers
+from krcti_mhpss.utils import ADMIN_ROLE, COUNSELLOR, KRCTI_PM, WOC_PM, is_admin, is_counsellor, require_roles
 
 CLIENT_TEXT = (
     "full_name", "phone_number", "gender", "disability_type", "institution", "institution_county", "course_programme",
@@ -149,6 +150,51 @@ def save_client(name=None, data=None):
     return {"name": doc.name}
 
 
+@frappe.whitelist()
+def programme_counsellors():
+    """Return active counsellors available for programme-manager assignment."""
+    require_roles(KRCTI_PM, WOC_PM)
+    user_names = set(frappe.get_all(
+        "Has Role", filters={"role": COUNSELLOR, "parenttype": "User"}, pluck="parent", limit=0
+    ))
+    if not user_names:
+        return []
+    return frappe.get_all(
+        "User", filters={"name": ["in", sorted(user_names)], "enabled": 1},
+        fields=["name", "full_name"], order_by="full_name asc", limit=0,
+    )
+
+
+@frappe.whitelist(methods=["POST"])
+def register_programme_client(data=None, assigned_counsellor=None):
+    """Register a client for a programme manager and assign an active counsellor."""
+    require_roles(KRCTI_PM, WOC_PM)
+    data = _data(data)
+    _only(data, CLIENT_CREATE)
+    if not assigned_counsellor:
+        frappe.throw(_("Choose a counsellor for this client."))
+    counsellor = frappe.db.get_value("User", assigned_counsellor, ["enabled"], as_dict=True)
+    if not counsellor or not counsellor.enabled or COUNSELLOR not in frappe.get_roles(assigned_counsellor):
+        frappe.throw(_("Choose an active counsellor account."))
+    roles = frappe.get_roles()
+    if WOC_PM in roles and KRCTI_PM not in roles and data.get("programme_stream") != "Scholarship/Education":
+        frappe.throw(_("WoC Programme Managers can only register Scholarship/Education clients."), frappe.PermissionError)
+
+    doc = frappe.new_doc("Client")
+    for key in CLIENT_TEXT:
+        if key in data:
+            doc.set(key, _short(data[key], key.replace("_", " ")))
+    for key in CLIENT_NUMBERS:
+        if key in data:
+            doc.set(key, _int(data[key], key.replace("_", " ")))
+    for key in CLIENT_CHECKS:
+        if key in data:
+            doc.set(key, 1 if data[key] else 0)
+    doc.assigned_counsellor = assigned_counsellor
+    doc.insert(ignore_permissions=True)
+    return {"name": doc.name, "assigned_counsellor": assigned_counsellor}
+
+
 @frappe.whitelist(methods=["POST"])
 def set_case_status(name=None, status=None):
     require_roles(COUNSELLOR, ADMIN_ROLE)
@@ -168,7 +214,7 @@ def set_case_status(name=None, status=None):
 @frappe.whitelist(methods=["POST"])
 def record_baseline(client=None, data=None):
     """The status and the who-and-when stamps are set here, never taken from the request."""
-    require_roles(COUNSELLOR, ADMIN_ROLE)
+    require_roles(COUNSELLOR)
     owner = _client_for_user(client)
     if owner.case_status == "Closed":
         frappe.throw(_("Closed cases are read-only."))
@@ -255,7 +301,7 @@ def session_record_detail(name=None):
 @frappe.whitelist(methods=["POST"])
 def record_session(name=None, data=None):
     """Save the clinical session record and complete its scheduled appointment atomically."""
-    require_roles(COUNSELLOR, ADMIN_ROLE)
+    require_roles(COUNSELLOR)
     doc = _appointment(name)
     if doc.counsellor_id != frappe.session.user and not is_admin():
         frappe.throw(_("Only the counsellor assigned to this appointment can record the session."), frappe.PermissionError)
@@ -269,7 +315,10 @@ def record_session(name=None, data=None):
     _only(data, allowed + ("urgency_level", "mode_of_contact") + tuple(FOLLOWUP_SELECT_FIELDS) + tuple(FOLLOWUP_YN_FIELDS))
     required = (
         ("session_details", "presenting_issues", "risk_assessment", "followup_takeaways")
-        if doc.session_type == "Follow-Up" else SESSION_RECORD_REQUIRED
+        if doc.session_type == "Follow-Up"
+        else tuple(key for key in SESSION_RECORD_REQUIRED if key != "follow_up_plan")
+        if doc.session_type == "Termination"
+        else SESSION_RECORD_REQUIRED
     )
     for key in required:
         if not _long(data.get(key), _(key.replace("_", " ")), 4000):
@@ -311,16 +360,32 @@ def record_session(name=None, data=None):
     doc.overdue_notification_read = 0
     doc.status = "Completed"
     doc.save()
+    notify_programme_managers(doc, "Session completed")
+    if doc.session_type == "Termination":
+        # Ending a case closes the full thread. Cancel any appointments that
+        # were booked before termination so none remain actionable afterward.
+        pending = frappe.get_all(
+            "Appointment",
+            filters={"client_id": doc.client_id, "status": "Scheduled", "name": ["!=", doc.name]},
+            pluck="name",
+        )
+        for appointment_name in pending:
+            appointment = frappe.get_doc("Appointment", appointment_name)
+            appointment.status = "Cancelled"
+            appointment.save()
+        client.case_status = "Closed"
+        client.save()
     return {"name": doc.name, "status": doc.status}
 
 
 @frappe.whitelist(methods=["POST"])
 def save_appointment(name=None, client=None, data=None):
     """Book an appointment, or change a scheduled one. The counsellor and status are never taken from the request."""
-    require_roles(COUNSELLOR, ADMIN_ROLE)
+    require_roles(COUNSELLOR)
     data = _data(data)
     _only(data, APPOINTMENT_FIELDS)
 
+    is_new = not name
     if name:
         doc = _appointment(name)
         if doc.status != "Scheduled":
@@ -349,6 +414,8 @@ def save_appointment(name=None, client=None, data=None):
         doc.notes = _long(data["notes"], _("The notes"), 1000)
 
     doc.save() if name else doc.insert()
+    if is_new and is_counsellor():
+        notify_programme_managers(doc, "Appointment booked")
     return {"name": doc.name}
 
 
@@ -480,7 +547,7 @@ def mark_referral_notifications_read(name=None):
 
 @frappe.whitelist(methods=["POST"])
 def set_appointment_status(name=None, status=None):
-    require_roles(COUNSELLOR, ADMIN_ROLE)
+    require_roles(COUNSELLOR)
     if status == "Completed":
         frappe.throw(_("Use In-session to complete the session record."))
     if status != "Cancelled":

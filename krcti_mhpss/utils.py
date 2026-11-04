@@ -4,13 +4,16 @@ import frappe
 from frappe.utils import get_datetime, now_datetime
 
 ADMIN_ROLE = "System Manager"
+KRCTI_ADMIN_ROLE = "KRCTI System Administrator"
+ADMIN_ROLES = (ADMIN_ROLE, KRCTI_ADMIN_ROLE)
 COUNSELLOR = "MHPSS Counsellor"
 KRCTI_PM = "KRCTI Programme Manager"
 WOC_PM = "WoC Programme Manager"
 CLIENT_ROLE = "MHPSS Client"
+DPO_ROLE = "KRCS Data Protection Officer"
 
 # Mutually exclusive MHPSS business roles.
-SINGLE_ROLES = (ADMIN_ROLE, COUNSELLOR, KRCTI_PM, WOC_PM, CLIENT_ROLE)
+SINGLE_ROLES = (*ADMIN_ROLES, COUNSELLOR, KRCTI_PM, WOC_PM, CLIENT_ROLE, DPO_ROLE)
 
 MODES = ("Physical Individual", "Physical Group", "Tele-counselling", "Phone Call", "School Campaign")
 PHYSICAL_MODES = ("Physical Individual", "Physical Group", "School Campaign")
@@ -22,7 +25,7 @@ def roles_of(user=None):
 
 
 def is_admin(user=None):
-    return ADMIN_ROLE in roles_of(user)
+    return bool(set(ADMIN_ROLES) & roles_of(user))
 
 
 def is_counsellor(user=None):
@@ -32,7 +35,10 @@ def is_counsellor(user=None):
 def require_roles(*allowed):
     if frappe.session.user == "Guest":
         frappe.throw("Please log in to continue.", frappe.AuthenticationError)
-    if not (set(allowed) & roles_of()):
+    allowed = set(allowed)
+    if ADMIN_ROLE in allowed:
+        allowed.update(ADMIN_ROLES)
+    if not (allowed & roles_of()):
         frappe.throw("You do not have access to this.", frappe.PermissionError)
 
 

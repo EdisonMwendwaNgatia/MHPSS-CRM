@@ -1,10 +1,10 @@
 import frappe
 
-from krcti_mhpss.utils import ADMIN_ROLE, CLIENT_ROLE, COUNSELLOR, KRCTI_PM, WOC_PM, roles_of
+from krcti_mhpss.utils import ADMIN_ROLE, CLIENT_ROLE, COUNSELLOR, DPO_ROLE, KRCTI_ADMIN_ROLE, KRCTI_PM, WOC_PM, roles_of
 
 ROLE_KEYS = (
-    (ADMIN_ROLE, "admin"), (COUNSELLOR, "counsellor"), (KRCTI_PM, "krcti_pm"),
-    (WOC_PM, "woc_pm"), (CLIENT_ROLE, "client"),
+    (ADMIN_ROLE, "admin"), (KRCTI_ADMIN_ROLE, "admin"), (COUNSELLOR, "counsellor"), (KRCTI_PM, "krcti_pm"),
+    (WOC_PM, "woc_pm"), (DPO_ROLE, "dpo"), (CLIENT_ROLE, "client"),
 )
 
 
