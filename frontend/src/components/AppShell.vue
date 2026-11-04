@@ -184,7 +184,7 @@
 import { createResource } from "frappe-ui"
 import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import { useRoute } from "vue-router"
-import { Bell, BellRing, BookOpen, CalendarDays, Check, ChevronDown, ChevronRight, ClipboardCheck, ClipboardList, HeartHandshake, LayoutDashboard, LoaderCircle, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Shield, UserRoundPlus, Users, UsersRound, X } from "lucide-vue-next"
+import { Bell, BellRing, BookOpen, CalendarDays, Check, ChevronDown, ChevronRight, ClipboardCheck, ClipboardList, HeartHandshake, LayoutDashboard, LoaderCircle, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, UserRoundPlus, Users, UsersRound, X } from "lucide-vue-next"
 import { me } from "../data/me"
 import { session } from "../data/session"
 
@@ -196,8 +196,11 @@ const NAV = [
 	{ label: "Session records", name: "SessionRecords", icon: BookOpen, match: ["SessionRecords", "SessionRecord"], roles: ["counsellor"] },
 	{ label: "Programme", name: "Programme", icon: ClipboardList, match: ["Programme"], roles: ["krcti_pm", "woc_pm"] },
 	{ label: "Register client", name: "ProgrammeClientNew", icon: UserRoundPlus, match: ["ProgrammeClientNew"], roles: ["krcti_pm", "woc_pm"] },
-	{ label: "System administration", name: "SystemAdmin", icon: Shield, match: ["SystemAdmin"], roles: ["admin"] },
-	{ label: "Audit logs", name: "AuditLogs", icon: ClipboardCheck, match: ["AuditLogs"], roles: ["admin", "dpo"] },
+	{ label: "Programme clients", name: "ProgrammeClients", icon: UsersRound, match: ["ProgrammeClients", "ProgrammeClientDetail"], roles: ["krcti_pm", "woc_pm"] },
+	{ label: "Counsellors", name: "ProgrammeCounsellors", icon: Users, match: ["ProgrammeCounsellors"], roles: ["krcti_pm", "woc_pm"] },
+	{ label: "Session management", name: "ProgrammeSessions", icon: CalendarDays, match: ["ProgrammeSessions"], roles: ["krcti_pm", "woc_pm"] },
+	{ label: "Counsellor activity", name: "ProgrammeActivity", icon: ClipboardCheck, match: ["ProgrammeActivity"], roles: ["krcti_pm", "woc_pm"] },
+	{ label: "Audit logs", name: "AuditLogs", icon: ClipboardCheck, match: ["AuditLogs"], roles: ["dpo"] },
 ]
 const LABELS = {
 	admin: "System Administrator", counsellor: "Counsellor", krcti_pm: "KRCTI Programme Manager",

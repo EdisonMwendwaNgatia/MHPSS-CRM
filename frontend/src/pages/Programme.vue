@@ -189,7 +189,7 @@
             <select id="calendar-counsellor" v-model="selectedCounsellor" class="field mt-1.5">
               <option value="">Select a counsellor</option>
               <option value="__all__">All counsellors</option>
-              <option v-for="counsellor in counsellorOptions" :key="counsellor" :value="counsellor">{{ counsellor }}</option>
+              <option v-for="counsellor in counsellorOptions" :key="counsellor.name" :value="counsellor.name">{{ counsellor.full_name }}</option>
             </select>
           </label>
         </div>
@@ -201,19 +201,21 @@
                 <th class="whitespace-nowrap px-3 py-2.5 font-semibold">Counsellor</th>
                 <th class="whitespace-nowrap px-3 py-2.5 font-semibold">Session</th>
                 <th class="whitespace-nowrap px-3 py-2.5 font-semibold">Mode</th>
-                <th class="whitespace-nowrap px-5 py-2.5 font-semibold">Status</th>
+                <th class="whitespace-nowrap px-3 py-2.5 font-semibold">Status</th>
+                <th class="whitespace-nowrap px-5 py-2.5 font-semibold">Client record</th>
               </tr>
             </thead>
             <tbody v-for="group in calendarGroups" :key="group.scholar_code">
               <tr class="border-t border-[#D5D8DE] bg-[#F4F5F7]">
-                <th colspan="5" class="px-5 py-3 text-left text-sm font-semibold text-[#2B2F36]">Scholar/Participant Code: <span class="text-[#A10E24]">{{ group.scholar_code }}</span></th>
+                <th colspan="6" class="px-5 py-3 text-left text-sm font-semibold text-[#2B2F36]">Scholar/Participant Code: <span class="text-[#A10E24]">{{ group.scholar_code }}</span></th>
               </tr>
               <tr v-for="(r, i) in group.appointments" :key="`${group.scholar_code}-${i}`" class="border-t border-[#E4E6EA] transition hover:bg-[#F4F5F7]/60">
                 <td class="whitespace-nowrap px-5 py-3.5 font-medium tabular-nums">{{ fmtDateTime(r.start) }}</td>
                 <td class="whitespace-nowrap px-3 py-3.5">{{ r.counsellor }}</td>
                 <td class="whitespace-nowrap px-3 py-3.5">{{ r.session_type }}</td>
                 <td class="whitespace-nowrap px-3 py-3.5">{{ r.mode }}</td>
-                <td class="px-5 py-3.5"><Badge :label="r.overdue ? 'Overdue' : r.status" :theme="r.overdue ? 'red' : statusTheme(r.status)" /></td>
+                <td class="px-3 py-3.5"><Badge :label="r.overdue ? 'Overdue' : r.status" :theme="r.overdue ? 'red' : statusTheme(r.status)" /></td>
+                <td class="px-5 py-3.5"><router-link :to="{ name: 'ProgrammeClientDetail', params: { name: r.client_id } }" class="font-semibold text-[#A10E24] hover:underline">View record</router-link></td>
               </tr>
             </tbody>
           </table>
@@ -238,6 +240,7 @@ const from = ref(daysAgo(30))
 
 const summary = createResource({ url: "krcti_mhpss.api.oversight.programme_summary" })
 const calendar = createResource({ url: "krcti_mhpss.api.oversight.programme_calendar" })
+const counsellors = createResource({ url: "krcti_mhpss.api.oversight.programme_counsellors" })
 const selectedCounsellor = ref("")
 const data = computed(() => summary.data)
 const showCalendar = computed(() => ["krcti_pm", "woc_pm", "admin"].includes(me.data?.role))
@@ -246,7 +249,10 @@ const invalidRange = computed(() => !!from.value && !!to.value && from.value > t
 function load() {
 	if (from.value > to.value) return
 	summary.submit({ date_from: from.value, date_to: to.value })
-	if (showCalendar.value) calendar.submit({ date_from: from.value, date_to: to.value })
+	if (showCalendar.value) {
+		calendar.submit({ date_from: from.value, date_to: to.value })
+		if (!counsellors.data) counsellors.submit()
+	}
 }
 onMounted(() => me.data ? load() : me.reload())
 watch(() => me.data, load)
@@ -274,14 +280,14 @@ const statusRows = computed(() => Object.entries(data.value?.appointments_by_sta
 const baselineRows = computed(() => ["Completed", "Declined", "Pending"].map((s) => [s, data.value?.baseline?.[s] || 0]))
 const referralRows = computed(() => Object.entries(data.value?.referrals || {}))
 const trendRows = computed(() => data.value?.appointment_trends || [])
-const counsellorOptions = computed(() => [...new Set((calendar.data || []).map((appointment) => appointment.counsellor).filter(Boolean))].sort((a, b) => a.localeCompare(b)))
+const counsellorOptions = computed(() => [...(counsellors.data || [])].sort((a, b) => a.full_name.localeCompare(b.full_name)))
 watch(counsellorOptions, (options) => {
-	if (selectedCounsellor.value && selectedCounsellor.value !== "__all__" && !options.includes(selectedCounsellor.value)) selectedCounsellor.value = ""
+	if (selectedCounsellor.value && selectedCounsellor.value !== "__all__" && !options.some((person) => person.name === selectedCounsellor.value)) selectedCounsellor.value = ""
 })
 const filteredCalendar = computed(() => {
 	if (!selectedCounsellor.value) return []
 	if (selectedCounsellor.value === "__all__") return calendar.data || []
-	return (calendar.data || []).filter((appointment) => appointment.counsellor === selectedCounsellor.value)
+	return (calendar.data || []).filter((appointment) => appointment.counsellor_id === selectedCounsellor.value)
 })
 const calendarGroups = computed(() => {
 	const groups = new Map()

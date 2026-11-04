@@ -4,7 +4,7 @@ from frappe.model.document import Document
 from frappe.utils import add_to_date, cint, get_datetime, now_datetime
 
 from krcti_mhpss.permissions import counsellor_in_case
-from krcti_mhpss.utils import GROUP_MODES, PHYSICAL_MODES, is_admin
+from krcti_mhpss.utils import GROUP_MODES, PHYSICAL_MODES, is_admin, KRCTI_PM, WOC_PM
 
 
 class Appointment(Document):
@@ -27,9 +27,11 @@ class Appointment(Document):
             if self.client_id
             else None
         )
-        if not client or (not is_admin() and not counsellor_in_case(self.client_id, frappe.session.user)):
+        manager = bool({KRCTI_PM, WOC_PM} & set(frappe.get_roles()))
+        manager_update = getattr(frappe.flags, "allow_programme_session_management", False) and manager
+        if not client or (not is_admin() and not manager_update and not counsellor_in_case(self.client_id, frappe.session.user)):
             frappe.throw(_("Client not found."), frappe.DoesNotExistError)
-        if not is_admin() and self.counsellor_id != frappe.session.user and not getattr(frappe.flags, "allow_appointment_referral", False):
+        if not is_admin() and not manager_update and self.counsellor_id != frappe.session.user and not getattr(frappe.flags, "allow_appointment_referral", False):
             frappe.throw(_("You can only manage your own appointments."), frappe.PermissionError)
         if getattr(frappe.flags, "allow_appointment_referral", False):
             history = self.get("referral_history") or []
@@ -99,15 +101,18 @@ class Appointment(Document):
             return
         if before.status in ("Completed", "Cancelled") and not is_admin():
             frappe.throw(_("A {0} appointment cannot be changed.").format(before.status.lower()))
+        manager_update = getattr(frappe.flags, "allow_programme_session_management", False) and bool({KRCTI_PM, WOC_PM} & set(frappe.get_roles()))
+        if before.status != self.status and self.status == "Cancelled" and not manager_update and not getattr(frappe.flags, "allow_session_closure", False) and not is_admin():
+            frappe.throw(_("Only a Programme Manager can cancel a scheduled appointment."), frappe.PermissionError)
         if self.status == "Completed" and before.status != "Completed":
             if self.date_time and get_datetime(self.date_time) > now_datetime():
                 frappe.throw(_("An appointment in the future cannot be marked as Completed."))
             required = (
-                ("session_details", "presenting_issues", "risk_assessment", "followup_takeaways")
+                ("session_details", "risk_assessment", "followup_takeaways")
                 if self.session_type == "Follow-Up"
                 else ("session_details", "presenting_issues", "interventions_applied", "risk_assessment")
                 if self.session_type == "Termination"
-                else ("session_details", "presenting_issues", "interventions_applied", "risk_assessment", "follow_up_plan")
+                else ("session_details", "presenting_issues", "interventions_applied", "risk_assessment")
             )
             missing = [frappe.unscrub(field) for field in required if not (self.get(field) or "").strip()]
             if missing:
@@ -122,6 +127,7 @@ class Appointment(Document):
                 followup_yes_no = {
                     "followup_new_issues_present": ("Yes", "No"),
                     "followup_evident_changes_present": ("Yes", "No"),
+                    "followup_new_presenting_issues": ("Yes", "No"),
                 }
                 missing_yes_no = [frappe.unscrub(field) for field, choices in followup_yes_no.items() if self.get(field) not in choices]
                 if missing_yes_no:
@@ -138,3 +144,16 @@ class Appointment(Document):
                 missing_followup = [frappe.unscrub(field) for field, choices in followup_choices.items() if self.get(field) not in choices]
                 if missing_followup:
                     frappe.throw(_("Choose valid follow-up observations for: {0}.").format(", ".join(missing_followup)))
+                if self.followup_wellbeing_rating not in ("Very good", "Good", "Fair", "Poor", "Very poor"):
+                    frappe.throw(_("Choose the client's current wellbeing rating."))
+                if self.followup_stress_frequency not in ("Never", "Sometimes", "Often", "Almost always"):
+                    frappe.throw(_("Choose the recent stress frequency."))
+                if self.followup_new_presenting_issues == "Yes" and not (self.presenting_issues or "").strip():
+                    frappe.throw(_("Record the new presenting issues."))
+            if self.session_type != "Termination":
+                if self.needs_follow_up not in ("Yes", "No"):
+                    frappe.throw(_("Choose whether the client needs follow-up."))
+                if self.needs_follow_up == "Yes" and not (self.follow_up_plan or "").strip():
+                    frappe.throw(_("Complete the follow-up plan when follow-up is required."))
+                if self.needs_follow_up == "No" and (self.follow_up_plan or "").strip():
+                    frappe.throw(_("Clear the follow-up plan when no follow-up is required."))

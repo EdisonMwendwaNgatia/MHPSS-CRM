@@ -199,11 +199,24 @@ def log_user_login(login_manager):
         write_audit_log("User logged in", frappe.session.user, "Authentication")
 
 
+def log_user_logout(login_manager=None):
+    if frappe.session.user and frappe.session.user != "Guest":
+        write_audit_log("User logged out", frappe.session.user, "Authentication")
+
+
 def log_client_registration(doc, method=None):
     write_audit_log("Client registered", doc.name, "Client management")
 
 
+def log_client_update(doc, method=None):
+    before = doc.get_doc_before_save()
+    if before and before.as_dict() != doc.as_dict():
+        write_audit_log("Client updated", doc.name, "Client management")
+
+
 def log_appointment_activity(doc, method=None):
+    if getattr(frappe.flags, "programme_session_action", False):
+        return
     before = doc.get_doc_before_save()
     if not before:
         write_audit_log("Appointment booked", doc.name, "Appointments")
@@ -212,3 +225,7 @@ def log_appointment_activity(doc, method=None):
         write_audit_log("Session completed", doc.name, "Session records")
     elif before.status != doc.status and doc.status == "Cancelled":
         write_audit_log("Appointment cancelled", doc.name, "Appointments")
+    elif before.counsellor_id != doc.counsellor_id:
+        write_audit_log("Appointment reassigned", doc.name, "Session management")
+    elif any(before.get(field) != doc.get(field) for field in ("date_time", "duration_minutes", "session_type", "mode_of_contact", "location", "notes")):
+        write_audit_log("Appointment updated", doc.name, "Appointments")

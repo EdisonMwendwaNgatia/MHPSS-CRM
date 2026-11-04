@@ -30,10 +30,10 @@ APPOINTMENT_DETAIL = (
     "name", "client_id", "client_name", "scholar_code", "counsellor_id", "counsellor_name", "date_time", "end_time",
     "duration_minutes", "session_type", "mode_of_contact", "location", "notes", "status",
     "session_details", "presenting_issues", "issue_subclassifications", "interventions_applied",
-    "referrals_made", "urgency_level", "risk_assessment", "follow_up_plan",
-    "progress_previous_goals", "followup_goals_discussed", "followup_challenges", "followup_new_issues_present", "followup_new_issues",
+    "referrals_made", "urgency_level", "risk_assessment", "needs_follow_up", "follow_up_plan",
+    "progress_previous_goals", "followup_goals_discussed", "followup_challenges", "followup_new_issues_present", "followup_new_issues", "followup_new_presenting_issues",
     "followup_evident_changes_present", "followup_evident_changes", "followup_coping_support", "followup_support_effectiveness",
-    "followup_additional_support", "followup_mood_affect", "followup_mood_other", "followup_engagement_level",
+    "followup_additional_support", "followup_mood_affect", "followup_mood_other", "followup_wellbeing_rating", "followup_stress_frequency", "followup_engagement_level",
     "followup_risk_concerns", "counsellor_observations", "followup_recommendations", "followup_takeaways",
     "next_session_focus", "followup_action", "audio_recording",
 )
@@ -52,8 +52,8 @@ def _referral_rows(appointment_name):
     return rows
 SESSION_RECORD_TEXT = (
     "session_details", "presenting_issues", "issue_subclassifications", "interventions_applied",
-    "referrals_made", "risk_assessment", "follow_up_plan", "progress_previous_goals",
-    "followup_goals_discussed", "followup_challenges", "followup_new_issues", "followup_evident_changes",
+    "referrals_made", "risk_assessment", "needs_follow_up", "follow_up_plan", "progress_previous_goals",
+    "followup_goals_discussed", "followup_challenges", "followup_new_issues_present", "followup_new_issues", "followup_new_presenting_issues", "followup_evident_changes_present", "followup_evident_changes",
     "followup_coping_support", "followup_support_effectiveness", "followup_additional_support",
     "followup_mood_other", "counsellor_observations", "followup_recommendations", "followup_takeaways",
     "next_session_focus", "followup_action",
@@ -66,11 +66,35 @@ FOLLOWUP_SELECT_FIELDS = {
     "followup_mood_affect": ("Stable", "Improved", "Low", "Anxious", "Withdrawn", "Other"),
     "followup_engagement_level": ("Active", "Moderate", "Passive"),
     "followup_risk_concerns": ("None", "Mild", "Moderate", "High"),
+    "followup_wellbeing_rating": ("Very good", "Good", "Fair", "Poor", "Very poor"),
+    "followup_stress_frequency": ("Never", "Sometimes", "Often", "Almost always"),
 }
 FOLLOWUP_YN_FIELDS = {
     "followup_new_issues_present": ("Yes", "No"),
     "followup_evident_changes_present": ("Yes", "No"),
+    "followup_new_presenting_issues": ("Yes", "No"),
 }
+PRESENTING_ISSUES = (
+    "Substance-Related and Addictive Disorders", "Anxiety Disorders", "Trauma and Stressor-Related Disorders",
+    "GBV / safeguarding issues", "Depressive Disorders", "Other Presenting Issues",
+)
+
+
+def _issue_list(value):
+    if isinstance(value, str):
+        try:
+            parsed = frappe.parse_json(value)
+        except Exception:
+            parsed = None
+        values = parsed if isinstance(parsed, list) else [value]
+    elif isinstance(value, list):
+        values = value
+    else:
+        values = []
+    normalized = list(dict.fromkeys(str(item).strip() for item in values if str(item).strip()))
+    if any(item not in PRESENTING_ISSUES for item in normalized):
+        frappe.throw(_("Choose valid presenting issues."))
+    return frappe.as_json(normalized) if normalized else ""
 
 
 def _data(value):
@@ -153,16 +177,8 @@ def save_client(name=None, data=None):
 @frappe.whitelist()
 def programme_counsellors():
     """Return active counsellors available for programme-manager assignment."""
-    require_roles(KRCTI_PM, WOC_PM)
-    user_names = set(frappe.get_all(
-        "Has Role", filters={"role": COUNSELLOR, "parenttype": "User"}, pluck="parent", limit=0
-    ))
-    if not user_names:
-        return []
-    return frappe.get_all(
-        "User", filters={"name": ["in", sorted(user_names)], "enabled": 1},
-        fields=["name", "full_name"], order_by="full_name asc", limit=0,
-    )
+    from krcti_mhpss.api.oversight import programme_counsellors as list_counsellors
+    return [row for row in list_counsellors() if row.enabled]
 
 
 @frappe.whitelist(methods=["POST"])
@@ -176,6 +192,8 @@ def register_programme_client(data=None, assigned_counsellor=None):
     counsellor = frappe.db.get_value("User", assigned_counsellor, ["enabled"], as_dict=True)
     if not counsellor or not counsellor.enabled or COUNSELLOR not in frappe.get_roles(assigned_counsellor):
         frappe.throw(_("Choose an active counsellor account."))
+    if assigned_counsellor not in {row.name for row in programme_counsellors()}:
+        frappe.throw(_("Choose a counsellor within your programme scope."), frappe.PermissionError)
     roles = frappe.get_roles()
     if WOC_PM in roles and KRCTI_PM not in roles and data.get("programme_stream") != "Scholarship/Education":
         frappe.throw(_("WoC Programme Managers can only register Scholarship/Education clients."), frappe.PermissionError)
@@ -314,11 +332,11 @@ def record_session(name=None, data=None):
     allowed = SESSION_RECORD_TEXT
     _only(data, allowed + ("urgency_level", "mode_of_contact") + tuple(FOLLOWUP_SELECT_FIELDS) + tuple(FOLLOWUP_YN_FIELDS))
     required = (
-        ("session_details", "presenting_issues", "risk_assessment", "followup_takeaways")
+        ("session_details", "risk_assessment", "followup_takeaways")
         if doc.session_type == "Follow-Up"
         else tuple(key for key in SESSION_RECORD_REQUIRED if key != "follow_up_plan")
         if doc.session_type == "Termination"
-        else SESSION_RECORD_REQUIRED
+        else tuple(key for key in SESSION_RECORD_REQUIRED if key not in ("follow_up_plan", "presenting_issues"))
     )
     for key in required:
         if not _long(data.get(key), _(key.replace("_", " ")), 4000):
@@ -345,6 +363,22 @@ def record_session(name=None, data=None):
                 frappe.throw(_("Describe the {0} selected as Yes.").format(label))
             if data[answer_field] == "No":
                 data[detail_field] = ""
+        if data["followup_new_presenting_issues"] == "Yes":
+            if not _issue_list(data.get("presenting_issues")):
+                frappe.throw(_("Select at least one new presenting issue."))
+        else:
+            data["presenting_issues"] = ""
+    else:
+        data["presenting_issues"] = _issue_list(data.get("presenting_issues"))
+        if not data["presenting_issues"]:
+            frappe.throw(_("Select at least one presenting issue."))
+    if doc.session_type != "Termination":
+        if data.get("needs_follow_up") not in ("Yes", "No"):
+            frappe.throw(_("Choose whether the client needs follow-up."))
+        if data["needs_follow_up"] == "Yes" and not _long(data.get("follow_up_plan"), _("Follow-up plan"), 4000):
+            frappe.throw(_("Complete the follow-up plan when follow-up is required."))
+        if data["needs_follow_up"] == "No":
+            data["follow_up_plan"] = ""
     for key in SESSION_RECORD_TEXT:
         doc.set(key, _long(data.get(key), _(key.replace("_", " ")), 4000))
     if doc.session_type in ("First Session", "Follow-Up"):
@@ -354,6 +388,8 @@ def record_session(name=None, data=None):
             doc.set(key, data[key])
         for key in FOLLOWUP_SELECT_FIELDS:
             doc.set(key, data[key])
+    if doc.session_type != "Termination":
+        doc.needs_follow_up = data["needs_follow_up"]
     doc.urgency_level = urgency
     # Clear any dismissal when this overdue follow-up is completed. Completed
     # appointments no longer qualify for the overdue-notification query.
@@ -361,7 +397,7 @@ def record_session(name=None, data=None):
     doc.status = "Completed"
     doc.save()
     notify_programme_managers(doc, "Session completed")
-    if doc.session_type == "Termination":
+    if doc.session_type == "Termination" or doc.needs_follow_up == "No":
         # Ending a case closes the full thread. Cancel any appointments that
         # were booked before termination so none remain actionable afterward.
         pending = frappe.get_all(
@@ -372,9 +408,13 @@ def record_session(name=None, data=None):
         for appointment_name in pending:
             appointment = frappe.get_doc("Appointment", appointment_name)
             appointment.status = "Cancelled"
+            frappe.flags.allow_session_closure = True
             appointment.save()
+            frappe.flags.allow_session_closure = False
         client.case_status = "Closed"
+        frappe.flags.close_case_without_termination = doc.session_type != "Termination"
         client.save()
+        frappe.flags.close_case_without_termination = False
     return {"name": doc.name, "status": doc.status}
 
 
@@ -547,7 +587,7 @@ def mark_referral_notifications_read(name=None):
 
 @frappe.whitelist(methods=["POST"])
 def set_appointment_status(name=None, status=None):
-    require_roles(COUNSELLOR)
+    require_roles(KRCTI_PM, WOC_PM)
     if status == "Completed":
         frappe.throw(_("Use In-session to complete the session record."))
     if status != "Cancelled":
@@ -555,6 +595,4 @@ def set_appointment_status(name=None, status=None):
     doc = _appointment(name)
     if doc.status != "Scheduled":
         frappe.throw(_("Only a scheduled appointment can be cancelled."))
-    doc.status = status
-    doc.save()
-    return {"status": doc.status}
+    frappe.throw(_("Use Programme session management to cancel an appointment and record the reason."))
