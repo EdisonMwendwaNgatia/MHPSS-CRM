@@ -13,8 +13,8 @@
       <div v-if="data?.overdue_total" class="mt-5 flex items-start gap-3 rounded-xl bg-[#FBE0E4] px-4 py-3.5 text-sm text-[#A10E24]" role="alert">
         <AlertCircle :size="20" class="mt-px shrink-0" />
         <p>
-          <span class="font-semibold">{{ data.overdue_total }} appointment{{ data.overdue_total === 1 ? " has" : "s have" }} passed without being completed.</span>
-          Complete or cancel {{ data.overdue_total === 1 ? "it" : "them" }} to keep your records up to date.
+	          <span class="font-semibold">{{ data.overdue_total }} appointment{{ data.overdue_total === 1 ? " has" : "s have" }} passed without being completed.</span>
+	          Record the session once it has taken place to keep the case history up to date.
         </p>
       </div>
 
@@ -81,7 +81,7 @@
         </div>
       </section>
 
-      <ErrorMessage class="mt-4" :message="list.error || action.error" />
+      <ErrorMessage class="mt-4" :message="list.error || referAction.error" />
       <PageLoader v-if="(list.loading && !data) || (calendarOpen && monthList.loading && !monthList.data)" />
 
       <!-- Empty state -->
@@ -140,9 +140,6 @@
                   <Pencil :size="16" /> Edit
                 </router-link>
                 <button type="button" class="act" @click="openReferral(a)"><Share2 :size="16" /> Refer to counsellor</button>
-                <button type="button" class="act act-danger" :disabled="action.loading" @click="cancel(a)">
-                  <XCircle :size="17" /> Cancel
-                </button>
               </div>
               <div v-else-if="a.status === 'Completed'" class="flex flex-wrap gap-2 sm:col-span-2 sm:col-start-2">
                 <router-link :to="{ name: 'SessionRecord', params: { name: a.name } }" class="act">
@@ -360,7 +357,6 @@ const tiles = computed(() => {
 	]
 })
 
-const action = createResource({ url: "krcti_mhpss.api.records.set_appointment_status", onSuccess: load })
 const referAction = createResource({
 	url: "krcti_mhpss.api.records.refer_appointment",
 	onSuccess() { closeReferral(); load() },
@@ -381,10 +377,6 @@ function closeReferral() {
 function submitReferral() {
 	if (!referralAppointment.value || !referralTo.value || !referralReason.value.trim()) return
 	referAction.submit({ name: referralAppointment.value.name, to_counsellor: referralTo.value, reason: referralReason.value.trim() })
-}
-const setStatus = (a, status) => action.submit({ name: a.name, status })
-function cancel(a) {
-	if (window.confirm(`Cancel the appointment with ${a.client_name}?`)) setStatus(a, "Cancelled")
 }
 </script>
 

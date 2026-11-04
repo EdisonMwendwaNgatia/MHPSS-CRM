@@ -3,8 +3,12 @@
     <div class="mx-auto max-w-[1440px]">
       <PageLoader v-if="home.loading && !home.data" />
       <ErrorMessage class="mb-5" :message="home.error" />
+	  <section v-if="role === 'admin'" class="mx-auto mt-12 max-w-2xl rounded-xl border border-[#E4E6EA] bg-white p-6">
+		<h1 class="text-xl font-semibold text-[#2B2F36]">System administration has moved</h1>
+		<p class="mt-2 text-sm leading-6 text-[#5B616B]">The separate System Administrator area has been removed. Programme Managers now manage counsellor accounts and scheduled sessions within their programme scope.</p>
+	  </section>
 
-      <template v-if="home.data">
+      <template v-else-if="home.data">
         <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p class="text-sm font-medium text-[#737780]">{{ todayLabel }}</p>
@@ -131,7 +135,6 @@ watch(
 	(value) => {
 		if (value === "counsellor") home.submit()
 		else if (["krcti_pm", "woc_pm"].includes(value)) router.replace({ name: "Programme" })
-		else if (value === "admin") router.replace({ name: "SystemAdmin" })
 		else if (value === "dpo") router.replace({ name: "AuditLogs" })
 	},
 	{ immediate: true },

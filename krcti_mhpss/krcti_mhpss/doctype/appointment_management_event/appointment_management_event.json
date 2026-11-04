@@ -1,0 +1,19 @@
+{
+ "doctype": "DocType",
+ "name": "Appointment Management Event",
+ "module": "Krcti Mhpss",
+ "custom": 0,
+ "istable": 1,
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": ["event_type", "from_counsellor", "to_counsellor", "manager", "reason", "event_time"],
+ "fields": [
+  {"fieldname": "event_type", "fieldtype": "Select", "label": "Action", "options": "Reassigned\nCancelled", "reqd": 1, "read_only": 1},
+  {"fieldname": "from_counsellor", "fieldtype": "Link", "label": "Original counsellor", "options": "User", "read_only": 1},
+  {"fieldname": "to_counsellor", "fieldtype": "Link", "label": "New counsellor", "options": "User", "read_only": 1},
+  {"fieldname": "manager", "fieldtype": "Link", "label": "Programme Manager", "options": "User", "read_only": 1},
+  {"fieldname": "reason", "fieldtype": "Small Text", "label": "Reason", "reqd": 1, "read_only": 1},
+  {"fieldname": "event_time", "fieldtype": "Datetime", "label": "Action time", "read_only": 1}
+ ],
+ "permissions": []
+}

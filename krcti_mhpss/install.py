@@ -1,4 +1,5 @@
 import frappe
+from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 # Counsellors keep Desk access for now as a fallback. Everyone else works in the app.
 ROLES = {
@@ -24,12 +25,26 @@ def ensure_roles():
             )
 
 
+def ensure_custom_fields():
+    create_custom_fields({"User": [{
+        "fieldname": "krcti_programme_scope",
+        "label": "KRCTI Programme Scope",
+        "fieldtype": "Select",
+        "options": "KRCTI\nWoC",
+        "insert_after": "user_type",
+        "default": "KRCTI",
+        "no_copy": 1,
+    }]})
+
+
 def after_migrate():
     ensure_roles()
+    ensure_custom_fields()
 
 
 def after_install():
     ensure_roles()
+    ensure_custom_fields()
     path = frappe.get_app_path("krcti_mhpss", "patches.txt")
     with open(path) as handle:
         lines = [line.strip() for line in handle]

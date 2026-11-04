@@ -1,11 +1,11 @@
 <template>
-  <main class="min-h-[calc(100vh-72px)] bg-[#F4F5F7] px-4 py-6 sm:px-6 lg:px-8"><div class="mx-auto max-w-[1440px]"><div class="flex flex-wrap items-end justify-between gap-4"><div><p class="text-sm text-[#737780]">Restricted · System Administrator and Data Protection Officer</p><h1 class="mt-1 text-2xl font-semibold text-[#25272B]">Audit logs</h1><p class="mt-1 text-sm text-[#737780]">Append-only record of account and application activity.</p></div><input v-model="search" class="field max-w-sm" type="search" placeholder="Search user, action, or record" aria-label="Search audit logs" /></div><ErrorMessage class="mt-4" :message="logs.error" /><section class="mt-6 overflow-hidden rounded-xl border border-[#E4E6EA] bg-white"><ActivityTable :rows="logs.data?.logs || []" :loading="logs.loading" /><div class="flex items-center justify-between border-t border-[#ECEDEF] px-5 py-3 text-xs text-[#737780]"><span>{{ logs.data?.total || 0 }} entries</span><button v-if="(logs.data?.total || 0) > start + 100" class="quiet" @click="start += 100; load()">Load more</button></div></section></div></main>
+  <main class="min-h-[calc(100vh-72px)] bg-[#F4F5F7] px-4 py-6 sm:px-6 lg:px-8"><div class="mx-auto max-w-[1440px]"><div class="flex flex-wrap items-end justify-between gap-4"><div><p class="text-sm text-[#737780]">Restricted · KRCS Data Protection Officer</p><h1 class="mt-1 text-2xl font-semibold text-[#25272B]">Audit logs</h1><p class="mt-1 text-sm text-[#737780]">Append-only record of application activity.</p></div><input v-model="search" class="field max-w-sm" type="search" placeholder="Search user, action, or record" aria-label="Search audit logs" /></div><ErrorMessage class="mt-4" :message="logs.error" /><section class="mt-6 overflow-hidden rounded-xl border border-[#E4E6EA] bg-white"><ActivityTable :rows="logs.data?.logs || []" :loading="logs.loading" /><div class="flex items-center justify-between border-t border-[#ECEDEF] px-5 py-3 text-xs text-[#737780]"><span>{{ logs.data?.total || 0 }} entries</span><button v-if="(logs.data?.total || 0) > start + 100" class="quiet" @click="start += 100; load()">Load more</button></div></section></div></main>
 </template>
 <script setup>
 import { createResource } from "frappe-ui"
 import { onMounted, ref, watch } from "vue"
 import ActivityTable from "../components/ActivityTable.vue"
-const logs = createResource({ url: "krcti_mhpss.api.system_admin.admin_audit_logs" })
+const logs = createResource({ url: "krcti_mhpss.api.audit.audit_logs" })
 const search = ref("")
 const start = ref(0)
 let timer

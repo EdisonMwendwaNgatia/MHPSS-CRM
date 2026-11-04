@@ -90,7 +90,7 @@
 												<div v-for="group in followupGroups(item)" :key="group.title" class="rounded-xl border border-[#E4E6EA] p-4">
 													<h3 class="text-sm font-semibold text-[#2B2F36]">{{ group.title }}</h3>
 													<div class="mt-3 grid gap-3 sm:grid-cols-2">
-														<div v-for="[label, value] in group.rows" :key="label" class="rounded-lg bg-[#F4F5F7] p-4">
+												<div v-for="[label, value] in group.rows" :key="label" class="rounded-lg bg-[#F4F5F7] p-4">
 															<span class="block text-xs text-[#5B616B]">{{ label }}</span>
 															<span class="fact-value mt-1 block text-sm font-medium text-[#2B2F36]">{{ value || 'Not recorded' }}</span>
 														</div>
@@ -150,41 +150,22 @@
 							<label class="lbl" for="f-session_details">How has the client been feeling since the last session? <span class="req" aria-hidden="true">*</span></label>
 							<p class="mb-2 text-xs text-[#5B616B]">Brief summary of mood, behavior, or attitude.</p>
 							<textarea id="f-session_details" v-model="form.session_details" class="field" rows="5" />
+							<div class="mt-5"><label class="lbl" for="f-followup_wellbeing_rating">How would you rate your current emotional and psychological wellbeing? <span class="req" aria-hidden="true">*</span></label><select id="f-followup_wellbeing_rating" v-model="form.followup_wellbeing_rating" class="field"><option value="">Choose a rating</option><option v-for="option in wellbeingOptions" :key="option">{{ option }}</option></select></div>
+							<div class="mt-5"><label class="lbl" for="f-followup_stress_frequency">In the past two weeks, have you experienced significant stress, anxiety, low mood, or difficulty concentrating? <span class="req" aria-hidden="true">*</span></label><select id="f-followup_stress_frequency" v-model="form.followup_stress_frequency" class="field"><option value="">Choose an answer</option><option v-for="option in stressFrequencyOptions" :key="option">{{ option }}</option></select></div>
 						</div>
 
 						<!-- Presenting issues -->
 						<div v-else-if="currentSection.key === 'presenting'" class="max-w-2xl space-y-5">
-							<div data-issue-dropdown>
-								<label id="presenting-issues-label" class="lbl">Presenting issues <span class="req" aria-hidden="true">*</span></label>
-								<div class="relative">
-									<button
-										type="button"
-										class="field flex items-center justify-between gap-3 text-left"
-										:class="form.presenting_issues ? '' : 'is-empty'"
-										aria-labelledby="presenting-issues-label presenting-issues-value"
-										:aria-expanded="issueDropdownOpen"
-										aria-haspopup="listbox"
-										:disabled="!canSave"
-										@click="issueDropdownOpen = !issueDropdownOpen"
-										@keydown.esc="issueDropdownOpen = false"
-									>
-										<span id="presenting-issues-value" class="truncate">{{ form.presenting_issues || 'Select presenting issue' }}</span>
-										<ChevronDown :size="17" class="shrink-0 text-[#5B616B] transition-transform" :class="issueDropdownOpen ? 'rotate-180' : ''" />
-									</button>
-									<div v-if="issueDropdownOpen" class="issue-menu" role="listbox" aria-labelledby="presenting-issues-label">
-										<button
-											v-for="issue in presentingIssueTypes"
-											:key="issue"
-											type="button"
-											role="option"
-											class="issue-option"
-											:class="form.presenting_issues === issue ? 'issue-option-active' : ''"
-											:aria-selected="form.presenting_issues === issue"
-											@click="choosePresentingIssue(issue)"
-										>{{ issue }}<Check v-if="form.presenting_issues === issue" :size="16" /></button>
-									</div>
+							<fieldset v-if="isFollowUp" class="m-0 border-0 p-0">
+								<legend class="lbl">Are there any new presenting issues? <span class="req" aria-hidden="true">*</span></legend>
+								<div class="mb-4 grid gap-2 sm:grid-cols-2"><label v-for="answer in yesNoOptions" :key="answer" class="opt" :class="form.followup_new_presenting_issues === answer ? 'opt-on' : ''"><input type="radio" name="followup_new_presenting_issues" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="form.followup_new_presenting_issues === answer" @change="setNewPresentingAnswer(answer)" />{{ answer }}</label></div>
+							</fieldset>
+							<fieldset v-if="!isFollowUp || form.followup_new_presenting_issues === 'Yes'" class="m-0 border-0 p-0">
+								<legend class="lbl">{{ isFollowUp ? 'Select new presenting issues' : 'Presenting issues' }} <span class="req" aria-hidden="true">*</span></legend>
+								<div class="grid gap-2 sm:grid-cols-2">
+									<label v-for="issue in presentingIssueTypes" :key="issue" class="opt" :class="selectedPresentingIssues.includes(issue) ? 'opt-on' : ''"><input type="checkbox" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="selectedPresentingIssues.includes(issue)" @change="togglePresentingIssue(issue, $event.target.checked)" />{{ issue }}</label>
 								</div>
-							</div>
+							</fieldset>
 							<div><label class="lbl" for="f-issue_subclassifications">Issue subclassifications</label><textarea id="f-issue_subclassifications" v-model="form.issue_subclassifications" class="field" rows="3" placeholder="Add relevant categories or descriptors" /></div>
 							<div v-if="!isFollowUp"><label class="lbl" for="f-session_details">Session details<span class="req" aria-hidden="true"> *</span></label><textarea id="f-session_details" v-model="form.session_details" class="field" rows="5" /></div>
 						</div>
@@ -210,7 +191,9 @@
 
 						<!-- Follow-up plan -->
 						<div v-else-if="currentSection.key === 'plan'" class="max-w-2xl">
-							<div><label class="lbl" for="f-follow_up_plan">Follow-up plan<span class="req" aria-hidden="true"> *</span></label><textarea id="f-follow_up_plan" v-model="form.follow_up_plan" class="field" rows="6" /></div>
+							<fieldset class="mb-5 m-0 border-0 p-0"><legend class="lbl">Is there a need for follow-up? <span class="req" aria-hidden="true">*</span></legend><div class="grid gap-2 sm:grid-cols-2"><label v-for="answer in yesNoOptions" :key="answer" class="opt" :class="form.needs_follow_up === answer ? 'opt-on' : ''"><input type="radio" name="needs_follow_up" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="form.needs_follow_up === answer" @change="setNeedFollowUp(answer)" />{{ answer }}</label></div></fieldset>
+							<div v-if="form.needs_follow_up === 'Yes'"><label class="lbl" for="f-follow_up_plan">Follow-up plan<span class="req" aria-hidden="true"> *</span></label><textarea id="f-follow_up_plan" v-model="form.follow_up_plan" class="field" rows="6" /></div>
+							<p v-else-if="form.needs_follow_up === 'No'" class="rounded-lg bg-[#F4F5F7] p-3 text-sm text-[#5B616B]">The case will be closed when this session is saved.</p>
 						</div>
 
 						<!-- Follow-Up review sections -->
@@ -264,6 +247,8 @@
 							</fieldset>
 						</div>
 						<div v-else-if="currentSection.key === 'nextsteps'" class="max-w-2xl space-y-5">
+							<fieldset class="m-0 border-0 p-0"><legend class="lbl">Is there a need for follow-up? <span class="req" aria-hidden="true">*</span></legend><div class="grid gap-2 sm:grid-cols-2"><label v-for="answer in yesNoOptions" :key="answer" class="opt" :class="form.needs_follow_up === answer ? 'opt-on' : ''"><input type="radio" name="needs_follow_up_followup" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="form.needs_follow_up === answer" @change="setNeedFollowUp(answer)" />{{ answer }}</label></div></fieldset>
+							<div v-if="form.needs_follow_up === 'Yes'"><label class="lbl" for="f-follow_up_plan">Follow-up plan <span class="req" aria-hidden="true">*</span></label><textarea id="f-follow_up_plan" v-model="form.follow_up_plan" class="field" rows="3" /></div>
 							<div><label class="lbl" for="f-followup_recommendations">Recommendations</label><textarea id="f-followup_recommendations" v-model="form.followup_recommendations" class="field" rows="3" /></div>
 							<div><label class="lbl" for="f-followup_takeaways">Key takeaways or interventions used today <span class="req" aria-hidden="true">*</span></label><textarea id="f-followup_takeaways" v-model="form.followup_takeaways" class="field" rows="3" /></div>
 							<div><label class="lbl" for="f-referrals_made">Referrals made</label><textarea id="f-referrals_made" v-model="form.referrals_made" class="field" rows="3" placeholder="Enter referral or write None" /></div>
@@ -330,6 +315,8 @@ const followupRiskLevels = ["None", "Mild", "Moderate", "High"]
 const followUpCounselingModes = ["Physical Individual", "Tele-counselling"]
 const firstSessionCounselingModes = ["Tele counselling Session", "Physical Session"]
 const yesNoOptions = ["Yes", "No"]
+const wellbeingOptions = ["Very good", "Good", "Fair", "Poor", "Very poor"]
+const stressFrequencyOptions = ["Never", "Sometimes", "Often", "Almost always"]
 const presentingIssueTypes = [
 	"Substance-Related and Addictive Disorders",
 	"Anxiety Disorders",
@@ -338,22 +325,28 @@ const presentingIssueTypes = [
 	"Depressive Disorders",
 	"Other Presenting Issues",
 ]
-const issueDropdownOpen = ref(false)
+function presentingText(value) {
+	if (!value) return ""
+	try {
+		const parsed = JSON.parse(value)
+		return Array.isArray(parsed) ? parsed.join(", ") : String(parsed)
+	} catch { return value }
+}
 const modeDropdownOpen = ref(false)
 const recordFields = [
 	"mode_of_contact", "session_details", "presenting_issues", "issue_subclassifications", "interventions_applied", "referrals_made",
-	"urgency_level", "risk_assessment", "follow_up_plan", "progress_previous_goals", "followup_goals_discussed",
-	"followup_challenges", "followup_new_issues_present", "followup_new_issues", "followup_evident_changes_present", "followup_evident_changes", "followup_coping_support",
-	"followup_support_effectiveness", "followup_additional_support", "followup_mood_affect", "followup_mood_other",
+	"urgency_level", "risk_assessment", "needs_follow_up", "follow_up_plan", "progress_previous_goals", "followup_goals_discussed",
+	"followup_challenges", "followup_new_issues_present", "followup_new_issues", "followup_new_presenting_issues", "followup_evident_changes_present", "followup_evident_changes", "followup_coping_support",
+	"followup_support_effectiveness", "followup_additional_support", "followup_mood_affect", "followup_mood_other", "followup_wellbeing_rating", "followup_stress_frequency",
 	"followup_engagement_level", "followup_risk_concerns", "counsellor_observations", "followup_recommendations",
 	"followup_takeaways", "next_session_focus", "followup_action",
 ]
 const form = reactive({
-	mode_of_contact: "", session_details: "", presenting_issues: "", issue_subclassifications: "", interventions_applied: "",
+	mode_of_contact: "", session_details: "", presenting_issues: "", issue_subclassifications: "", interventions_applied: "", needs_follow_up: "",
 	referrals_made: "", urgency_level: "", risk_assessment: "", follow_up_plan: "",
 	progress_previous_goals: "", followup_goals_discussed: "", followup_challenges: "", followup_new_issues_present: "",
-	followup_new_issues: "", followup_evident_changes_present: "", followup_evident_changes: "", followup_coping_support: "", followup_support_effectiveness: "",
-	followup_additional_support: "", followup_mood_affect: "", followup_mood_other: "", followup_engagement_level: "",
+	followup_new_issues: "", followup_new_presenting_issues: "", followup_evident_changes_present: "", followup_evident_changes: "", followup_coping_support: "", followup_support_effectiveness: "",
+	followup_additional_support: "", followup_mood_affect: "", followup_mood_other: "", followup_wellbeing_rating: "", followup_stress_frequency: "", followup_engagement_level: "",
 	followup_risk_concerns: "", counsellor_observations: "", followup_recommendations: "", followup_takeaways: "",
 	next_session_focus: "", followup_action: "",
 })
@@ -376,6 +369,13 @@ const record = computed(() => resource.data?.appointment)
 const isFollowUp = computed(() => record.value?.session_type === "Follow-Up")
 const isTermination = computed(() => record.value?.session_type === "Termination")
 const activeCounselingModes = computed(() => isFollowUp.value ? followUpCounselingModes : firstSessionCounselingModes)
+const selectedPresentingIssues = computed(() => {
+	try {
+		const parsed = JSON.parse(form.presenting_issues || "[]")
+		if (Array.isArray(parsed)) return parsed
+	} catch { if (form.presenting_issues) return [form.presenting_issues] }
+	return []
+})
 const history = computed(() => resource.data?.history || [])
 const caseClosed = computed(() => resource.data?.case_status === "Closed")
 const canManage = computed(() => resource.data?.can_manage === true)
@@ -391,14 +391,22 @@ const backTo = computed(() => !canManage.value
 		: { name: "Appointments" })
 onMounted(() => resource.submit({ name: name.value }))
 function closeIssueDropdown(event) {
-	if (!event.target.closest("[data-issue-dropdown]")) issueDropdownOpen.value = false
 	if (!event.target.closest("[data-mode-dropdown]")) modeDropdownOpen.value = false
 }
 onMounted(() => document.addEventListener("click", closeIssueDropdown))
 onUnmounted(() => document.removeEventListener("click", closeIssueDropdown))
-function choosePresentingIssue(issue) {
-	form.presenting_issues = issue
-	issueDropdownOpen.value = false
+function togglePresentingIssue(issue, selected) {
+	const values = new Set(selectedPresentingIssues.value)
+	selected ? values.add(issue) : values.delete(issue)
+	form.presenting_issues = JSON.stringify([...values])
+}
+function setNewPresentingAnswer(answer) {
+	form.followup_new_presenting_issues = answer
+	if (answer === "No") form.presenting_issues = ""
+}
+function setNeedFollowUp(answer) {
+	form.needs_follow_up = answer
+	if (answer === "No") form.follow_up_plan = ""
 }
 function chooseCounselingMode(mode) {
 	form.mode_of_contact = mode
@@ -431,12 +439,12 @@ const visited = ref(new Set([1]))
 // Fields that must be filled before the record can be saved, per section
 const REQUIRED = {
 	mode: ["mode_of_contact"],
-	mood: ["session_details"],
-	presenting: ["presenting_issues", "session_details"],
+	mood: ["session_details", "followup_wellbeing_rating", "followup_stress_frequency"],
+	presenting: ["session_details"],
 	interventions: ["interventions_applied"],
 	urgency: ["urgency_level", "risk_assessment"],
-	plan: ["follow_up_plan"],
-	nextsteps: ["followup_takeaways"],
+	plan: ["needs_follow_up"],
+	nextsteps: ["needs_follow_up", "followup_takeaways"],
 	observation: ["followup_mood_affect", "followup_engagement_level", "followup_risk_concerns"],
 }
 
@@ -489,8 +497,14 @@ const sectionComplete = (section) => {
 			form.followup_evident_changes_present !== "Yes" || form.followup_evident_changes.trim(),
 		].every(Boolean)
 	}
+	if (section.key === "plan" || section.key === "nextsteps") {
+		return Boolean(form.needs_follow_up) && (form.needs_follow_up === "No" || Boolean(form.follow_up_plan.trim())) &&
+			(section.key !== "nextsteps" || Boolean(form.followup_takeaways.trim()))
+	}
 	const required = REQUIRED[section.key] || []
-	if (isFollowUp.value && section.key === "presenting") return String(form.presenting_issues || "").trim() !== ""
+	if (section.key === "presenting") return isFollowUp.value
+		? Boolean(form.followup_new_presenting_issues) && (form.followup_new_presenting_issues === "No" || selectedPresentingIssues.value.length > 0)
+		: selectedPresentingIssues.value.length > 0 && (!isFollowUp.value || Boolean(form.session_details.trim()))
 	return required.every((key) => String(form[key] ?? "").trim() !== "")
 }
 const isDone = (section, index) => index + 1 !== step.value && visited.value.has(index + 1) && sectionComplete(section)
@@ -547,22 +561,25 @@ const latestName = computed(() => {
 
 const facts = (item) => item.session_type === "Follow-Up"
 	? [
-		["Mode of counseling", item.mode_of_contact],
-		["How the client has been feeling since the last session", item.session_details, true],
-		["Presenting issues", item.presenting_issues],
+												["Mode of counseling", item.mode_of_contact],
+												["How the client has been feeling since the last session", item.session_details, true],
+												["Presenting issues", presentingText(item.presenting_issues)],
+												["Current wellbeing", item.followup_wellbeing_rating],
+												["Recent stress frequency", item.followup_stress_frequency],
 		["Issue subclassifications", item.issue_subclassifications],
 		["Urgency level", item.urgency_level],
 		["Risk assessment", item.risk_assessment, true],
 	]
 	: [
-		["Presenting issues", item.presenting_issues],
+												["Presenting issues", presentingText(item.presenting_issues)],
 		["Issue subclassifications", item.issue_subclassifications],
 		["Interventions applied", item.interventions_applied],
 		["Referrals made", item.referrals_made],
 		["Urgency level", item.urgency_level],
 		["Risk assessment", item.risk_assessment],
 		["Session details", item.session_details, true],
-		["Follow-up plan", item.follow_up_plan, true],
+												["Follow-up needed", item.needs_follow_up],
+												["Follow-up plan", item.follow_up_plan, true],
 	]
 
 const followupGroups = (item) => [
@@ -572,9 +589,11 @@ const followupGroups = (item) => [
 		["Challenges or setbacks", item.followup_challenges],
 	] },
 	{ title: "Current concerns / new issues", rows: [
-		["Any new issues or stressors?", item.followup_new_issues_present],
+												["Any new issues or stressors?", item.followup_new_issues_present],
 		...(item.followup_new_issues_present === "Yes" ? [["New issues or stressors", item.followup_new_issues]] : []),
-		["Any evident changes?", item.followup_evident_changes_present],
+												["Any new presenting issues?", item.followup_new_presenting_issues],
+												...(item.followup_new_presenting_issues === "Yes" ? [["New presenting issues", presentingText(item.presenting_issues)]] : []),
+												["Any evident changes?", item.followup_evident_changes_present],
 		...(item.followup_evident_changes_present === "Yes" ? [["Evident changes", item.followup_evident_changes]] : []),
 	] },
 	{ title: "Coping and support", rows: [
