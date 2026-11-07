@@ -1,307 +1,421 @@
 <template>
-	<main class="mx-auto max-w-7xl px-4 py-6 md:px-7 md:py-8">
-		<PageLoader v-if="resource.loading && !resource.data" />
+	<main class="min-h-[calc(100vh-68px)] bg-[#F4F5F7] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+		<div class="mx-auto max-w-[1440px]">
+			<PageLoader v-if="resource.loading && !resource.data" />
 
-		<template v-else-if="record">
-			<!-- Breadcrumb -->
-			<div class="mb-5 text-sm text-[#5B616B]">
-				<router-link :to="{ name: 'Clients' }" class="hover:text-[#A10E24]">Clients</router-link>
-				<span class="px-2">/</span>
-				<router-link v-if="record.client_id" :to="{ name: 'ClientProfile', params: { name: record.client_id } }" class="hover:text-[#A10E24]">{{ record.scholar_code || 'Client' }}</router-link>
-				<span v-else>{{ record.scholar_code || 'Client' }}</span>
-				<span class="px-2">/</span><span class="font-semibold text-[#2B2F36]">{{ isReadOnly ? 'Session Record' : 'In-session Record' }}</span>
-			</div>
-
-			<!-- Page header -->
-			<div class="mb-5 flex flex-wrap items-start justify-between gap-4">
-				<div>
-					<h1 class="text-2xl font-semibold leading-8 text-[#2B2F36]">{{ isReadOnly ? 'Session Record' : 'In-session Record' }}</h1>
-					<p class="mt-1 text-sm text-[#5B616B]">
-						{{ record.scholar_code }} · {{ record.client_name }} · {{ fmtDateTime(record.date_time) }}
-					</p>
+			<template v-else-if="record">
+				<!-- Breadcrumb -->
+				<div class="mb-5 text-sm text-[#737780]">
+					<router-link :to="{ name: 'Clients' }" class="hover:text-[#A10E24]">Clients</router-link>
+					<span class="px-2">/</span>
+					<router-link v-if="record.client_id" :to="{ name: 'ClientProfile', params: { name: record.client_id } }" class="hover:text-[#A10E24]">{{ record.scholar_code || 'Client' }}</router-link>
+					<span v-else>{{ record.scholar_code || 'Client' }}</span>
+					<span class="px-2">/</span><span class="font-semibold text-[#25272B]">{{ isReadOnly ? 'Session Record' : 'In-session Record' }}</span>
 				</div>
-				<div class="flex items-center gap-2 rounded-lg border border-[#E4E6EA] bg-white px-3 py-2 text-sm text-[#5B616B]">
-					<FileText :size="16" class="shrink-0" />
-					{{ record.session_type }} · {{ record.name }}
-				</div>
-			</div>
 
-			<!-- Session status banner -->
-			<section class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E4E6EA] bg-white px-5 py-4" aria-label="Session status">
-				<div class="text-sm text-[#2B2F36]">
-					<strong class="mr-1">Session:</strong><span>{{ banner.text }}</span>
-				</div>
-				<span class="rounded-full px-3 py-1 text-xs font-semibold" :class="banner.pill">{{ banner.label }}</span>
-			</section>
-
-			<div class="flex items-start gap-5 max-[800px]:flex-col">
-				<!-- Section navigation -->
-				<nav v-if="sections.length > 1" class="w-[280px] shrink-0 rounded-xl border border-[#E4E6EA] bg-white p-5 max-[800px]:w-full" aria-label="Record sections">
-					<div class="mb-2 text-xs text-[#5B616B]">Section {{ step }} of {{ sections.length }} · {{ Math.round((step / sections.length) * 100) }}% complete</div>
-					<div class="mb-4 h-2 overflow-hidden rounded-full bg-[#E4E6EA]">
-						<div class="h-full rounded-full bg-[#C8102E] transition-all" :style="{ width: `${(step / sections.length) * 100}%` }"></div>
+				<!-- Page header -->
+				<div class="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+					<div>
+						<p class="text-sm font-medium text-[#737780]">{{ canSave ? 'In-session' : 'Session history' }}</p>
+						<h1 class="mt-1 text-2xl font-semibold tracking-tight text-[#25272B] sm:text-[28px]">{{ isReadOnly ? 'Session Record' : 'In-session Record' }}</h1>
+						<p class="mt-1 text-sm text-[#737780]">
+							{{ record.scholar_code }} · {{ record.client_name }} · {{ fmtDateTime((canSave ? record : selectedSession).date_time) }}
+						</p>
 					</div>
-					<ol class="space-y-1">
-						<li v-for="(section, index) in sections" :key="section.key">
-							<button type="button" class="flex min-h-10 w-full items-center gap-2.5 rounded-lg px-2 text-left text-sm transition-colors"
-								:class="step === index + 1 ? 'font-semibold text-[#A10E24]' : 'text-[#4A505A] hover:bg-[#F4F5F7]'"
-								:aria-current="step === index + 1 ? 'step' : undefined" @click="goTo(index + 1)">
-								<span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-									:class="isDone(section, index) ? 'bg-[#DCF3E4] text-[#146C3A]' : step === index + 1 ? 'bg-[#C8102E] text-white' : 'bg-[#E4E6EA] text-[#3A3F47]'">
-									<Check v-if="isDone(section, index)" :size="14" :stroke-width="2.5" />
-									<template v-else>{{ index + 1 }}</template>
-								</span>
-								{{ section.title }}
+					<div class="inline-flex items-center gap-2 self-start rounded-lg border border-[#E4E6EA] bg-white px-3 py-2 text-sm text-[#555860] shadow-[0_1px_2px_rgba(20,25,35,0.03)] sm:self-auto">
+						<FileText :size="16" class="shrink-0 text-[#858891]" />
+						{{ (canSave ? record : selectedSession).session_type }} · {{ (canSave ? record : selectedSession).name }}
+					</div>
+				</div>
+
+				<!-- Status banner (always while recording; only case-level notices while viewing) -->
+				<section v-if="showBanner" class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E4E6EA] bg-white px-5 py-4 shadow-[0_1px_2px_rgba(20,25,35,0.03)]" aria-label="Session status">
+					<div class="text-sm text-[#2B2F36]">
+						<strong class="mr-1">Session:</strong><span>{{ banner.text }}</span>
+					</div>
+					<span class="rounded-full px-3 py-1 text-xs font-semibold" :class="banner.pill">{{ banner.label }}</span>
+				</section>
+
+				<!-- ============ VIEWING A RECORD ============ -->
+				<div v-if="!canSave" class="space-y-5">
+					<!-- Session bar -->
+					<section class="rounded-xl border border-[#E4E6EA] bg-white shadow-[0_1px_2px_rgba(20,25,35,0.03)]" aria-label="Sessions">
+						<div class="flex flex-wrap items-center justify-between gap-2 px-5 pt-3.5">
+						</div>
+						<div ref="barRef" class="flex gap-3 overflow-x-auto px-5 pb-4 pt-1" role="tablist" aria-label="Client sessions">
+							<button v-for="(item, index) in sessionList" :key="item.name" type="button" role="tab" :aria-selected="item.name === selectedName" :data-active="item.name === selectedName ? 'true' : 'false'"
+								class="w-[210px] shrink-0 rounded-xl border p-3.5 text-left transition"
+								:class="item.name === selectedName ? 'border-[#C8102E] bg-[#FFF8F9] ring-2 ring-[#C8102E]/10' : 'border-[#E4E6EA] bg-white hover:border-[#BFC2C8] hover:bg-[#FCFCFD]'"
+								@click="selectSession(item.name)">
+								<div class="flex items-center justify-between gap-2">
+									<span class="text-[11px] font-semibold uppercase tracking-wide" :class="item.name === selectedName ? 'text-[#A10E24]' : 'text-[#858891]'">Session {{ index + 1 }}</span>
+									<span class="rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="sessionStatus(item).pill">{{ sessionStatus(item).label }}</span>
+								</div>
+								<span class="mt-2 block truncate text-sm font-semibold text-[#33353A]">{{ fmtDateTime(item.date_time) }}</span>
+								<span class="mt-0.5 block truncate text-xs text-[#858891]">{{ item.session_type }}<span v-if="item.mode_of_contact"> · {{ item.mode_of_contact }}</span></span>
+
 							</button>
-						</li>
-					</ol>
-				</nav>
+						</div>
+					</section>
 
-				<!-- Section content -->
-				<form class="min-w-0 flex-1 rounded-xl border border-[#E4E6EA] bg-white p-5 md:p-6" @submit.prevent="onSubmit">
-					<h2 class="text-lg font-semibold text-[#2B2F36]">{{ currentSection.heading }}</h2>
-					<p v-if="currentSection.description" class="mb-6 mt-1 text-sm text-[#5B616B]">{{ currentSection.description }}</p>
+					<div class="flex items-start gap-5 max-[800px]:flex-col">
+						<!-- Details sidebar (follows the selected session) -->
+						<aside class="w-[320px] shrink-0 space-y-5 max-[800px]:w-full min-[801px]:sticky min-[801px]:top-6" aria-label="Session details">
+							<section class="overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_1px_2px_rgba(20,25,35,0.03)]">
+								<div class="border-b border-[#ECEDEF] px-5 py-4">
+									<h2 class="text-base font-semibold text-[#25272B]">Session details</h2>
+									<p class="mt-0.5 text-xs text-[#858891]">Key information about the selected session.</p>
+								</div>
+								<div class="flex items-center gap-3 border-b border-[#ECEDEF] px-5 py-4">
+									<span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FCE8EB] text-xs font-bold text-[#B30F2A]">{{ initials(record.client_name) }}</span>
+									<div class="min-w-0">
+										<router-link v-if="record.client_id" :to="{ name: 'ClientProfile', params: { name: record.client_id } }" class="block truncate text-sm font-semibold text-[#33353A] hover:text-[#B30F2A]">{{ record.client_name || record.client_id }}</router-link>
+										<span v-else class="block truncate text-sm font-semibold text-[#33353A]">{{ record.client_name || 'Client' }}</span>
+										<span class="mt-0.5 block truncate text-xs text-[#858891]">{{ record.client_id }}</span>
+									</div>
+								</div>
+								<dl class="divide-y divide-[#F0F1F3] text-sm">
+									<div v-for="[label, value] in detailRows" :key="label" class="flex items-start justify-between gap-4 px-5 py-3">
+										<dt class="shrink-0 text-xs font-semibold uppercase tracking-wide text-[#858891]">{{ label }}</dt>
+										<dd class="min-w-0 break-words text-right font-medium text-[#33353A]">{{ value || '—' }}</dd>
+									</div>
+									<div class="flex items-center justify-between gap-4 px-5 py-3">
+										<dt class="shrink-0 text-xs font-semibold uppercase tracking-wide text-[#858891]">Status</dt>
+										<dd><span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="sessionStatus(selectedSession).pill">{{ sessionStatus(selectedSession).label }}</span></dd>
+									</div>
+								</dl>
+								<div v-if="selectedSession.audio_recording" class="border-t border-[#ECEDEF] bg-[#FCFCFD] px-5 py-4">
+									<span class="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#858891]"><Volume2 :size="14" /> Session audio</span>
+									<audio :key="selectedSession.name" controls preload="none" class="w-full" :src="selectedSession.audio_recording">Your browser does not support audio playback.</audio>
+								</div>
+							</section>
+							<router-link :to="backTo" class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#D9DBE0] bg-white px-4 py-2.5 text-sm font-semibold text-[#33353A] shadow-sm transition hover:bg-[#F7F7F8]">
+								<ArrowLeft :size="16" /> Back
+							</router-link>
+						</aside>
 
-					<fieldset :disabled="!canSave" class="m-0 min-w-0 border-0 p-0">
-						<!-- Case history -->
-						<div v-if="currentSection.key === 'history'">
-							<ol v-if="history.length" class="divide-y divide-[#E4E6EA] overflow-hidden rounded-xl border border-[#E4E6EA]">
-								<li v-for="item in history" :key="item.name">
-									<details v-if="item.status === 'Completed'" class="hist" :open="item.name === latestName">
-										<summary class="hist-summary flex cursor-pointer items-center gap-3 px-4 py-3.5 transition hover:bg-[#F4F5F7]">
-											<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#DCF3E4] text-[#146C3A]"><ClipboardCheck :size="17" /></span>
-											<span class="min-w-0 flex-1">
-												<span class="block text-sm font-semibold text-[#2B2F36]">{{ fmtDateTime(item.date_time) }}</span>
-												<span class="mt-0.5 block text-xs text-[#5B616B]">{{ item.session_type }}<span v-if="item.mode_of_contact"> · {{ item.mode_of_contact }}</span></span>
-											</span>
-											<Badge label="Completed" theme="green" />
-											<ChevronDown :size="17" class="hist-chev shrink-0 text-[#5B616B]" />
-										</summary>
+						<!-- Case history card: details of the selected session -->
+						<section class="min-w-0 flex-1 rounded-xl border border-[#E4E6EA] bg-white shadow-[0_1px_2px_rgba(20,25,35,0.03)]">
+							<div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#ECEDEF] px-5 py-4">
+								<div>
+									<h2 class="text-base font-semibold text-[#25272B]">Case history</h2>
+									<p class="mt-0.5 text-xs text-[#858891]">{{ selectedSession.session_type }} · {{ fmtDateTime(selectedSession.date_time) }}<span v-if="selectedSession.mode_of_contact"> · {{ selectedSession.mode_of_contact }}</span></p>
+								</div>
+								<span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="sessionStatus(selectedSession).pill">{{ sessionStatus(selectedSession).label }}</span>
+							</div>
 
-										<div class="space-y-3 px-4 pb-4 pt-1">
-											<div class="grid gap-3 sm:grid-cols-2">
-												<div v-for="[label, value, wide] in facts(item)" :key="label" class="rounded-lg bg-[#F4F5F7] p-4" :class="wide ? 'sm:col-span-2' : ''">
-													<span class="block text-xs text-[#5B616B]">{{ label }}</span>
-													<span class="fact-value mt-1 block text-sm font-medium text-[#2B2F36]">{{ value || 'Not recorded' }}</span>
+							<div :key="selectedSession.name" class="space-y-4 p-5 md:p-6">
+								<!-- Completed session: full details -->
+								<template v-if="selectedSession.status === 'Completed'">
+									<div class="grid gap-3 sm:grid-cols-2">
+										<div v-for="[label, value, wide] in facts(selectedSession)" :key="label" class="rounded-lg border border-[#ECEDEF] bg-[#FAFAFB] p-4" :class="wide ? 'sm:col-span-2' : ''">
+											<span class="block text-[11px] font-semibold uppercase tracking-wide text-[#858891]">{{ label }}</span>
+											<span class="fact-value mt-1.5 block text-sm font-medium text-[#2B2F36]">{{ value || 'Not recorded' }}</span>
+										</div>
+									</div>
+
+									<template v-if="selectedSession.session_type === 'Follow-Up'">
+										<div v-for="group in followupGroups(selectedSession)" :key="group.title" class="rounded-xl border border-[#E4E6EA] p-4">
+											<h3 class="text-sm font-semibold text-[#25272B]">{{ group.title }}</h3>
+											<div class="mt-3 grid gap-3 sm:grid-cols-2">
+												<div v-for="[label, value] in group.rows" :key="label" class="rounded-lg border border-[#ECEDEF] bg-[#FAFAFB] p-4">
+													<span class="block text-[11px] font-semibold uppercase tracking-wide text-[#858891]">{{ label }}</span>
+													<span class="fact-value mt-1.5 block text-sm font-medium text-[#2B2F36]">{{ value || 'Not recorded' }}</span>
 												</div>
-											</div>
-
-											<template v-if="item.session_type === 'Follow-Up'">
-												<div v-for="group in followupGroups(item)" :key="group.title" class="rounded-xl border border-[#E4E6EA] p-4">
-													<h3 class="text-sm font-semibold text-[#2B2F36]">{{ group.title }}</h3>
-													<div class="mt-3 grid gap-3 sm:grid-cols-2">
-												<div v-for="[label, value] in group.rows" :key="label" class="rounded-lg bg-[#F4F5F7] p-4">
-															<span class="block text-xs text-[#5B616B]">{{ label }}</span>
-															<span class="fact-value mt-1 block text-sm font-medium text-[#2B2F36]">{{ value || 'Not recorded' }}</span>
-														</div>
-													</div>
-												</div>
-											</template>
-
-											<div v-if="item.audio_recording" class="rounded-lg bg-[#F4F5F7] p-4">
-												<span class="mb-2 block text-xs text-[#5B616B]">Session audio</span>
-												<audio controls preload="none" class="w-full max-w-xl" :src="item.audio_recording">Your browser does not support audio playback.</audio>
-											</div>
-
-											<div v-if="item.referral_history?.length" class="space-y-2 rounded-lg bg-[#E0EAFD] px-4 py-3">
-												<p v-for="referral in item.referral_history" :key="referral.name || referral.referred_on" class="text-xs leading-5 text-[#1B4DB1]">
-													<span class="font-semibold">Referral:</span> {{ referral.from_name || referral.from_counsellor }} → {{ referral.to_name || referral.to_counsellor }} · {{ fmtDateTime(referral.referred_on) }}. {{ referral.reason }}
-												</p>
 											</div>
 										</div>
-									</details>
-
-									<div v-else class="flex items-center gap-3 px-4 py-3.5">
-										<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" :class="item.status === 'Cancelled' ? 'bg-[#F4F5F7] text-[#5B616B]' : item.overdue ? 'bg-[#FBE0E4] text-[#A10E24]' : 'bg-[#E0EAFD] text-[#1B4DB1]'">
-											<Ban v-if="item.status === 'Cancelled'" :size="17" /><CalendarClock v-else :size="17" />
-										</span>
-										<span class="min-w-0 flex-1">
-											<span class="block text-sm font-semibold text-[#2B2F36]">{{ fmtDateTime(item.date_time) }}</span>
-											<span class="mt-0.5 block text-xs text-[#5B616B]">{{ item.session_type }}<span v-if="item.mode_of_contact"> · {{ item.mode_of_contact }}</span> · {{ item.status === 'Scheduled' ? 'Session is scheduled.' : 'Session was cancelled.' }}</span>
-										</span>
-										<Badge :label="item.status === 'Scheduled' && item.overdue ? 'Overdue' : item.status" :theme="item.overdue ? 'red' : item.status === 'Cancelled' ? 'gray' : 'blue'" />
-									</div>
-									<div v-if="item.status !== 'Completed' && item.referral_history?.length" class="space-y-2 px-4 pb-4">
-										<p v-for="referral in item.referral_history" :key="referral.name || referral.referred_on" class="rounded-lg bg-[#E0EAFD] px-4 py-3 text-xs leading-5 text-[#1B4DB1]">
-											<span class="font-semibold">Referral:</span> {{ referral.from_name || referral.from_counsellor }} → {{ referral.to_name || referral.to_counsellor }} · {{ fmtDateTime(referral.referred_on) }}. {{ referral.reason }}
-										</p>
-									</div>
-								</li>
-							</ol>
-							<p v-else class="rounded-lg bg-[#F4F5F7] p-4 text-sm text-[#5B616B]">No earlier sessions are recorded for this client.</p>
-						</div>
-
-						<!-- Follow-up counseling mode -->
-						<div v-else-if="currentSection.key === 'mode'" class="max-w-2xl">
-							<label id="mode-of-counseling-label" class="lbl">Mode of counselling <span class="req" aria-hidden="true">*</span></label>
-							<div class="relative" data-mode-dropdown>
-								<button type="button" class="field flex items-center justify-between gap-3 text-left" :class="form.mode_of_contact ? '' : 'is-empty'" aria-labelledby="mode-of-counseling-label mode-of-counseling-value" :aria-expanded="modeDropdownOpen" aria-haspopup="listbox" :disabled="!canSave" @click="modeDropdownOpen = !modeDropdownOpen" @keydown.esc="modeDropdownOpen = false">
-									<span id="mode-of-counseling-value" class="truncate">{{ form.mode_of_contact || 'Select mode of counselling' }}</span>
-									<ChevronDown :size="17" class="shrink-0 text-[#5B616B] transition-transform" :class="modeDropdownOpen ? 'rotate-180' : ''" />
-								</button>
-								<div v-if="modeDropdownOpen" class="issue-menu" role="listbox" aria-labelledby="mode-of-counseling-label">
-									<button v-for="option in activeCounselingModes" :key="option" type="button" role="option" class="issue-option" :class="form.mode_of_contact === option ? 'issue-option-active' : ''" :aria-selected="form.mode_of_contact === option" @click="chooseCounselingMode(option)">{{ option }}<Check v-if="form.mode_of_contact === option" :size="16" /></button>
-								</div>
-							</div>
-						</div>
-
-						<!-- Mood summary since the previous session -->
-						<div v-else-if="currentSection.key === 'mood'" class="max-w-2xl">
-							<label class="lbl" for="f-session_details">How has the client been feeling since the last session? <span class="req" aria-hidden="true">*</span></label>
-							<p class="mb-2 text-xs text-[#5B616B]">Brief summary of mood, behavior, or attitude.</p>
-							<textarea id="f-session_details" v-model="form.session_details" class="field" rows="5" />
-							<div class="mt-5"><label class="lbl" for="f-followup_wellbeing_rating">How would you rate your current emotional and psychological wellbeing? <span class="req" aria-hidden="true">*</span></label><select id="f-followup_wellbeing_rating" v-model="form.followup_wellbeing_rating" class="field"><option value="">Choose a rating</option><option v-for="option in wellbeingOptions" :key="option">{{ option }}</option></select></div>
-							<div class="mt-5"><label class="lbl" for="f-followup_stress_frequency">In the past two weeks, have you experienced significant stress, anxiety, low mood, or difficulty concentrating? <span class="req" aria-hidden="true">*</span></label><select id="f-followup_stress_frequency" v-model="form.followup_stress_frequency" class="field"><option value="">Choose an answer</option><option v-for="option in stressFrequencyOptions" :key="option">{{ option }}</option></select></div>
-						</div>
-
-						<!-- Presenting issues -->
-						<div v-else-if="currentSection.key === 'presenting'" class="max-w-2xl space-y-5">
-							<fieldset v-if="isFollowUp" class="m-0 border-0 p-0">
-								<legend class="lbl">Are there any new presenting issues? <span class="req" aria-hidden="true">*</span></legend>
-								<div class="mb-4 grid gap-2 sm:grid-cols-2"><label v-for="answer in yesNoOptions" :key="answer" class="opt" :class="form.followup_new_presenting_issues === answer ? 'opt-on' : ''"><input type="radio" name="followup_new_presenting_issues" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="form.followup_new_presenting_issues === answer" @change="setNewPresentingAnswer(answer)" />{{ answer }}</label></div>
-							</fieldset>
-							<fieldset v-if="!isFollowUp || form.followup_new_presenting_issues === 'Yes'" class="m-0 border-0 p-0">
-								<legend class="lbl">{{ isFollowUp ? 'Select new presenting issues' : 'Presenting issues' }} <span class="req" aria-hidden="true">*</span></legend>
-								<div class="grid gap-2 sm:grid-cols-2">
-									<label v-for="issue in presentingIssueTypes" :key="issue" class="opt" :class="selectedPresentingIssues.includes(issue) ? 'opt-on' : ''"><input type="checkbox" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="selectedPresentingIssues.includes(issue)" @change="togglePresentingIssue(issue, $event.target.checked)" />{{ issue }}</label>
-								</div>
-							</fieldset>
-							<div><label class="lbl" for="f-issue_subclassifications">Issue subclassifications</label><textarea id="f-issue_subclassifications" v-model="form.issue_subclassifications" class="field" rows="3" placeholder="Add relevant categories or descriptors" /></div>
-							<div v-if="!isFollowUp"><label class="lbl" for="f-session_details">Session details<span class="req" aria-hidden="true"> *</span></label><textarea id="f-session_details" v-model="form.session_details" class="field" rows="5" /></div>
-						</div>
-
-						<!-- Interventions -->
-						<div v-else-if="currentSection.key === 'interventions'" class="max-w-2xl space-y-5">
-							<div><label class="lbl" for="f-interventions_applied">Interventions applied<span class="req" aria-hidden="true"> *</span></label><textarea id="f-interventions_applied" v-model="form.interventions_applied" class="field" rows="5" /></div>
-							<div><label class="lbl" for="f-referrals_made">Referrals made</label><textarea id="f-referrals_made" v-model="form.referrals_made" class="field" rows="4" placeholder="Enter referral or write None" /></div>
-						</div>
-
-						<!-- Urgency and risk -->
-						<div v-else-if="currentSection.key === 'urgency'" class="max-w-2xl space-y-6">
-							<fieldset class="m-0 border-0 p-0">
-								<legend class="lbl">Urgency level <span class="req" aria-hidden="true">*</span></legend>
-								<div class="grid gap-2 sm:grid-cols-2">
-									<label v-for="level in urgencyLevels" :key="level" class="opt" :class="form.urgency_level === level ? 'opt-on' : ''">
-										<input v-model="form.urgency_level" class="h-[18px] w-[18px] accent-[#C8102E]" type="radio" name="urgency_level" :value="level" />{{ level }}
-									</label>
-								</div>
-							</fieldset>
-							<div><label class="lbl" for="f-risk_assessment">Risk assessment<span class="req" aria-hidden="true"> *</span></label><textarea id="f-risk_assessment" v-model="form.risk_assessment" class="field" rows="5" /></div>
-						</div>
-
-						<!-- Follow-up plan -->
-						<div v-else-if="currentSection.key === 'plan'" class="max-w-2xl">
-							<fieldset class="mb-5 m-0 border-0 p-0"><legend class="lbl">Is there a need for follow-up? <span class="req" aria-hidden="true">*</span></legend><div class="grid gap-2 sm:grid-cols-2"><label v-for="answer in yesNoOptions" :key="answer" class="opt" :class="form.needs_follow_up === answer ? 'opt-on' : ''"><input type="radio" name="needs_follow_up" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="form.needs_follow_up === answer" @change="setNeedFollowUp(answer)" />{{ answer }}</label></div></fieldset>
-							<div v-if="form.needs_follow_up === 'Yes'"><label class="lbl" for="f-follow_up_plan">Follow-up plan<span class="req" aria-hidden="true"> *</span></label><textarea id="f-follow_up_plan" v-model="form.follow_up_plan" class="field" rows="6" /></div>
-							<p v-else-if="form.needs_follow_up === 'No'" class="rounded-lg bg-[#F4F5F7] p-3 text-sm text-[#5B616B]">The case will be closed when this session is saved.</p>
-						</div>
-
-						<!-- Follow-Up review sections -->
-						<div v-else-if="currentSection.key === 'progress'" class="max-w-2xl space-y-5">
-							<div><label class="lbl" for="f-followup_goals_discussed">Goals/issues discussed last time</label><textarea id="f-followup_goals_discussed" v-model="form.followup_goals_discussed" class="field" rows="3" /></div>
-							<div><label class="lbl" for="f-progress_previous_goals">What progress or changes has the student made?</label><textarea id="f-progress_previous_goals" v-model="form.progress_previous_goals" class="field" rows="3" /></div>
-							<div><label class="lbl" for="f-followup_challenges">Any challenges or setbacks noted?</label><textarea id="f-followup_challenges" v-model="form.followup_challenges" class="field" rows="3" /></div>
-						</div>
-						<div v-else-if="currentSection.key === 'concerns'" class="max-w-2xl space-y-5">
-							<fieldset class="m-0 border-0 p-0">
-								<legend class="lbl">Any new issues or stressors? <span class="req" aria-hidden="true">*</span></legend>
-								<div class="grid gap-2 sm:grid-cols-2"><label v-for="answer in yesNoOptions" :key="answer" class="opt" :class="form.followup_new_issues_present === answer ? 'opt-on' : ''"><input type="radio" name="followup_new_issues_present" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="form.followup_new_issues_present === answer" @change="setFollowupAnswer('followup_new_issues_present', 'followup_new_issues', answer)" />{{ answer }}</label></div>
-							</fieldset>
-							<div v-if="form.followup_new_issues_present === 'Yes'"><label class="lbl" for="f-followup_new_issues">Describe the new issue or stressor <span class="req" aria-hidden="true">*</span></label><textarea id="f-followup_new_issues" v-model="form.followup_new_issues" class="field" rows="3" /></div>
-							<fieldset class="m-0 border-0 p-0">
-								<legend class="lbl">Any evident changes? <span class="req" aria-hidden="true">*</span></legend>
-								<div class="grid gap-2 sm:grid-cols-2"><label v-for="answer in yesNoOptions" :key="answer" class="opt" :class="form.followup_evident_changes_present === answer ? 'opt-on' : ''"><input type="radio" name="followup_evident_changes_present" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="form.followup_evident_changes_present === answer" @change="setFollowupAnswer('followup_evident_changes_present', 'followup_evident_changes', answer)" />{{ answer }}</label></div>
-							</fieldset>
-							<div v-if="form.followup_evident_changes_present === 'Yes'"><label class="lbl" for="f-followup_evident_changes">Describe evident changes <span class="req" aria-hidden="true">*</span></label><textarea id="f-followup_evident_changes" v-model="form.followup_evident_changes" class="field" rows="3" /></div>
-						</div>
-						<div v-else-if="currentSection.key === 'coping'" class="max-w-2xl space-y-5">
-							<div><label class="lbl" for="f-followup_coping_support">What coping skills or supports is the client using?</label><textarea id="f-followup_coping_support" v-model="form.followup_coping_support" class="field" rows="3" /></div>
-							<div><label class="lbl" for="f-followup_support_effectiveness">How effective do they seem?</label><textarea id="f-followup_support_effectiveness" v-model="form.followup_support_effectiveness" class="field" rows="3" /></div>
-							<div><label class="lbl" for="f-followup_additional_support">Any additional support needed?</label><textarea id="f-followup_additional_support" v-model="form.followup_additional_support" class="field" rows="3" /></div>
-						</div>
-						<div v-else-if="currentSection.key === 'observation'" class="max-w-2xl space-y-6">
-							<fieldset class="m-0 border-0 p-0">
-								<legend class="lbl">Mood and affect <span class="req" aria-hidden="true">*</span></legend>
-								<div class="grid gap-2 sm:grid-cols-2">
-									<label v-for="option in moodAffectOptions" :key="option" class="opt" :class="form.followup_mood_affect === option ? 'opt-on' : ''">
-										<input v-model="form.followup_mood_affect" class="h-[18px] w-[18px] accent-[#C8102E]" type="radio" name="followup_mood_affect" :value="option" />{{ option }}
-									</label>
-								</div>
-							</fieldset>
-							<div v-if="form.followup_mood_affect === 'Other'"><label class="lbl" for="f-followup_mood_other">Describe other mood or affect</label><textarea id="f-followup_mood_other" v-model="form.followup_mood_other" class="field" rows="3" /></div>
-							<fieldset class="m-0 border-0 p-0">
-								<legend class="lbl">Engagement level <span class="req" aria-hidden="true">*</span></legend>
-								<div class="grid gap-2 sm:grid-cols-2">
-									<label v-for="option in engagementLevels" :key="option" class="opt" :class="form.followup_engagement_level === option ? 'opt-on' : ''">
-										<input v-model="form.followup_engagement_level" class="h-[18px] w-[18px] accent-[#C8102E]" type="radio" name="followup_engagement_level" :value="option" />{{ option }}
-									</label>
-								</div>
-							</fieldset>
-							<fieldset class="m-0 border-0 p-0">
-								<legend class="lbl">Risk concerns <span class="req" aria-hidden="true">*</span></legend>
-								<div class="grid gap-2 sm:grid-cols-2">
-									<label v-for="option in followupRiskLevels" :key="option" class="opt" :class="form.followup_risk_concerns === option ? 'opt-on' : ''">
-										<input v-model="form.followup_risk_concerns" class="h-[18px] w-[18px] accent-[#C8102E]" type="radio" name="followup_risk_concerns" :value="option" />{{ option }}
-									</label>
-								</div>
-							</fieldset>
-						</div>
-						<div v-else-if="currentSection.key === 'nextsteps'" class="max-w-2xl space-y-5">
-							<fieldset class="m-0 border-0 p-0"><legend class="lbl">Is there a need for follow-up? <span class="req" aria-hidden="true">*</span></legend><div class="grid gap-2 sm:grid-cols-2"><label v-for="answer in yesNoOptions" :key="answer" class="opt" :class="form.needs_follow_up === answer ? 'opt-on' : ''"><input type="radio" name="needs_follow_up_followup" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="form.needs_follow_up === answer" @change="setNeedFollowUp(answer)" />{{ answer }}</label></div></fieldset>
-							<div v-if="form.needs_follow_up === 'Yes'"><label class="lbl" for="f-follow_up_plan">Follow-up plan <span class="req" aria-hidden="true">*</span></label><textarea id="f-follow_up_plan" v-model="form.follow_up_plan" class="field" rows="3" /></div>
-							<div><label class="lbl" for="f-followup_recommendations">Recommendations</label><textarea id="f-followup_recommendations" v-model="form.followup_recommendations" class="field" rows="3" /></div>
-							<div><label class="lbl" for="f-followup_takeaways">Key takeaways or interventions used today <span class="req" aria-hidden="true">*</span></label><textarea id="f-followup_takeaways" v-model="form.followup_takeaways" class="field" rows="3" /></div>
-							<div><label class="lbl" for="f-referrals_made">Referrals made</label><textarea id="f-referrals_made" v-model="form.referrals_made" class="field" rows="3" placeholder="Enter referral or write None" /></div>
-							<div><label class="lbl" for="f-next_session_focus">Focus for next session</label><textarea id="f-next_session_focus" v-model="form.next_session_focus" class="field" rows="3" /></div>
-							<div><label class="lbl" for="f-followup_action">Follow-up action (if any)</label><textarea id="f-followup_action" v-model="form.followup_action" class="field" rows="3" /></div>
-						</div>
-
-						<!-- Session audio -->
-						<div v-else-if="currentSection.key === 'audio'" class="max-w-xl">
-							<div v-if="audioUrl" class="rounded-lg bg-[#F4F5F7] p-4">
-								<audio controls preload="none" class="w-full" :src="audioUrl">Your browser does not support audio playback.</audio>
-							</div>
-							<p v-else-if="!canSave" class="rounded-lg bg-[#F4F5F7] p-4 text-sm text-[#5B616B]">No audio was recorded for this session.</p>
-
-							<FileUploader v-if="canSave" :class="audioUrl ? 'mt-4' : ''" :fileTypes="['audio/*']" :validateFile="validateAudio" :uploadArgs="audioUploadArgs" @success="onAudioUploaded">
-								<template #default="{ uploading, progress, openFileSelector, error }">
-									<button type="button" :disabled="uploading" class="inline-flex h-11 items-center gap-2 rounded-[10px] border border-[#D5D8DE] bg-white px-5 text-sm font-semibold text-[#2B2F36] transition hover:bg-[#F4F5F7] disabled:cursor-wait disabled:opacity-60" @click="openFileSelector">
-										<Loader2 v-if="uploading" :size="16" class="animate-spin" />
-										<Upload v-else :size="16" />
-										{{ uploading ? `Uploading ${progress}%` : audioUrl ? 'Replace audio file' : 'Upload audio file' }}
-									</button>
-									<p v-if="error" class="mt-2 text-sm text-[#A10E24]">{{ error }}</p>
+									</template>
 								</template>
-							</FileUploader>
-						</div>
-					</fieldset>
 
-					<p v-if="formError" class="mt-5 text-sm text-[#A10E24]" role="alert">{{ formError }}</p>
-					<ErrorMessage class="mt-5" :message="saver.error" />
-					<p v-if="canSave && step === sections.length" class="mt-5 text-xs text-[#5B616B]">Once saved, the session record is locked and becomes read-only.</p>
+								<!-- Scheduled / cancelled session: status panel -->
+								<div v-else class="py-8 text-center">
+									<span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full" :class="selectedSession.status === 'Cancelled' ? 'bg-[#F4F5F7] text-[#858891]' : selectedSession.overdue ? 'bg-[#FBE0E4] text-[#A10E24]' : 'bg-[#E0EAFD] text-[#1B4DB1]'">
+										<Ban v-if="selectedSession.status === 'Cancelled'" :size="22" /><CalendarClock v-else :size="22" />
+									</span>
+									<p class="mt-3 text-sm font-semibold text-[#33353A]">{{ selectedSession.status === 'Cancelled' ? 'This session was cancelled' : selectedSession.overdue ? 'This session is overdue' : 'This session is scheduled' }}</p>
+									<p class="mx-auto mt-1 max-w-sm text-sm text-[#858891]">{{ selectedSession.status === 'Cancelled' ? 'No record was captured for this appointment.' : 'Details will appear here once the session has been recorded.' }}</p>
+								</div>
 
-					<div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#E4E6EA] pt-5">
-						<Button v-if="sections.length > 1" type="button" class="!h-11 !rounded-[10px] !border-[#D5D8DE] !bg-white !text-[#2B2F36]" :disabled="step === 1" @click="previous">Previous</Button>
-						<span v-else></span>
-
-						<router-link v-if="!canSave && step === sections.length" :to="backTo" class="inline-flex h-11 items-center rounded-[10px] bg-[#C8102E] px-5 text-sm font-semibold text-white transition hover:bg-[#A10E24]">Back</router-link>
-						<Button v-else type="submit" variant="solid" class="!h-11 !rounded-[10px] !bg-[#C8102E] px-5 hover:!bg-[#A10E24]" :loading="saver.loading">
-							{{ canSave && step === sections.length ? 'Save session record' : 'Next' }}
-						</Button>
+								<div v-if="selectedSession.referral_history?.length" class="space-y-2 rounded-lg bg-[#E0EAFD] px-4 py-3">
+									<p v-for="referral in selectedSession.referral_history" :key="referral.name || referral.referred_on" class="text-xs leading-5 text-[#1B4DB1]">
+										<span class="font-semibold">Referral:</span> {{ referral.from_name || referral.from_counsellor }} → {{ referral.to_name || referral.to_counsellor }} · {{ fmtDateTime(referral.referred_on) }}. {{ referral.reason }}
+									</p>
+								</div>
+							</div>
+						</section>
 					</div>
-				</form>
-			</div>
-		</template>
+				</div>
 
-		<ErrorMessage v-else :message="resource.error" />
+				<!-- ============ RECORDING A SESSION ============ -->
+				<div v-else class="flex items-start gap-5 max-[800px]:flex-col">
+					<!-- Section navigation -->
+					<nav v-if="sections.length > 1" class="w-[280px] shrink-0 rounded-xl border border-[#E4E6EA] bg-white p-5 shadow-[0_1px_2px_rgba(20,25,35,0.03)] max-[800px]:w-full" aria-label="Record sections">
+						<div class="mb-2 text-xs text-[#5B616B]">Section {{ step }} of {{ sections.length }} · {{ Math.round((step / sections.length) * 100) }}% complete</div>
+						<div class="mb-4 h-2 overflow-hidden rounded-full bg-[#E4E6EA]">
+							<div class="h-full rounded-full bg-[#C8102E] transition-all" :style="{ width: `${(step / sections.length) * 100}%` }"></div>
+						</div>
+						<ol class="space-y-1">
+							<li v-for="(section, index) in sections" :key="section.key">
+								<button type="button" class="flex min-h-10 w-full items-center gap-2.5 rounded-lg px-2 text-left text-sm transition-colors"
+									:class="step === index + 1 ? 'font-semibold text-[#A10E24]' : 'text-[#4A505A] hover:bg-[#F4F5F7]'"
+									:aria-current="step === index + 1 ? 'step' : undefined" @click="goTo(index + 1)">
+									<span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+										:class="isDone(section, index) ? 'bg-[#DCF3E4] text-[#146C3A]' : step === index + 1 ? 'bg-[#C8102E] text-white' : 'bg-[#E4E6EA] text-[#3A3F47]'">
+										<Check v-if="isDone(section, index)" :size="14" :stroke-width="2.5" />
+										<template v-else>{{ index + 1 }}</template>
+									</span>
+									{{ section.title }}
+								</button>
+							</li>
+						</ol>
+					</nav>
+
+					<!-- Section content -->
+					<form class="min-w-0 flex-1 rounded-xl border border-[#E4E6EA] bg-white p-5 shadow-[0_1px_2px_rgba(20,25,35,0.03)] md:p-6" @submit.prevent="onSubmit">
+						<h2 class="text-lg font-semibold text-[#25272B]">{{ currentSection.heading }}</h2>
+						<p v-if="currentSection.description" class="mb-6 mt-1 text-sm text-[#737780]">{{ currentSection.description }}</p>
+
+						<fieldset class="m-0 min-w-0 border-0 p-0">
+							<!-- Case history -->
+							<div v-if="currentSection.key === 'history'">
+								<ol v-if="history.length" class="divide-y divide-[#ECEDEF] overflow-hidden rounded-xl border border-[#E4E6EA]">
+									<li v-for="item in history" :key="item.name">
+										<details v-if="item.status === 'Completed'" class="hist" :open="item.name === latestName">
+											<summary class="hist-summary flex cursor-pointer items-center gap-3 px-4 py-3.5 transition hover:bg-[#FCFCFD]">
+												<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#DCF3E4] text-[#146C3A]"><ClipboardCheck :size="17" /></span>
+												<span class="min-w-0 flex-1">
+													<span class="block text-sm font-semibold text-[#2B2F36]">{{ fmtDateTime(item.date_time) }}</span>
+													<span class="mt-0.5 block text-xs text-[#737780]">{{ item.session_type }}<span v-if="item.mode_of_contact"> · {{ item.mode_of_contact }}</span></span>
+												</span>
+												<span v-if="item.name === record.name" class="hidden rounded-full bg-[#FCE8EB] px-2.5 py-1 text-xs font-semibold text-[#A10E24] sm:inline">This session</span>
+												<Badge label="Completed" theme="green" />
+												<ChevronDown :size="17" class="hist-chev shrink-0 text-[#737780]" />
+											</summary>
+
+											<div class="space-y-3 px-4 pb-4 pt-1">
+												<div class="grid gap-3 sm:grid-cols-2">
+													<div v-for="[label, value, wide] in facts(item)" :key="label" class="rounded-lg bg-[#F4F5F7] p-4" :class="wide ? 'sm:col-span-2' : ''">
+														<span class="block text-xs text-[#5B616B]">{{ label }}</span>
+														<span class="fact-value mt-1 block text-sm font-medium text-[#2B2F36]">{{ value || 'Not recorded' }}</span>
+													</div>
+												</div>
+
+												<template v-if="item.session_type === 'Follow-Up'">
+													<div v-for="group in followupGroups(item)" :key="group.title" class="rounded-xl border border-[#E4E6EA] p-4">
+														<h3 class="text-sm font-semibold text-[#2B2F36]">{{ group.title }}</h3>
+														<div class="mt-3 grid gap-3 sm:grid-cols-2">
+															<div v-for="[label, value] in group.rows" :key="label" class="rounded-lg bg-[#F4F5F7] p-4">
+																<span class="block text-xs text-[#5B616B]">{{ label }}</span>
+																<span class="fact-value mt-1 block text-sm font-medium text-[#2B2F36]">{{ value || 'Not recorded' }}</span>
+															</div>
+														</div>
+													</div>
+												</template>
+
+												<div v-if="item.audio_recording" class="rounded-lg bg-[#F4F5F7] p-4">
+													<span class="mb-2 block text-xs text-[#5B616B]">Session audio</span>
+													<audio controls preload="none" class="w-full max-w-xl" :src="item.audio_recording">Your browser does not support audio playback.</audio>
+												</div>
+
+												<div v-if="item.referral_history?.length" class="space-y-2 rounded-lg bg-[#E0EAFD] px-4 py-3">
+													<p v-for="referral in item.referral_history" :key="referral.name || referral.referred_on" class="text-xs leading-5 text-[#1B4DB1]">
+														<span class="font-semibold">Referral:</span> {{ referral.from_name || referral.from_counsellor }} → {{ referral.to_name || referral.to_counsellor }} · {{ fmtDateTime(referral.referred_on) }}. {{ referral.reason }}
+													</p>
+												</div>
+											</div>
+										</details>
+
+										<div v-else class="flex items-center gap-3 px-4 py-3.5">
+											<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" :class="item.status === 'Cancelled' ? 'bg-[#F4F5F7] text-[#5B616B]' : item.overdue ? 'bg-[#FBE0E4] text-[#A10E24]' : 'bg-[#E0EAFD] text-[#1B4DB1]'">
+												<Ban v-if="item.status === 'Cancelled'" :size="17" /><CalendarClock v-else :size="17" />
+											</span>
+											<span class="min-w-0 flex-1">
+												<span class="block text-sm font-semibold text-[#2B2F36]">{{ fmtDateTime(item.date_time) }}</span>
+												<span class="mt-0.5 block text-xs text-[#737780]">{{ item.session_type }}<span v-if="item.mode_of_contact"> · {{ item.mode_of_contact }}</span> · {{ item.status === 'Scheduled' ? 'Session is scheduled.' : 'Session was cancelled.' }}</span>
+											</span>
+											<span v-if="item.name === record.name" class="hidden rounded-full bg-[#FCE8EB] px-2.5 py-1 text-xs font-semibold text-[#A10E24] sm:inline">This session</span>
+											<Badge :label="item.status === 'Scheduled' && item.overdue ? 'Overdue' : item.status" :theme="item.overdue ? 'red' : item.status === 'Cancelled' ? 'gray' : 'blue'" />
+										</div>
+										<div v-if="item.status !== 'Completed' && item.referral_history?.length" class="space-y-2 px-4 pb-4">
+											<p v-for="referral in item.referral_history" :key="referral.name || referral.referred_on" class="rounded-lg bg-[#E0EAFD] px-4 py-3 text-xs leading-5 text-[#1B4DB1]">
+												<span class="font-semibold">Referral:</span> {{ referral.from_name || referral.from_counsellor }} → {{ referral.to_name || referral.to_counsellor }} · {{ fmtDateTime(referral.referred_on) }}. {{ referral.reason }}
+											</p>
+										</div>
+									</li>
+								</ol>
+								<p v-else class="rounded-lg bg-[#F4F5F7] p-4 text-sm text-[#5B616B]">No earlier sessions are recorded for this client.</p>
+							</div>
+
+							<!-- Counselling mode -->
+							<div v-else-if="currentSection.key === 'mode'" class="max-w-2xl">
+								<label id="mode-of-counseling-label" class="lbl">Mode of counselling <span class="req" aria-hidden="true">*</span></label>
+								<div class="relative" data-mode-dropdown>
+									<button type="button" class="field flex items-center justify-between gap-3 text-left" :class="form.mode_of_contact ? '' : 'is-empty'" aria-labelledby="mode-of-counseling-label mode-of-counseling-value" :aria-expanded="modeDropdownOpen" aria-haspopup="listbox" @click="modeDropdownOpen = !modeDropdownOpen" @keydown.esc="modeDropdownOpen = false">
+										<span id="mode-of-counseling-value" class="truncate">{{ form.mode_of_contact || 'Select mode of counselling' }}</span>
+										<ChevronDown :size="17" class="shrink-0 text-[#5B616B] transition-transform" :class="modeDropdownOpen ? 'rotate-180' : ''" />
+									</button>
+									<div v-if="modeDropdownOpen" class="issue-menu" role="listbox" aria-labelledby="mode-of-counseling-label">
+										<button v-for="option in activeCounselingModes" :key="option" type="button" role="option" class="issue-option" :class="form.mode_of_contact === option ? 'issue-option-active' : ''" :aria-selected="form.mode_of_contact === option" @click="chooseCounselingMode(option)">{{ option }}<Check v-if="form.mode_of_contact === option" :size="16" /></button>
+									</div>
+								</div>
+							</div>
+
+							<!-- Mood summary since the previous session -->
+							<div v-else-if="currentSection.key === 'mood'" class="max-w-2xl">
+								<label class="lbl" for="f-session_details">How has the client been feeling since the last session? <span class="req" aria-hidden="true">*</span></label>
+								<p class="mb-2 text-xs text-[#5B616B]">Brief summary of mood, behavior, or attitude.</p>
+								<textarea id="f-session_details" v-model="form.session_details" class="field" rows="5" />
+								<div class="mt-5"><label class="lbl" for="f-followup_wellbeing_rating">How would you rate your current emotional and psychological wellbeing? <span class="req" aria-hidden="true">*</span></label><select id="f-followup_wellbeing_rating" v-model="form.followup_wellbeing_rating" class="field"><option value="">Choose a rating</option><option v-for="option in wellbeingOptions" :key="option">{{ option }}</option></select></div>
+								<div class="mt-5"><label class="lbl" for="f-followup_stress_frequency">In the past two weeks, have you experienced significant stress, anxiety, low mood, or difficulty concentrating? <span class="req" aria-hidden="true">*</span></label><select id="f-followup_stress_frequency" v-model="form.followup_stress_frequency" class="field"><option value="">Choose an answer</option><option v-for="option in stressFrequencyOptions" :key="option">{{ option }}</option></select></div>
+							</div>
+
+							<!-- Presenting issues -->
+							<div v-else-if="currentSection.key === 'presenting'" class="max-w-2xl space-y-5">
+								<fieldset v-if="isFollowUp" class="m-0 border-0 p-0">
+									<legend class="lbl">Are there any new presenting issues? <span class="req" aria-hidden="true">*</span></legend>
+									<div class="mb-4 grid gap-2 sm:grid-cols-2"><label v-for="answer in yesNoOptions" :key="answer" class="opt" :class="form.followup_new_presenting_issues === answer ? 'opt-on' : ''"><input type="radio" name="followup_new_presenting_issues" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="form.followup_new_presenting_issues === answer" @change="setNewPresentingAnswer(answer)" />{{ answer }}</label></div>
+								</fieldset>
+								<fieldset v-if="!isFollowUp || form.followup_new_presenting_issues === 'Yes'" class="m-0 border-0 p-0">
+									<legend class="lbl">{{ isFollowUp ? 'Select new presenting issues' : 'Presenting issues' }} <span class="req" aria-hidden="true">*</span></legend>
+									<div class="grid gap-2 sm:grid-cols-2">
+										<label v-for="issue in presentingIssueTypes" :key="issue" class="opt" :class="selectedPresentingIssues.includes(issue) ? 'opt-on' : ''"><input type="checkbox" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="selectedPresentingIssues.includes(issue)" @change="togglePresentingIssue(issue, $event.target.checked)" />{{ issue }}</label>
+									</div>
+								</fieldset>
+								<div><label class="lbl" for="f-issue_subclassifications">Issue subclassifications</label><textarea id="f-issue_subclassifications" v-model="form.issue_subclassifications" class="field" rows="3" placeholder="Add relevant categories or descriptors" /></div>
+								<div v-if="!isFollowUp"><label class="lbl" for="f-session_details">Session details<span class="req" aria-hidden="true"> *</span></label><textarea id="f-session_details" v-model="form.session_details" class="field" rows="5" /></div>
+							</div>
+
+							<!-- Interventions -->
+							<div v-else-if="currentSection.key === 'interventions'" class="max-w-2xl space-y-5">
+								<div><label class="lbl" for="f-interventions_applied">Interventions applied<span class="req" aria-hidden="true"> *</span></label><textarea id="f-interventions_applied" v-model="form.interventions_applied" class="field" rows="5" /></div>
+								<div><label class="lbl" for="f-referrals_made">Referrals made</label><textarea id="f-referrals_made" v-model="form.referrals_made" class="field" rows="4" placeholder="Enter referral or write None" /></div>
+							</div>
+
+							<!-- Urgency and risk -->
+							<div v-else-if="currentSection.key === 'urgency'" class="max-w-2xl space-y-6">
+								<fieldset class="m-0 border-0 p-0">
+									<legend class="lbl">Urgency level <span class="req" aria-hidden="true">*</span></legend>
+									<div class="grid gap-2 sm:grid-cols-2">
+										<label v-for="level in urgencyLevels" :key="level" class="opt" :class="form.urgency_level === level ? 'opt-on' : ''">
+											<input v-model="form.urgency_level" class="h-[18px] w-[18px] accent-[#C8102E]" type="radio" name="urgency_level" :value="level" />{{ level }}
+										</label>
+									</div>
+								</fieldset>
+								<div><label class="lbl" for="f-risk_assessment">Risk assessment<span class="req" aria-hidden="true"> *</span></label><textarea id="f-risk_assessment" v-model="form.risk_assessment" class="field" rows="5" /></div>
+							</div>
+
+							<!-- Follow-up plan -->
+							<div v-else-if="currentSection.key === 'plan'" class="max-w-2xl">
+								<fieldset class="mb-5 m-0 border-0 p-0"><legend class="lbl">Is there a need for follow-up? <span class="req" aria-hidden="true">*</span></legend><div class="grid gap-2 sm:grid-cols-2"><label v-for="answer in yesNoOptions" :key="answer" class="opt" :class="form.needs_follow_up === answer ? 'opt-on' : ''"><input type="radio" name="needs_follow_up" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="form.needs_follow_up === answer" @change="setNeedFollowUp(answer)" />{{ answer }}</label></div></fieldset>
+								<div v-if="form.needs_follow_up === 'Yes'"><label class="lbl" for="f-follow_up_plan">Follow-up plan<span class="req" aria-hidden="true"> *</span></label><textarea id="f-follow_up_plan" v-model="form.follow_up_plan" class="field" rows="6" /></div>
+								<p v-else-if="form.needs_follow_up === 'No'" class="rounded-lg bg-[#F4F5F7] p-3 text-sm text-[#5B616B]">The case will be closed when this session is saved.</p>
+							</div>
+
+							<!-- Follow-Up review sections -->
+							<div v-else-if="currentSection.key === 'progress'" class="max-w-2xl space-y-5">
+								<div><label class="lbl" for="f-followup_goals_discussed">Goals/issues discussed last time</label><textarea id="f-followup_goals_discussed" v-model="form.followup_goals_discussed" class="field" rows="3" /></div>
+								<div><label class="lbl" for="f-progress_previous_goals">What progress or changes has the student made?</label><textarea id="f-progress_previous_goals" v-model="form.progress_previous_goals" class="field" rows="3" /></div>
+								<div><label class="lbl" for="f-followup_challenges">Any challenges or setbacks noted?</label><textarea id="f-followup_challenges" v-model="form.followup_challenges" class="field" rows="3" /></div>
+							</div>
+							<div v-else-if="currentSection.key === 'concerns'" class="max-w-2xl space-y-5">
+								<fieldset class="m-0 border-0 p-0">
+									<legend class="lbl">Any new issues or stressors? <span class="req" aria-hidden="true">*</span></legend>
+									<div class="grid gap-2 sm:grid-cols-2"><label v-for="answer in yesNoOptions" :key="answer" class="opt" :class="form.followup_new_issues_present === answer ? 'opt-on' : ''"><input type="radio" name="followup_new_issues_present" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="form.followup_new_issues_present === answer" @change="setFollowupAnswer('followup_new_issues_present', 'followup_new_issues', answer)" />{{ answer }}</label></div>
+								</fieldset>
+								<div v-if="form.followup_new_issues_present === 'Yes'"><label class="lbl" for="f-followup_new_issues">Describe the new issue or stressor <span class="req" aria-hidden="true">*</span></label><textarea id="f-followup_new_issues" v-model="form.followup_new_issues" class="field" rows="3" /></div>
+								<fieldset class="m-0 border-0 p-0">
+									<legend class="lbl">Any evident changes? <span class="req" aria-hidden="true">*</span></legend>
+									<div class="grid gap-2 sm:grid-cols-2"><label v-for="answer in yesNoOptions" :key="answer" class="opt" :class="form.followup_evident_changes_present === answer ? 'opt-on' : ''"><input type="radio" name="followup_evident_changes_present" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="form.followup_evident_changes_present === answer" @change="setFollowupAnswer('followup_evident_changes_present', 'followup_evident_changes', answer)" />{{ answer }}</label></div>
+								</fieldset>
+								<div v-if="form.followup_evident_changes_present === 'Yes'"><label class="lbl" for="f-followup_evident_changes">Describe evident changes <span class="req" aria-hidden="true">*</span></label><textarea id="f-followup_evident_changes" v-model="form.followup_evident_changes" class="field" rows="3" /></div>
+							</div>
+							<div v-else-if="currentSection.key === 'coping'" class="max-w-2xl space-y-5">
+								<div><label class="lbl" for="f-followup_coping_support">What coping skills or supports is the client using?</label><textarea id="f-followup_coping_support" v-model="form.followup_coping_support" class="field" rows="3" /></div>
+								<div><label class="lbl" for="f-followup_support_effectiveness">How effective do they seem?</label><textarea id="f-followup_support_effectiveness" v-model="form.followup_support_effectiveness" class="field" rows="3" /></div>
+								<div><label class="lbl" for="f-followup_additional_support">Any additional support needed?</label><textarea id="f-followup_additional_support" v-model="form.followup_additional_support" class="field" rows="3" /></div>
+							</div>
+							<div v-else-if="currentSection.key === 'observation'" class="max-w-2xl space-y-6">
+								<fieldset class="m-0 border-0 p-0">
+									<legend class="lbl">Mood and affect <span class="req" aria-hidden="true">*</span></legend>
+									<div class="grid gap-2 sm:grid-cols-2">
+										<label v-for="option in moodAffectOptions" :key="option" class="opt" :class="form.followup_mood_affect === option ? 'opt-on' : ''">
+											<input v-model="form.followup_mood_affect" class="h-[18px] w-[18px] accent-[#C8102E]" type="radio" name="followup_mood_affect" :value="option" />{{ option }}
+										</label>
+									</div>
+								</fieldset>
+								<div v-if="form.followup_mood_affect === 'Other'"><label class="lbl" for="f-followup_mood_other">Describe other mood or affect</label><textarea id="f-followup_mood_other" v-model="form.followup_mood_other" class="field" rows="3" /></div>
+								<fieldset class="m-0 border-0 p-0">
+									<legend class="lbl">Engagement level <span class="req" aria-hidden="true">*</span></legend>
+									<div class="grid gap-2 sm:grid-cols-2">
+										<label v-for="option in engagementLevels" :key="option" class="opt" :class="form.followup_engagement_level === option ? 'opt-on' : ''">
+											<input v-model="form.followup_engagement_level" class="h-[18px] w-[18px] accent-[#C8102E]" type="radio" name="followup_engagement_level" :value="option" />{{ option }}
+										</label>
+									</div>
+								</fieldset>
+								<fieldset class="m-0 border-0 p-0">
+									<legend class="lbl">Risk concerns <span class="req" aria-hidden="true">*</span></legend>
+									<div class="grid gap-2 sm:grid-cols-2">
+										<label v-for="option in followupRiskLevels" :key="option" class="opt" :class="form.followup_risk_concerns === option ? 'opt-on' : ''">
+											<input v-model="form.followup_risk_concerns" class="h-[18px] w-[18px] accent-[#C8102E]" type="radio" name="followup_risk_concerns" :value="option" />{{ option }}
+										</label>
+									</div>
+								</fieldset>
+							</div>
+							<div v-else-if="currentSection.key === 'nextsteps'" class="max-w-2xl space-y-5">
+								<fieldset class="m-0 border-0 p-0"><legend class="lbl">Is there a need for follow-up? <span class="req" aria-hidden="true">*</span></legend><div class="grid gap-2 sm:grid-cols-2"><label v-for="answer in yesNoOptions" :key="answer" class="opt" :class="form.needs_follow_up === answer ? 'opt-on' : ''"><input type="radio" name="needs_follow_up_followup" class="h-[18px] w-[18px] accent-[#C8102E]" :checked="form.needs_follow_up === answer" @change="setNeedFollowUp(answer)" />{{ answer }}</label></div></fieldset>
+								<div v-if="form.needs_follow_up === 'Yes'"><label class="lbl" for="f-follow_up_plan">Follow-up plan <span class="req" aria-hidden="true">*</span></label><textarea id="f-follow_up_plan" v-model="form.follow_up_plan" class="field" rows="3" /></div>
+								<div><label class="lbl" for="f-followup_recommendations">Recommendations</label><textarea id="f-followup_recommendations" v-model="form.followup_recommendations" class="field" rows="3" /></div>
+								<div><label class="lbl" for="f-followup_takeaways">Key takeaways or interventions used today <span class="req" aria-hidden="true">*</span></label><textarea id="f-followup_takeaways" v-model="form.followup_takeaways" class="field" rows="3" /></div>
+								<div><label class="lbl" for="f-referrals_made">Referrals made</label><textarea id="f-referrals_made" v-model="form.referrals_made" class="field" rows="3" placeholder="Enter referral or write None" /></div>
+								<div><label class="lbl" for="f-next_session_focus">Focus for next session</label><textarea id="f-next_session_focus" v-model="form.next_session_focus" class="field" rows="3" /></div>
+								<div><label class="lbl" for="f-followup_action">Follow-up action (if any)</label><textarea id="f-followup_action" v-model="form.followup_action" class="field" rows="3" /></div>
+							</div>
+
+							<!-- Session audio -->
+							<div v-else-if="currentSection.key === 'audio'" class="max-w-xl">
+								<div v-if="audioUrl" class="rounded-lg bg-[#F4F5F7] p-4">
+									<audio controls preload="none" class="w-full" :src="audioUrl">Your browser does not support audio playback.</audio>
+								</div>
+
+								<FileUploader :class="audioUrl ? 'mt-4' : ''" :fileTypes="['audio/*']" :validateFile="validateAudio" :uploadArgs="audioUploadArgs" @success="onAudioUploaded">
+									<template #default="{ uploading, progress, openFileSelector, error }">
+										<button type="button" :disabled="uploading" class="inline-flex h-11 items-center gap-2 rounded-[10px] border border-[#D5D8DE] bg-white px-5 text-sm font-semibold text-[#2B2F36] transition hover:bg-[#F4F5F7] disabled:cursor-wait disabled:opacity-60" @click="openFileSelector">
+											<Loader2 v-if="uploading" :size="16" class="animate-spin" />
+											<Upload v-else :size="16" />
+											{{ uploading ? `Uploading ${progress}%` : audioUrl ? 'Replace audio file' : 'Upload audio file' }}
+										</button>
+										<p v-if="error" class="mt-2 text-sm text-[#A10E24]">{{ error }}</p>
+									</template>
+								</FileUploader>
+							</div>
+						</fieldset>
+
+						<p v-if="formError" class="mt-5 text-sm text-[#A10E24]" role="alert">{{ formError }}</p>
+						<ErrorMessage class="mt-5" :message="saver.error" />
+						<p v-if="step === sections.length" class="mt-5 text-xs text-[#5B616B]">Once saved, the session record is locked and becomes read-only.</p>
+
+						<div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#E4E6EA] pt-5">
+							<Button v-if="sections.length > 1" type="button" class="!h-11 !rounded-[10px] !border-[#D5D8DE] !bg-white !text-[#2B2F36]" :disabled="step === 1" @click="previous">Previous</Button>
+							<span v-else></span>
+
+							<Button type="submit" variant="solid" class="!h-11 !rounded-[10px] !bg-[#C8102E] px-5 hover:!bg-[#A10E24]" :loading="saver.loading">
+								{{ step === sections.length ? 'Save session record' : 'Next' }}
+							</Button>
+						</div>
+					</form>
+				</div>
+			</template>
+
+			<ErrorMessage v-else :message="resource.error" />
+		</div>
 	</main>
 </template>
 
 <script setup>
 import { createResource, FileUploader } from "frappe-ui"
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue"
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { Ban, CalendarClock, Check, ChevronDown, ClipboardCheck, FileText, Loader2, Upload } from "lucide-vue-next"
+import { ArrowLeft, Ban, CalendarClock, Check, ChevronDown, ClipboardCheck, FileText, Loader2, Upload, Volume2 } from "lucide-vue-next"
 import { fmtDateTime } from "../data/format"
 
 const props = defineProps({ name: { type: String, default: "" } })
@@ -332,6 +446,7 @@ function presentingText(value) {
 		return Array.isArray(parsed) ? parsed.join(", ") : String(parsed)
 	} catch { return value }
 }
+const initials = (fullName) => (fullName || "Client").split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase()
 const modeDropdownOpen = ref(false)
 const recordFields = [
 	"mode_of_contact", "session_details", "presenting_issues", "issue_subclassifications", "interventions_applied", "referrals_made",
@@ -358,11 +473,18 @@ const audioUploadArgs = computed(() => ({
 	fieldname: "audio_recording",
 	private: true,
 }))
+
+// Session currently shown while viewing records
+const selectedName = ref("")
+const barRef = ref(null)
+
 const resource = createResource({
 	url: "krcti_mhpss.api.records.session_record_detail",
 	onSuccess(data) {
 		for (const field of recordFields) form[field] = data.appointment[field] ?? ""
 		if (data.appointment.status === "Scheduled" && !activeCounselingModes.value.includes(form.mode_of_contact)) form.mode_of_contact = ""
+		selectedName.value = data.appointment.name
+		scrollSelectedIntoView()
 	},
 })
 const record = computed(() => resource.data?.appointment)
@@ -431,7 +553,51 @@ function validateAudio(file) {
 	return file.type?.startsWith("audio/") ? "" : "Choose an audio file."
 }
 
-// ---- Wizard ----
+// ---- Viewing a record: session bar + selected session ----
+// All sessions for this client, oldest to newest. The opened record is added if the history doesn't include it.
+const sessionList = computed(() => {
+	const list = [...history.value]
+	if (record.value && !list.some((item) => item.name === record.value.name)) list.push(record.value)
+	return list.sort((a, b) => String(a.date_time).localeCompare(String(b.date_time)))
+})
+const selectedSession = computed(() => sessionList.value.find((item) => item.name === selectedName.value) || record.value || {})
+
+function selectSession(sessionName) {
+	selectedName.value = sessionName
+}
+function scrollSelectedIntoView() {
+	nextTick(() => {
+		barRef.value?.querySelector('[data-active="true"]')?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" })
+	})
+}
+watch(selectedName, scrollSelectedIntoView)
+
+const TONES = {
+	green: "bg-[#DCF3E4] text-[#146C3A]",
+	amber: "bg-[#FDECC8] text-[#8A4B00]",
+	blue: "bg-[#E0EAFD] text-[#1B4DB1]",
+	gray: "bg-[#E4E6EA] text-[#3A3F47]",
+}
+function sessionStatus(item) {
+	if (item?.status === "Completed") return { label: "Recorded", pill: TONES.green }
+	if (item?.status === "Cancelled") return { label: "Cancelled", pill: TONES.gray }
+	if (item?.overdue) return { label: "Overdue", pill: TONES.amber }
+	return { label: "Scheduled", pill: TONES.blue }
+}
+
+// Sidebar rows follow the selected session
+const detailRows = computed(() => {
+	const s = selectedSession.value || {}
+	return [
+		["Participant code", record.value?.scholar_code],
+		["Date & time", fmtDateTime(s.date_time)],
+		["Session type", s.session_type],
+		["Mode", s.mode_of_contact],
+		["Record ID", s.name],
+	]
+})
+
+// ---- Wizard (in-session recording only) ----
 const step = ref(1)
 const formError = ref("")
 const visited = ref(new Set([1]))
@@ -453,32 +619,31 @@ const sections = computed(() => {
 	const list = [
 		{ key: "history", title: "Case history", heading: "Case history", description: `Chronological history for ${client}. Review earlier sessions before recording this one.` },
 	]
-	if (showForm.value) {
-		if (isFollowUp.value) {
-			list.push(
-				{ key: "mode", title: "Mode of counseling", heading: "Mode of counseling", description: "Choose how this counseling session is being held." },
-				{ key: "mood", title: "Feeling since last session", heading: "How has the client been feeling since the last session?", description: "Briefly summarize the client’s mood, behavior, or attitude." },
-				{ key: "progress", title: "Progress on goals", heading: "Progress on previous goals", description: "This entry will be added to the client’s chronological case history." },
-				{ key: "concerns", title: "Current concerns", heading: "Current concerns / new issues", description: "Record any new issues and changes since the last session." },
-				{ key: "coping", title: "Coping and support", heading: "Coping and support", description: "Record what is helping the client and what else they need." },
-				{ key: "observation", title: "Observation", heading: "Counsellor’s observation", description: "Record mood, engagement and risk concerns." },
-				{ key: "presenting", title: "Presenting issues", heading: "Presenting issues", description: "Select the issues discussed in this follow-up." },
-				{ key: "urgency", title: "Urgency and risk", heading: "Urgency and risk", description: "Record how urgent the case is and the risk assessment." },
-				{ key: "nextsteps", title: "Next steps", heading: "Next steps / plan", description: "Record recommendations and the focus for next time." },
-			)
-		} else {
-			list.push(
-				{ key: "mode", title: "Mode of counselling", heading: "Mode of counselling", description: "Choose how this first counselling session is being held." },
-				{ key: "presenting", title: "Presenting issues", heading: "Presenting issues", description: "Record what brought the client in and what was discussed." },
-				{ key: "interventions", title: "Interventions", heading: "Interventions", description: "Record the support given and any referrals made." },
-				{ key: "urgency", title: "Urgency and risk", heading: "Urgency and risk", description: "Record how urgent the case is and the risk assessment." },
-			)
-			if (!isTermination.value) {
-				list.push({ key: "plan", title: "Follow-up plan", heading: "Follow-up plan", description: "Record what happens next for this client." })
-			}
+	if (!canSave.value) return list
+	if (isFollowUp.value) {
+		list.push(
+			{ key: "mode", title: "Mode of counseling", heading: "Mode of counseling", description: "Choose how this counseling session is being held." },
+			{ key: "mood", title: "Feeling since last session", heading: "How has the client been feeling since the last session?", description: "Briefly summarize the client’s mood, behavior, or attitude." },
+			{ key: "progress", title: "Progress on goals", heading: "Progress on previous goals", description: "This entry will be added to the client’s chronological case history." },
+			{ key: "concerns", title: "Current concerns", heading: "Current concerns / new issues", description: "Record any new issues and changes since the last session." },
+			{ key: "coping", title: "Coping and support", heading: "Coping and support", description: "Record what is helping the client and what else they need." },
+			{ key: "observation", title: "Observation", heading: "Counsellor’s observation", description: "Record mood, engagement and risk concerns." },
+			{ key: "presenting", title: "Presenting issues", heading: "Presenting issues", description: "Select the issues discussed in this follow-up." },
+			{ key: "urgency", title: "Urgency and risk", heading: "Urgency and risk", description: "Record how urgent the case is and the risk assessment." },
+			{ key: "nextsteps", title: "Next steps", heading: "Next steps / plan", description: "Record recommendations and the focus for next time." },
+		)
+	} else {
+		list.push(
+			{ key: "mode", title: "Mode of counselling", heading: "Mode of counselling", description: "Choose how this first counselling session is being held." },
+			{ key: "presenting", title: "Presenting issues", heading: "Presenting issues", description: "Record what brought the client in and what was discussed." },
+			{ key: "interventions", title: "Interventions", heading: "Interventions", description: "Record the support given and any referrals made." },
+			{ key: "urgency", title: "Urgency and risk", heading: "Urgency and risk", description: "Record how urgent the case is and the risk assessment." },
+		)
+		if (!isTermination.value) {
+			list.push({ key: "plan", title: "Follow-up plan", heading: "Follow-up plan", description: "Record what happens next for this client." })
 		}
-		list.push({ key: "audio", title: "Session audio", heading: "Session audio (optional)", description: "Upload an audio recording if one is available. The file is stored privately with this session." })
 	}
+	list.push({ key: "audio", title: "Session audio", heading: "Session audio (optional)", description: "Upload an audio recording if one is available. The file is stored privately with this session." })
 	return list.map((section, index) => ({ ...section, heading: index === 0 ? section.heading : `Section ${index + 1}: ${section.heading}` }))
 })
 const currentSection = computed(() => sections.value[Math.min(step.value, sections.value.length) - 1] || sections.value[0])
@@ -533,13 +698,7 @@ function submit() {
 	save()
 }
 
-// Banner above the wizard
-const TONES = {
-	green: "bg-[#DCF3E4] text-[#146C3A]",
-	amber: "bg-[#FDECC8] text-[#8A4B00]",
-	blue: "bg-[#E0EAFD] text-[#1B4DB1]",
-	gray: "bg-[#E4E6EA] text-[#3A3F47]",
-}
+// Banner: always while recording; while viewing, only case-level notices
 const banner = computed(() => {
 	const r = record.value || {}
 	if (caseClosed.value) return { text: "This case is closed. Its session records are available in read-only mode.", label: "Read only", pill: TONES.gray }
@@ -551,9 +710,10 @@ const banner = computed(() => {
 		? { text: "This session has passed. Review the case history, then record it below.", label: "Overdue", pill: TONES.amber }
 		: { text: "Review the case history, then record the session details, issues, interventions, urgency, risk and follow-up plan.", label: "Scheduled", pill: TONES.blue }
 })
+const showBanner = computed(() => canSave.value || caseClosed.value || !canManage.value)
 
 // ---- Case history helpers ----
-// The most recent completed session is opened by default
+// The most recent completed session is opened by default (in-session mode)
 const latestName = computed(() => {
 	const done = history.value.filter((item) => item.status === "Completed")
 	return done.length ? [...done].sort((a, b) => String(b.date_time).localeCompare(String(a.date_time)))[0].name : ""
@@ -561,25 +721,25 @@ const latestName = computed(() => {
 
 const facts = (item) => item.session_type === "Follow-Up"
 	? [
-												["Mode of counseling", item.mode_of_contact],
-												["How the client has been feeling since the last session", item.session_details, true],
-												["Presenting issues", presentingText(item.presenting_issues)],
-												["Current wellbeing", item.followup_wellbeing_rating],
-												["Recent stress frequency", item.followup_stress_frequency],
+		["Mode of counseling", item.mode_of_contact],
+		["How the client has been feeling since the last session", item.session_details, true],
+		["Presenting issues", presentingText(item.presenting_issues)],
+		["Current wellbeing", item.followup_wellbeing_rating],
+		["Recent stress frequency", item.followup_stress_frequency],
 		["Issue subclassifications", item.issue_subclassifications],
 		["Urgency level", item.urgency_level],
 		["Risk assessment", item.risk_assessment, true],
 	]
 	: [
-												["Presenting issues", presentingText(item.presenting_issues)],
+		["Presenting issues", presentingText(item.presenting_issues)],
 		["Issue subclassifications", item.issue_subclassifications],
 		["Interventions applied", item.interventions_applied],
 		["Referrals made", item.referrals_made],
 		["Urgency level", item.urgency_level],
 		["Risk assessment", item.risk_assessment],
 		["Session details", item.session_details, true],
-												["Follow-up needed", item.needs_follow_up],
-												["Follow-up plan", item.follow_up_plan, true],
+		["Follow-up needed", item.needs_follow_up],
+		["Follow-up plan", item.follow_up_plan, true],
 	]
 
 const followupGroups = (item) => [
@@ -589,11 +749,11 @@ const followupGroups = (item) => [
 		["Challenges or setbacks", item.followup_challenges],
 	] },
 	{ title: "Current concerns / new issues", rows: [
-												["Any new issues or stressors?", item.followup_new_issues_present],
+		["Any new issues or stressors?", item.followup_new_issues_present],
 		...(item.followup_new_issues_present === "Yes" ? [["New issues or stressors", item.followup_new_issues]] : []),
-												["Any new presenting issues?", item.followup_new_presenting_issues],
-												...(item.followup_new_presenting_issues === "Yes" ? [["New presenting issues", presentingText(item.presenting_issues)]] : []),
-												["Any evident changes?", item.followup_evident_changes_present],
+		["Any new presenting issues?", item.followup_new_presenting_issues],
+		...(item.followup_new_presenting_issues === "Yes" ? [["New presenting issues", presentingText(item.presenting_issues)]] : []),
+		["Any evident changes?", item.followup_evident_changes_present],
 		...(item.followup_evident_changes_present === "Yes" ? [["Evident changes", item.followup_evident_changes]] : []),
 	] },
 	{ title: "Coping and support", rows: [
@@ -614,7 +774,6 @@ const followupGroups = (item) => [
 		["Follow-up action", item.followup_action],
 	] },
 ]
-
 </script>
 
 <style scoped>

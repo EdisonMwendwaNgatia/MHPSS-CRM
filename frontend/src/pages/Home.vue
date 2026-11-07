@@ -35,7 +35,7 @@
         </div>
 
         <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <router-link v-for="stat in stats" :key="stat.label" :to="{ name: stat.route }" class="group rounded-xl border border-[#E4E6EA] bg-white p-5 shadow-[0_1px_2px_rgba(20,25,35,0.03)] transition hover:-translate-y-0.5 hover:border-[#D7A0AA] hover:shadow-sm">
+          <router-link v-for="stat in stats" :key="stat.label" :to="{ name: stat.route, query: stat.query }" class="group rounded-xl border border-[#E4E6EA] bg-white p-5 shadow-[0_1px_2px_rgba(20,25,35,0.03)] transition hover:-translate-y-0.5 hover:border-[#D7A0AA] hover:shadow-sm">
             <div class="flex items-start justify-between gap-3">
               <span class="text-sm font-medium text-[#737780]">{{ stat.label }}</span>
               <span class="flex h-9 w-9 items-center justify-center rounded-lg" :class="stat.iconBg"><component :is="stat.icon" :size="18" :class="stat.iconColor" /></span>
@@ -124,9 +124,9 @@ const home = createResource({ url: "krcti_mhpss.api.counsellor.home" })
 const todayLabel = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" })
 const stats = computed(() => [
 	{ label: "Active caseload", value: home.data?.active_clients ?? 0, note: "Clients assigned to you", route: "Clients", icon: UsersRound, iconBg: "bg-[#FCE8EB]", iconColor: "text-[#B30F2A]" },
-	{ label: "Upcoming appointments", value: home.data?.upcoming_count ?? 0, note: "Scheduled sessions ahead", route: "Appointments", icon: CalendarDays, iconBg: "bg-[#EAF1FC]", iconColor: "text-[#3B69A8]" },
-	{ label: "Sessions conducted", value: home.data?.sessions_conducted ?? 0, note: "Completed appointment records", route: "Appointments", icon: ClipboardCheck, iconBg: "bg-[#EAF5EE]", iconColor: "text-[#26834B]" },
-	{ label: "Follow-ups pending", value: home.data?.followups_pending ?? 0, note: "Scheduled follow-up sessions", route: "Appointments", icon: HeartHandshake, iconBg: "bg-[#FFF4D9]", iconColor: "text-[#A87814]" },
+	{ label: "Upcoming appointments", value: home.data?.upcoming_count ?? 0, note: "Scheduled sessions ahead", route: "Appointments", query: { filter: "upcoming" }, icon: CalendarDays, iconBg: "bg-[#EAF1FC]", iconColor: "text-[#3B69A8]" },
+	{ label: "Sessions conducted", value: home.data?.sessions_conducted ?? 0, note: "Completed appointment records", route: "Appointments", query: { filter: "completed" }, icon: ClipboardCheck, iconBg: "bg-[#EAF5EE]", iconColor: "text-[#26834B]" },
+	{ label: "Sessions pending", value: home.data?.pending_sessions ?? 0, note: "All scheduled sessions and follow-ups", route: "Appointments", query: { filter: "overdue" }, icon: HeartHandshake, iconBg: "bg-[#FFF4D9]", iconColor: "text-[#A87814]" },
 ])
 
 onMounted(() => me.reload())
