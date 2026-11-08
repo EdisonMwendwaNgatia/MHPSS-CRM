@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build --base=/assets/krcti_mhpss/frontend/ && yarn copy-html-entry",
+    "build": "vite build --base=/assets/krcti_mhpss/frontend/ && npm run copy-html-entry",
     "preview": "vite preview",
     "lint": "biome check --write .",
     "test": "vitest",
@@ -14,11 +14,13 @@
     "copy-html-entry": "cp ../krcti_mhpss/public/frontend/index.html ../krcti_mhpss/www/frontend.html"
   },
   "dependencies": {
+    "chart.js": "^4.6.1",
     "feather-icons": "^4.29.2",
     "frappe-ui": "^0.1.192",
     "lucide-vue-next": "^1.0.0",
     "socket.io-client": "^4.7.2",
     "vue": "^3.5.13",
+    "vue-chartjs": "^5.3.4",
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
