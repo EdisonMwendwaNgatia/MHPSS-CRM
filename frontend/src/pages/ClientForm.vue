@@ -283,7 +283,7 @@ const isNew = computed(() => !clientName.value)
 const role = computed(() => me.data?.role)
 const isProgrammeManager = computed(() => ["krcti_pm", "woc_pm"].includes(role.value))
 const isWoCProgrammeManager = computed(() => role.value === "woc_pm")
-const back = computed(() => (isNew.value ? (isProgrammeManager.value ? { name: "Programme" } : { name: "Clients" }) : { name: "ClientProfile", params: { name: clientName.value } }))
+const back = computed(() => (isNew.value ? (isProgrammeManager.value ? { name: "ProgrammeClients" } : { name: "Clients" }) : { name: "ClientProfile", params: { name: clientName.value } }))
 
 const TEXT = ["full_name", "phone_number", "gender", "disability_type", "institution", "institution_county",
 	"course_programme", "county_location", "programme_stream", "referral_source", "referral_source_other"]
@@ -362,7 +362,7 @@ onUnmounted(() => document.removeEventListener("click", closeDropdownOutside))
 const saver = createResource({
 	url: isProgrammeManager.value ? "krcti_mhpss.api.records.register_programme_client" : "krcti_mhpss.api.records.save_client",
 	onSuccess(result) {
-		router.replace(isProgrammeManager.value ? { name: "Programme" } : { name: "ClientProfile", params: { name: result.name } })
+		router.replace(isProgrammeManager.value ? { name: "ProgrammeClients" } : { name: "ClientProfile", params: { name: result.name } })
 	},
 })
 const updater = saver // the template may still mention it

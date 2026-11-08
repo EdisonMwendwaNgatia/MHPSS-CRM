@@ -76,12 +76,19 @@ def _activity_scope_log(row, scope):
 
 
 @frappe.whitelist()
-def programme_clients(search=None, start=0, page_length=50):
+def programme_clients(search=None, status=None, start=0, page_length=50):
     require_roles(KRCTI_PM, WOC_PM)
     start, page_length = max(0, cint(start)), max(1, min(cint(page_length) or 50, 100))
     filters = {}
     if _scope() == "WoC":
         filters["programme_stream"] = WOC_STREAM
+    status = str(status or "").strip()
+    if status == "Active":
+        filters["case_status"] = ["!=", "Closed"]
+    elif status == "Closed":
+        filters["case_status"] = "Closed"
+    elif status:
+        frappe.throw(_("Choose Active or Closed client status."))
     search = " ".join(str(search or "").split())[:80]
     or_filters = None
     if search:
@@ -89,11 +96,14 @@ def programme_clients(search=None, start=0, page_length=50):
         or_filters = [["Client", "scholar_code", "like", like], ["Client", "full_name", "like", like], ["Client", "phone_number", "like", like]]
     total = frappe.db.count("Client", filters=filters)
     rows = frappe.get_all("Client", filters=filters, or_filters=or_filters,
-        fields=["name", "full_name", "scholar_code", "programme_stream", "case_status", "assigned_counsellor", "institution", "modified"],
+        fields=["name", "full_name", "scholar_code", "phone_number", "programme_stream", "case_status", "assigned_counsellor", "institution", "modified"],
         order_by="modified desc", start=start, page_length=page_length)
     names = _names({row.assigned_counsellor for row in rows if row.assigned_counsellor})
     for row in rows:
         row["counsellor_name"] = names.get(row.assigned_counsellor, "Unassigned")
+        # Follow-Up Pending remains an internal workflow value; the programme list
+        # presents the requested two-state status of Active or Closed.
+        row["case_status"] = "Closed" if row.case_status == "Closed" else "Active"
     if search:
         total = len(frappe.get_all("Client", filters=filters, or_filters=or_filters, pluck="name", limit=0))
     return {"clients": rows, "total": total}
@@ -104,6 +114,9 @@ def programme_client_detail(name=None):
     require_roles(KRCTI_PM, WOC_PM)
     _programme_client(name)
     client = frappe.get_doc("Client", name).as_dict()
+    client["programme_case_status"] = "Closed" if client.get("case_status") == "Closed" else "Active"
+    survey_name = frappe.db.get_value("Baseline Survey", {"client_id": name}, "name")
+    client["baseline_survey"] = frappe.get_doc("Baseline Survey", survey_name).as_dict() if survey_name else None
     appointments = frappe.get_all("Appointment", filters={"client_id": name}, fields=[
         "name", "scholar_code", "counsellor_id", "counsellor_name", "date_time", "session_type", "mode_of_contact", "status",
         "session_details", "presenting_issues", "issue_subclassifications", "interventions_applied", "referrals_made", "urgency_level", "risk_assessment",
@@ -125,6 +138,7 @@ def programme_client_detail(name=None):
         actions_by_parent.setdefault(action.parent, []).append(action)
     for row in appointments:
         row["counsellor_name"] = names.get(row.counsellor_id, row.counsellor_name or row.counsellor_id)
+        row["overdue"] = row.status == "Scheduled" and row.date_time < now_datetime()
         row["management_history"] = actions_by_parent.get(row.name, [])
     referral_rows = frappe.get_all("Appointment Referral", filters={"parent": ["in", appointment_names], "parenttype": "Appointment", "parentfield": "referral_history"} if appointment_names else {"parent": ""},
         fields=["parent", "from_counsellor", "to_counsellor", "reason", "referred_on"], order_by="idx asc", limit=0)
@@ -179,19 +193,22 @@ def programme_save_counsellor(email=None, first_name=None, last_name=None, passw
 
 
 @frappe.whitelist()
-def programme_sessions():
+def programme_sessions(counsellor=None):
     require_roles(KRCTI_PM, WOC_PM)
-    filters = {"status": "Scheduled"}
+    if not counsellor:
+        return []
+    _programme_counsellor(counsellor)
+    filters = {"counsellor_id": counsellor}
     if _scope() == "WoC":
         client_names = frappe.get_all("Client", filters={"programme_stream": WOC_STREAM}, pluck="name", limit=0)
         if not client_names:
             return []
         filters["client_id"] = ["in", client_names]
-    rows = frappe.get_all("Appointment", filters=filters, fields=["name", "client_id", "client_name", "scholar_code", "counsellor_id", "counsellor_name", "date_time", "session_type", "mode_of_contact"], order_by="date_time asc", limit=0)
+    rows = frappe.get_all("Appointment", filters=filters, fields=["name", "client_id", "client_name", "scholar_code", "counsellor_id", "counsellor_name", "date_time", "session_type", "mode_of_contact", "status"], order_by="date_time desc", limit=0)
     now = now_datetime()
     for row in rows:
         row["counsellor_name"] = frappe.db.get_value("User", row.counsellor_id, "full_name") or row.counsellor_id
-        row["overdue"] = row.date_time < now
+        row["overdue"] = row.status == "Scheduled" and row.date_time < now
     return rows
 
 
@@ -406,19 +423,29 @@ def programme_summary(date_from=None, date_to=None):
     now = now_datetime()
 
     caseload = _group(Client, "case_status", *client_scope)
+    total_clients = sum(caseload.values())
     sessions = _group(Appointment, "mode_of_contact", Appointment.status == "Completed", *in_range, *appointment_scope)
-    pending_followups = _group(
+    appointment_statuses = _group(Appointment, "status", *in_range, *appointment_scope)
+
+    # A pending follow-up is any follow-up appointment that is currently Scheduled (including upcoming and overdue)
+    # or a client whose case status is marked as 'Follow-Up Pending'.
+    scheduled_followups = _group(
         Appointment, "status", Appointment.session_type == "Follow-Up", Appointment.status == "Scheduled",
-        Appointment.date_time >= now, *appointment_scope,
+        *appointment_scope,
     ).get("Scheduled", 0)
+    pending_case_clients = caseload.get("Follow-Up Pending", 0)
+    pending_followups = max(scheduled_followups, pending_case_clients) or (scheduled_followups + pending_case_clients)
 
     result = {
         "scope": scope,
         "range": {"from": str(start), "to": str(end)},
+        "total_clients": total_clients,
         "caseload": {s: caseload.get(s, 0) for s in ("Active", "Follow-Up Pending", "Closed")},
         "pending_followups": pending_followups,
+        "scheduled_followups": scheduled_followups,
         "sessions_by_mode": {mode: sessions.get(mode, 0) for mode in MODES},
-        "appointments_by_status": _group(Appointment, "status", *in_range, *appointment_scope),
+        "completed_sessions": appointment_statuses.get("Completed", 0),
+        "appointments_by_status": appointment_statuses,
         "appointment_trends": _appointment_trends(scope, first, last),
         "baseline": _group(Survey, "status", *baseline_range, *survey_scope),
         "referrals": _referral_counts(Appointment, scope, first, last),
@@ -432,6 +459,7 @@ def programme_summary(date_from=None, date_to=None):
     overdue = _group(Appointment, "counsellor_id", Appointment.status == "Scheduled", Appointment.date_time < now, *appointment_scope)
     result["by_counsellor"] = sorted(
         ({
+			"counsellor_id": user,
             "counsellor": names[user],
             "active_caseload": open_cases.get(user, 0),
             "completed_in_range": done.get(user, 0),
