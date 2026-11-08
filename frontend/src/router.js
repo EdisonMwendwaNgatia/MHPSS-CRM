@@ -23,8 +23,12 @@ const routes = [
 	{ path: "/sessions/:name", name: "SessionRecord", component: () => import("@/pages/SessionRecord.vue"), props: true, meta: app(COUNSELLOR) },
 	{ path: "/programme", name: "Programme", component: () => import("@/pages/Programme.vue"), meta: app(OVERSIGHT) },
 	{ path: "/programme/clients/new", name: "ProgrammeClientNew", component: () => import("@/pages/ClientForm.vue"), meta: app(OVERSIGHT) },
-	{ path: "/system-admin", name: "SystemAdmin", component: () => import("@/pages/SystemAdmin.vue"), meta: app(["admin"]) },
-	{ path: "/audit-logs", name: "AuditLogs", component: () => import("@/pages/AuditLogs.vue"), meta: app(["admin", "dpo"]) },
+	{ path: "/programme/clients", name: "ProgrammeClients", component: () => import("@/pages/ProgrammeClients.vue"), meta: app(OVERSIGHT) },
+	{ path: "/programme/clients/:name", name: "ProgrammeClientDetail", component: () => import("@/pages/ProgrammeOperations.vue"), props: { kind: "client" }, meta: app(OVERSIGHT) },
+	{ path: "/programme/counsellors", name: "ProgrammeCounsellors", component: () => import("@/pages/ProgrammeOperations.vue"), props: { kind: "counsellors" }, meta: app(OVERSIGHT) },
+	{ path: "/programme/sessions", name: "ProgrammeSessions", component: () => import("@/pages/ProgrammeSessionManagement.vue"), meta: app(OVERSIGHT) },
+	{ path: "/programme/activity", name: "ProgrammeActivity", redirect: { name: "ProgrammeSessions" }, meta: app(OVERSIGHT) },
+	{ path: "/audit-logs", name: "AuditLogs", component: () => import("@/pages/AuditLogs.vue"), meta: app(["dpo"]) },
 ]
 
 const router = createRouter({ history: createWebHistory("/frontend"), routes })

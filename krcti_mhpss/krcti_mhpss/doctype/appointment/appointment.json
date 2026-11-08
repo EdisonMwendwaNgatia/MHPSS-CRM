@@ -37,18 +37,22 @@
   "referrals_made",
   "urgency_level",
   "risk_assessment",
+  "needs_follow_up",
   "follow_up_plan",
   "followup_goals_discussed",
   "progress_previous_goals",
   "followup_challenges",
   "followup_new_issues_present",
   "followup_new_issues",
+  "followup_new_presenting_issues",
   "followup_evident_changes_present",
   "followup_evident_changes",
   "followup_coping_support",
   "followup_support_effectiveness",
   "followup_additional_support",
   "followup_mood_affect",
+  "followup_wellbeing_rating",
+  "followup_stress_frequency",
   "followup_mood_other",
   "followup_engagement_level",
   "followup_risk_concerns",
@@ -58,7 +62,8 @@
   "next_session_focus",
   "followup_action",
   "audio_recording",
-  "referral_history"
+  "referral_history",
+  "management_history"
  ],
  "fields": [
   {
@@ -234,9 +239,19 @@
    "label": "Risk assessment"
   },
   {
+   "fieldname": "needs_follow_up",
+   "fieldtype": "Select",
+   "label": "Is there a need for follow-up?",
+   "options": "\nYes\nNo",
+   "depends_on": "eval:doc.session_type!=\"Termination\"",
+   "mandatory_depends_on": "eval:doc.session_type!=\"Termination\""
+  },
+  {
    "fieldname": "follow_up_plan",
    "fieldtype": "Small Text",
-   "label": "Follow-up plan"
+   "label": "Follow-up plan",
+   "depends_on": "eval:doc.needs_follow_up==\"Yes\"",
+   "mandatory_depends_on": "eval:doc.needs_follow_up==\"Yes\""
   },
   {
    "fieldname": "progress_previous_goals",
@@ -269,6 +284,14 @@
    "fieldtype": "Small Text",
    "label": "New issues or stressors shared",
    "depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_new_presenting_issues",
+   "fieldtype": "Select",
+   "label": "Are there any new presenting issues?",
+   "options": "\nYes\nNo",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\"",
+   "mandatory_depends_on": "eval:doc.session_type==\"Follow-Up\""
   },
   {
    "fieldname": "followup_evident_changes_present",
@@ -307,6 +330,22 @@
    "fieldtype": "Select",
    "label": "Mood and affect",
    "options": "\nStable\nImproved\nLow\nAnxious\nWithdrawn\nOther",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\"",
+   "mandatory_depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_wellbeing_rating",
+   "fieldtype": "Select",
+   "label": "How would you rate your current emotional and psychological wellbeing?",
+   "options": "\nVery good\nGood\nFair\nPoor\nVery poor",
+   "depends_on": "eval:doc.session_type==\"Follow-Up\"",
+   "mandatory_depends_on": "eval:doc.session_type==\"Follow-Up\""
+  },
+  {
+   "fieldname": "followup_stress_frequency",
+   "fieldtype": "Select",
+   "label": "In the past two weeks, have you experienced significant stress, anxiety, low mood, or difficulty concentrating?",
+   "options": "\nNever\nSometimes\nOften\nAlmost always",
    "depends_on": "eval:doc.session_type==\"Follow-Up\"",
    "mandatory_depends_on": "eval:doc.session_type==\"Follow-Up\""
   },
@@ -373,6 +412,13 @@
    "fieldtype": "Table",
    "label": "Referral history",
    "options": "Appointment Referral",
+   "read_only": 1
+  },
+  {
+   "fieldname": "management_history",
+   "fieldtype": "Table",
+   "label": "Session management history",
+   "options": "Appointment Management Event",
    "read_only": 1
   }
  ],

@@ -141,27 +141,43 @@ def client_profile(name=None):
 
 
 @frappe.whitelist()
-def my_appointments(date_from=None, date_to=None):
-    """FR-AS-003: the list behind the calendar. A counsellor sees only their own."""
+def my_appointments(date_from=None, date_to=None, view="period"):
+    """Return period appointments or a complete status list for the signed-in counsellor."""
     require_roles(COUNSELLOR, ADMIN_ROLE)
-    start = getdate(date_from or nowdate())
-    end = getdate(date_to or add_days(start, 14))
-    if end < start or (end - start).days > 120:
-        frappe.throw(_("Choose a date range of up to 120 days."))
+    user = frappe.session.user
+    base_filters = {"counsellor_id": user}
+    if view == "upcoming":
+        filters = {**base_filters, "status": "Scheduled", "date_time": [">=", now_datetime()]}
+    elif view == "completed":
+        filters = {**base_filters, "status": "Completed"}
+    elif view == "overdue":
+        filters = {**base_filters, "status": "Scheduled", "date_time": ["<", now_datetime()]}
+    elif view == "period":
+        start = getdate(date_from or nowdate())
+        end = getdate(date_to or add_days(start, 14))
+        if end < start or (end - start).days > 120:
+            frappe.throw(_("Choose a date range of up to 120 days."))
+        filters = {**base_filters, "date_time": ["between", [f"{start} 00:00:00", f"{end} 23:59:59"]]}
+    else:
+        frappe.throw(_("Choose a valid appointment view."))
+
     rows = frappe.get_list(
         "Appointment",
-        filters=[["counsellor_id", "=", frappe.session.user], ["date_time", ">=", f"{start} 00:00:00"], ["date_time", "<=", f"{end} 23:59:59"]],
+        filters=filters,
         fields=APPOINTMENT_FIELDS,
         order_by="date_time asc",
         limit=0,
     )
-    overdue = frappe.get_list(
-        "Appointment",
-        filters=[["counsellor_id", "=", frappe.session.user], ["status", "=", "Scheduled"], ["date_time", "<", now_datetime()]],
-        pluck="name",
-        limit=0,
-    )
-    return {"appointments": _attach_referrals(_flag(rows)), "overdue_total": len(overdue)}
+    now = now_datetime()
+    return {
+        "appointments": _attach_referrals(_flag(rows)),
+        "summary": {
+            "upcoming": frappe.db.count("Appointment", {**base_filters, "status": "Scheduled", "date_time": [">=", now]}),
+            "completed": frappe.db.count("Appointment", {**base_filters, "status": "Completed"}),
+            "overdue": frappe.db.count("Appointment", {**base_filters, "status": "Scheduled", "date_time": ["<", now]}),
+        },
+        "overdue_total": frappe.db.count("Appointment", {**base_filters, "status": "Scheduled", "date_time": ["<", now]}),
+    }
 
 
 @frappe.whitelist()
@@ -244,6 +260,7 @@ def home():
         "upcoming_count": frappe.db.count("Appointment", upcoming_filters),
         "upcoming": _attach_referrals(upcoming),
         "sessions_conducted": frappe.db.count("Appointment", {"counsellor_id": user, "status": "Completed"}),
+        "pending_sessions": frappe.db.count("Appointment", scheduled),
         "followups_pending": frappe.db.count("Appointment", followup_filters),
         "overdue_followups": frappe.db.count("Appointment", {**followup_filters, "date_time": ["<", now], "overdue_notification_read": 0}),
         "recent_sessions": _attach_referrals(recent_sessions),

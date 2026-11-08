@@ -1,11 +1,12 @@
 <template>
   <main class="min-h-[calc(100vh-68px)] bg-[#F4F5F7] px-4 py-6 font-[Inter,system-ui,sans-serif] text-[#2B2F36] sm:px-6 lg:px-8 lg:py-8">
-    <div class="mx-auto max-w-[1200px]">
+    <div class="mx-auto max-w-[1440px]">
       <!-- Page header -->
       <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-semibold leading-8">Appointments</h1>
-          <p class="mt-0.5 text-[13px] text-[#5B616B]">Your sessions for the selected date range, grouped by day</p>
+          <p class="text-sm font-medium text-[#737780]">Booked Appointments</p>
+          <h1 class="mt-1 text-2xl font-semibold leading-8 sm:text-[28px]">Appointments</h1>
+          <p class="mt-0.5 text-[13px] text-[#5B616B]">View appointments by period, status, or date</p>
         </div>
       </div>
 
@@ -14,13 +15,13 @@
         <AlertCircle :size="20" class="mt-px shrink-0" />
         <p>
           <span class="font-semibold">{{ data.overdue_total }} appointment{{ data.overdue_total === 1 ? " has" : "s have" }} passed without being completed.</span>
-          Complete or cancel {{ data.overdue_total === 1 ? "it" : "them" }} to keep your records up to date.
+          Record the session once it has taken place to keep the case history up to date.
         </p>
       </div>
 
       <!-- Summary for this period -->
       <section v-if="data" class="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label="Summary for this period">
-        <button v-for="t in tiles" :key="t.filter" type="button" class="flex items-center gap-3.5 rounded-xl border bg-white p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40" :class="activeFilter === t.filter ? 'border-[#C8102E] ring-1 ring-[#C8102E]/20' : 'border-[#E4E6EA]'" :aria-pressed="activeFilter === t.filter" @click="activeFilter = t.filter">
+        <button v-for="t in tiles" :key="t.filter" type="button" class="flex items-center gap-3.5 rounded-xl border bg-white p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40" :class="activeFilter === t.filter ? 'border-[#C8102E] ring-1 ring-[#C8102E]/20' : 'border-[#E4E6EA]'" :aria-pressed="activeFilter === t.filter" @click="selectFilter(t.filter)">
           <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px]" :class="t.tile"><component :is="t.icon" :size="20" /></span>
           <div class="min-w-0">
             <p class="truncate text-[13px] text-[#5B616B]">{{ t.label }}</p>
@@ -29,66 +30,87 @@
         </button>
       </section>
 
-      <!-- Date range -->
-      <section class="mt-5 rounded-xl border border-[#E4E6EA] bg-white p-4 sm:p-5" aria-label="Appointment date range">
-        <div class="flex flex-wrap items-end gap-x-4 gap-y-4">
-          <div class="w-full sm:w-44">
-            <label for="appointments-from" class="text-sm font-medium">From</label>
-            <input id="appointments-from" v-model="from" type="date" :max="to" class="range-field mt-1.5" :class="invalidRange ? 'range-field-error' : ''" :aria-invalid="invalidRange" />
-          </div>
-          <div class="w-full sm:w-44">
-            <label for="appointments-to" class="text-sm font-medium">To</label>
-            <input id="appointments-to" v-model="to" type="date" :min="from" class="range-field mt-1.5" :class="invalidRange ? 'range-field-error' : ''" :aria-invalid="invalidRange" />
-          </div>
-          <div class="flex flex-wrap gap-2 sm:ml-auto" role="group" aria-label="Quick appointment ranges">
-            <button v-for="preset in presets" :key="preset.label" type="button" class="range-preset" :class="isActivePreset(preset) ? 'range-preset-active' : ''" :aria-pressed="isActivePreset(preset)" @click="applyPreset(preset)">{{ preset.label }}</button>
-          </div>
-          <button type="button" data-calendar-toggle class="inline-flex h-11 shrink-0 items-center gap-2 rounded-[10px] border border-[#D5D8DE] bg-white px-4 text-sm font-semibold transition hover:bg-[#F4F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40" :aria-expanded="calendarOpen" @click="toggleCalendar">
-            <CalendarDays :size="18" /> {{ calendarOpen ? 'Hide calendar' : 'Calendar' }} <ChevronDown :size="16" class="transition-transform" :class="calendarOpen ? 'rotate-180' : ''" />
-          </button>
-        </div>
-        <p v-if="invalidRange" class="mt-3 flex items-center gap-1.5 text-[13px] text-[#A10E24]" role="alert"><AlertCircle :size="15" />Choose a valid range of no more than 120 days.</p>
-        <p v-else class="mt-3 text-xs text-[#737780]">{{ fmtDate(from) }} <span class="px-1">to</span> {{ fmtDate(to) }} · {{ rangeDayCount }} days</p>
-      </section>
 
-      <section v-if="calendarOpen" class="mt-4 w-full max-w-[440px] overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_8px_28px_rgba(31,35,45,0.06)]" aria-label="Appointment calendar" data-appointment-calendar>
-        <div class="flex items-center justify-between gap-3 border-b border-[#ECEDEF] px-4 py-3.5">
-          <div><p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#92949A]">Monthly calendar</p><h2 class="mt-0.5 text-base font-semibold text-[#25272B]">{{ monthLabel }}</h2><p class="mt-0.5 text-xs text-[#737780]">{{ monthCountLabel }}</p></div>
+
+      <!-- Calendar toggle -->
+      <button type="button" class="mt-4 flex w-full items-center gap-3 rounded-xl border border-[#E4E6EA] bg-white p-4 text-left transition hover:border-[#D5D8DE] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40" :aria-expanded="calendarOpen" @click="toggleCalendar">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#FCE8EB] text-[#A10E24]"><CalendarDays :size="19" /></span>
+        <span class="min-w-0 flex-1"><span class="block text-sm font-semibold text-[#2B2F36]">Appointment calendar</span><span class="mt-0.5 block text-xs text-[#737780]">{{ calendarOpen ? 'Hide weekly calendar' : 'Open the weekly calendar' }}</span></span>
+        <ChevronDown :size="17" class="shrink-0 text-[#737780] transition-transform" :class="calendarOpen ? 'rotate-180' : ''" />
+      </button>
+
+      <!-- Weekly calendar -->
+      <section v-if="calendarOpen" class="mt-4 w-full overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_8px_28px_rgba(31,35,45,0.06)]" aria-label="Weekly appointment calendar">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#ECEDEF] px-4 py-4 sm:px-6">
+          <div>
+            <h2 class="text-xl font-semibold tracking-tight text-[#25272B]">{{ weekLabel }}</h2>
+            <p class="mt-0.5 text-xs text-[#737780]">{{ weekCountLabel }}</p>
+          </div>
           <div class="flex items-center gap-2">
-            <button type="button" class="month-btn" aria-label="Previous month" @click="shiftMonth(-1)"><ChevronLeft :size="16" /></button>
-            <button type="button" class="rounded-lg border border-[#E4E6EA] px-2.5 py-1.5 text-xs font-semibold text-[#555860] transition hover:bg-[#F7F7F8]" @click="goMonthToday">Today</button>
-            <button type="button" class="month-btn" aria-label="Next month" @click="shiftMonth(1)"><ChevronRight :size="16" /></button>
+            <button type="button" class="month-btn" aria-label="Previous week" @click="shiftWeek(-1)"><ChevronLeft :size="16" /></button>
+            <button type="button" class="rounded-lg border border-[#E4E6EA] px-3 py-2 text-xs font-semibold text-[#555860] transition hover:bg-[#F7F7F8]" @click="goToday">Today</button>
+            <button type="button" class="month-btn" aria-label="Next week" @click="shiftWeek(1)"><ChevronRight :size="16" /></button>
           </div>
         </div>
-        <div class="p-3.5">
-          <div class="grid grid-cols-7 gap-1">
-            <div v-for="label in weekdayLabels" :key="label" class="pb-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-[#92949A]">{{ label }}</div>
-            <button v-for="cell in calendarCells" :key="cell.key" type="button" class="calendar-day" :class="[
-              !cell.inMonth ? 'calendar-outside' : '',
-              cell.key === todayKey ? 'calendar-today' : '',
-              cell.key === selectedDay ? 'calendar-selected' : '',
-              cell.count ? 'calendar-has-appointments' : '',
-            ]" :aria-label="`${cell.label}${cell.count ? `, ${cell.count} appointment${cell.count === 1 ? '' : 's'}` : ', no appointments'}`" :aria-pressed="cell.key === selectedDay" @click="selectDay(cell.key)">
-              <span class="calendar-number">{{ cell.day }}</span>
-              <span v-if="cell.count" class="calendar-count" :class="cell.key === selectedDay ? 'calendar-count-selected' : ''">{{ cell.count }}</span>
-            </button>
+
+        <div class="overflow-x-auto">
+          <div class="min-w-[880px]">
+            <!-- Day headers -->
+            <div class="grid grid-cols-[64px_repeat(7,minmax(0,1fr))] border-b border-[#ECEDEF] bg-[#FAFAFB]">
+              <div></div>
+              <button v-for="col in weekColumns" :key="col.key" type="button" class="week-head" :class="col.key === selectedDay ? 'week-head-selected' : ''" :aria-pressed="col.key === selectedDay" :aria-label="`${col.long}${col.events.length ? `, ${col.events.length} appointment${col.events.length === 1 ? '' : 's'}` : ', no appointments'}`" @click="selectDay(col.key)">
+                <span class="text-[13px] font-medium text-[#5B616B]">{{ col.short }}</span>
+                <span class="week-num" :class="col.isToday ? 'week-num-today' : ''">{{ col.num }}</span>
+                <span v-if="col.events.length" class="hidden text-[11px] text-[#92949A] lg:inline">{{ col.events.length }}</span>
+              </button>
+            </div>
+
+            <!-- Time grid -->
+            <div class="max-h-[680px] overflow-y-auto">
+              <div class="grid grid-cols-[64px_repeat(7,minmax(0,1fr))] pt-3">
+                <div>
+                  <div v-for="h in hours" :key="h" class="pr-3 text-right text-[11px] font-medium text-[#92949A]" :style="{ height: HOUR_H + 'px' }">
+                    <span class="relative -top-2">{{ hourLabel(h) }}</span>
+                  </div>
+                </div>
+
+                <div v-for="col in weekColumns" :key="col.key" class="week-col relative border-l border-[#F0F1F3]" :class="col.isToday ? 'bg-[#FFFBFB]' : ''" :style="{ height: hours.length * HOUR_H + 'px' }">
+                  <div v-if="col.isToday && nowTop !== null" class="pointer-events-none absolute left-0 right-0 z-10 flex items-center" :style="{ top: nowTop + 'px' }" aria-hidden="true">
+                    <span class="-ml-1 h-2 w-2 rounded-full bg-[#C8102E]"></span>
+                    <span class="h-px flex-1 bg-[#C8102E]"></span>
+                  </div>
+
+                  <component :is="ev.a.status === 'Cancelled' ? 'div' : RouterLink" v-for="ev in col.events" :key="ev.a.name" v-bind="eventBind(ev.a)" class="ev" :class="`ev-${ev.tone}`" :style="ev.style" :title="`${ev.a.client_name} · ${ev.a.session_type || ''} · ${ev.range}`">
+                    <span class="flex items-start justify-between gap-1">
+                      <span class="truncate text-xs font-semibold leading-4" :class="ev.a.status === 'Cancelled' ? 'line-through' : ''">{{ ev.a.client_name }}</span>
+                      <component :is="toneIcon[ev.tone]" :size="13" class="mt-0.5 shrink-0" />
+                    </span>
+                    <span class="block truncate text-[11px] leading-4 opacity-80">{{ ev.range }}</span>
+                    <span v-if="ev.lanes === 1 && ev.height >= 64 && ev.a.status !== 'Cancelled'" class="mt-1 inline-block text-[11px] font-semibold underline underline-offset-2">See details</span>
+                  </component>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="mt-2 flex items-center gap-4 border-t border-[#F0F1F3] pt-3 text-[11px] text-[#737780]">
-            <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-[#C8102E]"></span>Appointments</span>
-            <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full border border-[#C8102E] bg-white"></span>Today</span>
-            <span class="ml-auto text-right text-[#92949A]">Select a date for its 14-day schedule</span>
-          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#F0F1F3] px-4 py-3.5 text-xs text-[#737780] sm:px-6">
+          <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-[3px] bg-[#1B4DB1]"></span>Upcoming</span>
+          <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-[3px] bg-[#146C3A]"></span>Completed</span>
+          <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-[3px] bg-[#C8102E]"></span>Overdue</span>
+          <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-[3px] bg-[#B5B8BF]"></span>Cancelled</span>
+          <span class="text-[#92949A] sm:ml-auto">Select a day to list its next 14 days below</span>
         </div>
       </section>
 
-      <ErrorMessage class="mt-4" :message="list.error || action.error" />
-      <PageLoader v-if="(list.loading && !data) || (calendarOpen && monthList.loading && !monthList.data)" />
+      <ErrorMessage class="mt-4" :message="list.error || referAction.error" />
+      <PageLoader v-if="(list.loading && !data) || (calendarOpen && weekList.loading && !weekList.data)" />
 
       <!-- Empty state -->
       <div v-else-if="data && !filteredAppointments.length" class="mt-5 rounded-xl border border-[#E4E6EA] bg-white px-5 py-14 text-center">
         <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F5F7] text-[#5B616B]"><CalendarDays :size="22" /></span>
-        <p class="mt-3 text-sm font-semibold">{{ activeFilter === 'all' ? 'Nothing booked in this period' : `No ${activeFilter} appointments in this period` }}</p>
-        <p class="mx-auto mt-1 max-w-sm text-[13px] leading-5 text-[#5B616B]">{{ activeFilter === 'all' ? 'Adjust the date range or book a new appointment.' : 'Choose another summary card or adjust the date range.' }}</p>
+        <p class="mt-3 text-sm font-semibold">{{ activeFilter === 'all' ? 'Nothing booked in this period' : `No ${activeFilter} appointments` }}</p>
+        <p class="mx-auto mt-1 max-w-sm text-[13px] leading-5 text-[#5B616B]">{{ activeFilter === 'all' ? 'Adjust the date range or book a new appointment.' : 'Choose another summary card to view its appointments.' }}</p>
       </div>
 
       <!-- Days -->
@@ -140,9 +162,6 @@
                   <Pencil :size="16" /> Edit
                 </router-link>
                 <button type="button" class="act" @click="openReferral(a)"><Share2 :size="16" /> Refer to counsellor</button>
-                <button type="button" class="act act-danger" :disabled="action.loading" @click="cancel(a)">
-                  <XCircle :size="17" /> Cancel
-                </button>
               </div>
               <div v-else-if="a.status === 'Completed'" class="flex flex-wrap gap-2 sm:col-span-2 sm:col-start-2">
                 <router-link :to="{ name: 'SessionRecord', params: { name: a.name } }" class="act">
@@ -154,6 +173,8 @@
         </section>
       </div>
     </div>
+
+    <!-- Referral dialog -->
     <div v-if="referralAppointment" class="fixed inset-0 z-50 flex items-center justify-center bg-[#20242B]/40 p-4" @click.self="closeReferral">
       <section class="w-full max-w-[520px] overflow-hidden rounded-2xl border border-[#E4E6EA] bg-white shadow-[0_20px_60px_rgba(31,35,45,0.2)]" role="dialog" aria-modal="true" aria-labelledby="referral-title">
         <div class="border-b border-[#ECEDEF] px-5 py-4 sm:px-6"><h2 id="referral-title" class="text-lg font-semibold">Refer appointment</h2><p class="mt-1 text-sm text-[#5B616B]">Transfer {{ referralAppointment.client_name }}’s scheduled session to another counsellor. The client’s case owner and original referral source remain recorded.</p></div>
@@ -190,6 +211,7 @@
 <script setup>
 import { createResource } from "frappe-ui"
 import { computed, onMounted, onUnmounted, ref, watch } from "vue"
+import { RouterLink, useRoute } from "vue-router"
 import {
 	AlertCircle, CalendarClock, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
 	ClipboardList, Loader2, MapPin, Pencil, Share2, XCircle,
@@ -203,55 +225,58 @@ const addDays = (value, n) => {
 	d.setDate(d.getDate() + n)
 	return iso(d)
 }
+const mondayOf = (value) => {
+	const d = new Date(`${value}T00:00:00`)
+	d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+	return iso(d)
+}
 
 const todayKey = iso(new Date())
+const route = useRoute()
 const from = ref(todayKey)
 const to = ref(addDays(todayKey, 13))
 const calendarOpen = ref(false)
 const selectedDay = ref(todayKey)
-const visibleMonth = ref(`${todayKey.slice(0, 7)}-01`)
-const activeFilter = ref("all")
-const weekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+const weekStart = ref(mondayOf(todayKey))
+const allowedFilters = ["all", "upcoming", "completed", "overdue"]
+const activeFilter = ref(allowedFilters.includes(route.query.filter) ? route.query.filter : "all")
 
 const list = createResource({ url: "krcti_mhpss.api.counsellor.my_appointments" })
-const monthList = createResource({ url: "krcti_mhpss.api.counsellor.my_appointments" })
+const weekList = createResource({ url: "krcti_mhpss.api.counsellor.my_appointments" })
 const referralOptions = createResource({ url: "krcti_mhpss.api.records.referral_counsellors" })
 const referralAppointment = ref(null)
 const referralTo = ref("")
 const referralReason = ref("")
 const referralSelectOpen = ref(false)
 const data = computed(() => list.data)
-const filteredAppointments = computed(() => {
-	const rows = data.value?.appointments || []
-	if (activeFilter.value === "upcoming") return rows.filter((a) => a.status === "Scheduled" && !a.overdue)
-	if (activeFilter.value === "completed") return rows.filter((a) => a.status === "Completed")
-	if (activeFilter.value === "overdue") return rows.filter((a) => a.status === "Scheduled" && a.overdue)
-	return rows
-})
-const load = () => list.submit({ date_from: from.value, date_to: to.value })
+const filteredAppointments = computed(() => data.value?.appointments || [])
+const load = () => list.submit({ date_from: from.value, date_to: to.value, view: activeFilter.value === "all" ? "period" : activeFilter.value })
+function selectFilter(filter) {
+	activeFilter.value = filter
+	if (filter === "overdue") calendarOpen.value = false
+	load()
+}
 onMounted(load)
+watch(() => route.query.filter, (filter) => {
+	selectFilter(allowedFilters.includes(filter) ? filter : "all")
+})
 watch([from, to], () => {
 	if (invalidRange.value) return
-	selectedDay.value = from.value
-	if (calendarOpen.value) visibleMonth.value = `${from.value.slice(0, 7)}-01`
 	load()
 })
-onMounted(() => document.addEventListener("click", closeCalendarOutside))
-onUnmounted(() => document.removeEventListener("click", closeCalendarOutside))
 
-function closeCalendarOutside(event) {
-	if (calendarOpen.value && !event.target.closest("[data-appointment-calendar]") && !event.target.closest("[data-calendar-toggle]")) {
-		calendarOpen.value = false
-	}
-}
-
-const monthStart = computed(() => visibleMonth.value)
-const monthEnd = computed(() => addDays(addMonths(monthStart.value, 1), -1))
+/* ---------- Date range ---------- */
 const rangeDayCount = computed(() => {
 	if (!from.value || !to.value || from.value > to.value) return 0
 	return Math.round((new Date(`${to.value}T00:00:00`) - new Date(`${from.value}T00:00:00`)) / 86400000) + 1
 })
 const invalidRange = computed(() => !from.value || !to.value || from.value > to.value || rangeDayCount.value > 120)
+function addMonths(value, amount) {
+	const date = new Date(`${value}T00:00:00`)
+	date.setDate(1)
+	date.setMonth(date.getMonth() + amount)
+	return iso(date)
+}
 const presets = [
 	{ label: "Today", range: () => [todayKey, todayKey] },
 	{ label: "Next 14 days", range: () => [todayKey, addDays(todayKey, 13)] },
@@ -265,70 +290,162 @@ const isActivePreset = (preset) => {
 	const [start, end] = preset.range()
 	return from.value === start && to.value === end
 }
-const monthLabel = computed(() => new Date(`${monthStart.value}T00:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" }))
-const monthCountLabel = computed(() => {
-	if (monthList.loading && !monthList.data) return "Loading appointments…"
-	const count = monthList.data?.appointments?.length || 0
-	return `${count} appointment${count === 1 ? "" : "s"} this month`
-})
-const monthCounts = computed(() => {
-	const counts = {}
-	for (const row of monthList.data?.appointments || []) {
-		const key = dayKey(row.date_time)
-		counts[key] = (counts[key] || 0) + 1
+
+/* ---------- Weekly calendar ---------- */
+// HOUR_H must match background-size in .week-col below.
+const HOUR_H = 80
+const DEFAULT_MINUTES = 60 // used when an appointment has no duration field
+const toneIcon = { upcoming: CalendarClock, completed: CheckCircle2, overdue: AlertCircle, cancelled: XCircle }
+
+const weekAppointments = computed(() => weekList.data?.appointments || [])
+const parseDate = (value) => new Date(String(value).replace(" ", "T"))
+const minutesOf = (value) => {
+	const d = parseDate(value)
+	return d.getHours() * 60 + d.getMinutes()
+}
+const durationOf = (a) => Number(a.duration || a.duration_minutes) || DEFAULT_MINUTES
+const hourLabel = (h) => `${h % 12 || 12} ${h < 12 ? "AM" : "PM"}`
+const clock = (mins) => {
+	const h = Math.floor(mins / 60) % 24
+	const m = mins % 60
+	return `${h % 12 || 12}${m ? `:${String(m).padStart(2, "0")}` : ""} ${h < 12 ? "AM" : "PM"}`
+}
+const eventTone = (a) => (a.status === "Completed" ? "completed" : a.status === "Cancelled" ? "cancelled" : a.overdue ? "overdue" : "upcoming")
+const eventBind = (a) => (a.status === "Cancelled" ? {} : { to: { name: "SessionRecord", params: { name: a.name } } })
+
+// The grid shows 8 AM to 6 PM by default and grows to fit earlier or later sessions.
+const hourBounds = computed(() => {
+	let start = 8
+	let end = 18
+	for (const a of weekAppointments.value) {
+		const s = minutesOf(a.date_time)
+		start = Math.min(start, Math.floor(s / 60))
+		end = Math.max(end, Math.ceil((s + durationOf(a)) / 60))
 	}
-	return counts
+	return [Math.max(0, start), Math.min(24, end)]
 })
-const calendarCells = computed(() => {
-	const first = new Date(`${monthStart.value}T00:00:00`)
-	const mondayOffset = (first.getDay() + 6) % 7
-	const start = addDays(monthStart.value, -mondayOffset)
-	return Array.from({ length: 42 }, (_, index) => {
-		const key = addDays(start, index)
+const hours = computed(() => Array.from({ length: hourBounds.value[1] - hourBounds.value[0] }, (_, i) => hourBounds.value[0] + i))
+
+// Side-by-side lanes for sessions that overlap in time
+function layoutDay(rows) {
+	const base = hourBounds.value[0] * 60
+	const items = rows
+		.map((a) => {
+			const start = minutesOf(a.date_time)
+			return { a, start, end: start + durationOf(a), tone: eventTone(a), lane: 0, lanes: 1 }
+		})
+		.sort((x, y) => x.start - y.start || x.end - y.end)
+	const out = []
+	let cluster = []
+	let clusterEnd = -1
+	const flush = () => {
+		const laneEnds = []
+		for (const it of cluster) {
+			let i = laneEnds.findIndex((end) => end <= it.start)
+			if (i === -1) { i = laneEnds.length; laneEnds.push(0) }
+			laneEnds[i] = it.end
+			it.lane = i
+		}
+		for (const it of cluster) it.lanes = laneEnds.length
+		out.push(...cluster)
+		cluster = []
+		clusterEnd = -1
+	}
+	for (const it of items) {
+		if (cluster.length && it.start >= clusterEnd) flush()
+		cluster.push(it)
+		clusterEnd = Math.max(clusterEnd, it.end)
+	}
+	if (cluster.length) flush()
+	return out.map((it) => {
+		const height = Math.max(((it.end - it.start) / 60) * HOUR_H - 4, 36)
+		return {
+			...it,
+			height,
+			range: `${clock(it.start)} – ${clock(it.end)}`,
+			style: {
+				top: `${((it.start - base) / 60) * HOUR_H + 2}px`,
+				height: `${height}px`,
+				left: `calc(${(it.lane / it.lanes) * 100}% + 3px)`,
+				width: `calc(${100 / it.lanes}% - 6px)`,
+			},
+		}
+	})
+}
+
+const weekColumns = computed(() =>
+	Array.from({ length: 7 }, (_, i) => {
+		const key = addDays(weekStart.value, i)
 		const date = new Date(`${key}T00:00:00`)
 		return {
 			key,
-			day: date.getDate(),
-			label: date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }),
-			inMonth: key.slice(0, 7) === monthStart.value.slice(0, 7),
-			count: monthCounts.value[key] || 0,
+			short: date.toLocaleDateString("en-GB", { weekday: "short" }),
+			long: date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }),
+			num: date.getDate(),
+			isToday: key === todayKey,
+			events: layoutDay(weekAppointments.value.filter((a) => dayKey(a.date_time) === key)),
 		}
 	})
+)
+
+const weekLabel = computed(() => {
+	const a = new Date(`${weekStart.value}T00:00:00`)
+	const b = new Date(`${addDays(weekStart.value, 6)}T00:00:00`)
+	const f = (d, o) => d.toLocaleDateString("en-GB", o)
+	return a.getMonth() === b.getMonth()
+		? `${a.getDate()} – ${f(b, { day: "numeric", month: "long", year: "numeric" })}`
+		: `${f(a, { day: "numeric", month: "short" })} – ${f(b, { day: "numeric", month: "short", year: "numeric" })}`
+})
+const weekCountLabel = computed(() => {
+	if (weekList.loading && !weekList.data) return "Loading appointments…"
+	const count = weekAppointments.value.length
+	return `${count} appointment${count === 1 ? "" : "s"} this week`
 })
 
-function loadMonth() {
-	monthList.submit({ date_from: monthStart.value, date_to: monthEnd.value })
+// Current-time marker for today's column
+const nowMinutes = ref(new Date().getHours() * 60 + new Date().getMinutes())
+let clockTimer = null
+onMounted(() => {
+	clockTimer = setInterval(() => {
+		const n = new Date()
+		nowMinutes.value = n.getHours() * 60 + n.getMinutes()
+	}, 60000)
+})
+onUnmounted(() => clearInterval(clockTimer))
+const nowTop = computed(() => {
+	const base = hourBounds.value[0] * 60
+	const top = ((nowMinutes.value - base) / 60) * HOUR_H
+	return top >= 0 && top <= hours.value.length * HOUR_H ? top : null
+})
+
+function loadWeek() {
+	weekList.submit({ date_from: weekStart.value, date_to: addDays(weekStart.value, 6) })
 }
 function toggleCalendar() {
 	calendarOpen.value = !calendarOpen.value
-	if (calendarOpen.value) loadMonth()
+	if (calendarOpen.value) loadWeek()
 }
-function shiftMonth(amount) {
-	visibleMonth.value = addMonths(monthStart.value, amount)
-	loadMonth()
+function shiftWeek(amount) {
+	weekStart.value = addDays(weekStart.value, amount * 7)
+	loadWeek()
 }
-function goMonthToday() {
-	visibleMonth.value = `${todayKey.slice(0, 7)}-01`
+function goToday() {
+	weekStart.value = mondayOf(todayKey)
 	selectedDay.value = todayKey
-	loadMonth()
+	loadWeek()
 }
 function selectDay(key) {
 	selectedDay.value = key
-	if (key.slice(0, 7) !== monthStart.value.slice(0, 7)) {
-		visibleMonth.value = `${key.slice(0, 7)}-01`
-		loadMonth()
+	activeFilter.value = "all"
+	if (mondayOf(key) !== weekStart.value) {
+		weekStart.value = mondayOf(key)
+		loadWeek()
 	}
 	from.value = key
 	to.value = addDays(key, 13)
 }
 
-function addMonths(value, amount) {
-	const date = new Date(`${value}T00:00:00`)
-	date.setDate(1)
-	date.setMonth(date.getMonth() + amount)
-	return iso(date)
-}
-
+/* ---------- Day list ---------- */
 const days = computed(() => {
 	const groups = {}
 	for (const a of filteredAppointments.value) (groups[dayKey(a.date_time)] ||= []).push(a)
@@ -349,9 +466,10 @@ const tone = (a) => TONES[a.status === "Completed" ? "green" : a.status === "Can
 // Period summary
 const tiles = computed(() => {
 	const rows = data.value?.appointments || []
-	const completed = rows.filter((a) => a.status === "Completed").length
-	const overdue = rows.filter((a) => a.status === "Scheduled" && a.overdue).length
-	const upcoming = rows.filter((a) => a.status === "Scheduled" && !a.overdue).length
+	const summary = data.value?.summary || {}
+	const completed = summary.completed || 0
+	const overdue = summary.overdue || 0
+	const upcoming = summary.upcoming || 0
 	return [
 		{ label: "In this period", value: rows.length, filter: "all", icon: ClipboardList, tile: "bg-[#FCE8EB] text-[#A10E24]" },
 		{ label: "Upcoming", value: upcoming, filter: "upcoming", icon: CalendarClock, tile: "bg-[#E0EAFD] text-[#1B4DB1]" },
@@ -360,10 +478,10 @@ const tiles = computed(() => {
 	]
 })
 
-const action = createResource({ url: "krcti_mhpss.api.records.set_appointment_status", onSuccess: load })
+/* ---------- Referral ---------- */
 const referAction = createResource({
 	url: "krcti_mhpss.api.records.refer_appointment",
-	onSuccess() { closeReferral(); load() },
+	onSuccess() { closeReferral(); load(); if (calendarOpen.value) loadWeek() },
 })
 function openReferral(appointment) {
 	referralAppointment.value = appointment
@@ -381,10 +499,6 @@ function closeReferral() {
 function submitReferral() {
 	if (!referralAppointment.value || !referralTo.value || !referralReason.value.trim()) return
 	referAction.submit({ name: referralAppointment.value.name, to_counsellor: referralTo.value, reason: referralReason.value.trim() })
-}
-const setStatus = (a, status) => action.submit({ name: a.name, status })
-function cancel(a) {
-	if (window.confirm(`Cancel the appointment with ${a.client_name}?`)) setStatus(a, "Cancelled")
 }
 </script>
 
@@ -431,47 +545,55 @@ function cancel(a) {
 }
 .month-btn:hover { background: #f7f7f8; border-color: #d5d8de; color: #25272b; }
 
-/* Grid centring keeps the date number exactly in the middle of the tile.
-   The count badge is absolutely positioned, so it never shifts the number. */
-.calendar-day {
-	position: relative;
-	display: grid;
-	place-items: center;
-	min-height: 42px;
-	min-width: 0;
-	border: 1px solid transparent;
-	border-radius: 9px;
-	padding: 0;
-	color: #3c3f45;
-	transition: background .15s, border-color .15s;
-}
-.calendar-day:hover { background: #f7f7f8; }
-.calendar-day:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.4); }
-.calendar-number { display: grid; height: 26px; width: 26px; place-items: center; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1; }
-.calendar-count { position: absolute; right: 3px; top: 3px; display: grid; min-width: 14px; height: 14px; place-items: center; border-radius: 999px; background: #fce8eb; padding: 0 3px; color: #a10e24; font-size: 9px; font-weight: 700; line-height: 1; }
-.calendar-count-selected { background: #c8102e; color: white; }
-.calendar-outside { color: #c2c4c9; }
-.calendar-today .calendar-number { border: 1.5px solid #c8102e; color: #a10e24; }
-.calendar-selected { border-color: #f3c3cb; background: #fff7f8; }
-.calendar-selected:hover { background: #fff1f3; }
-.calendar-selected .calendar-number { background: #c8102e; color: white; }
-.calendar-has-appointments:not(.calendar-selected) .calendar-number { background: #fce8eb; color: #a10e24; }
-
-.nav-btn {
-	display: inline-flex;
-	height: 44px;
-	width: 44px;
+/* Day headers */
+.week-head {
+	display: flex;
 	align-items: center;
 	justify-content: center;
-	border-radius: 10px;
-	border: 1px solid #d5d8de;
-	background: #fff;
-	color: #2b2f36;
-	transition: background 0.15s;
+	gap: 8px;
+	height: 52px;
+	border-left: 1px solid #f0f1f3;
+	transition: background .15s;
 }
-.nav-btn:hover { background: #f4f5f7; }
-.nav-btn:focus-visible,
-.act:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.4); }
+.week-head:hover { background: #f4f5f7; }
+.week-head:focus-visible { outline: none; box-shadow: inset 0 0 0 2px rgba(200, 16, 46, .4); }
+.week-head-selected { background: #fff; box-shadow: inset 0 -2px 0 #c8102e; }
+.week-num {
+	display: grid;
+	height: 28px;
+	min-width: 28px;
+	place-items: center;
+	border-radius: 999px;
+	font-size: 14px;
+	font-weight: 600;
+	color: #2b2f36;
+}
+.week-num-today { background: #c8102e; color: #fff; }
+
+/* Hour lines. The 80px size must equal HOUR_H in the script. */
+.week-col {
+	background-image: linear-gradient(to bottom, #eceef1 1px, transparent 1px);
+	background-size: 100% 80px;
+}
+
+/* Appointment cards */
+.ev {
+	position: absolute;
+	display: block;
+	overflow: hidden;
+	border-radius: 10px;
+	border-left: 4px solid var(--ev-bar);
+	background: var(--ev-bg);
+	padding: 6px 8px;
+	color: var(--ev-text);
+	transition: box-shadow .15s, transform .15s;
+}
+a.ev:hover { box-shadow: 0 6px 16px rgba(31, 35, 45, .12); transform: translateY(-1px); z-index: 5; }
+a.ev:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(200, 16, 46, .4); }
+.ev-upcoming { --ev-bar: #1b4db1; --ev-bg: #e8effd; --ev-text: #173f93; }
+.ev-completed { --ev-bar: #146c3a; --ev-bg: #e2f4e8; --ev-text: #0f5a30; }
+.ev-overdue { --ev-bar: #c8102e; --ev-bg: #fce6ea; --ev-text: #a10e24; }
+.ev-cancelled { --ev-bar: #b5b8bf; --ev-bg: #f1f2f4; --ev-text: #6b707a; }
 
 .act {
 	display: inline-flex;
@@ -488,9 +610,8 @@ function cancel(a) {
 	transition: background 0.15s;
 }
 .act:hover { background: #f4f5f7; }
+.act:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.4); }
 .act:disabled { cursor: wait; opacity: 0.6; }
 .act-primary { border-color: #c8102e; background: #c8102e; color: #fff; }
 .act-primary:hover { border-color: #a10e24; background: #a10e24; }
-.act-danger { color: #a10e24; }
-.act-danger:hover { background: #fce8eb; border-color: #f3c3cb; }
 </style>

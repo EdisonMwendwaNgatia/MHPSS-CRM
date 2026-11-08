@@ -24,11 +24,13 @@ declare module 'vue' {
     Login: typeof import('./src/pages/Login.vue')['default']
     PageLoader: typeof import('./src/components/PageLoader.vue')['default']
     Programme: typeof import('./src/pages/Programme.vue')['default']
+    ProgrammeClients: typeof import('./src/pages/ProgrammeClients.vue')['default']
+    ProgrammeOperations: typeof import('./src/pages/ProgrammeOperations.vue')['default']
+    ProgrammeSessionManagement: typeof import('./src/pages/ProgrammeSessionManagement.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SessionRecord: typeof import('./src/pages/SessionRecord.vue')['default']
     SessionRecords: typeof import('./src/pages/SessionRecords.vue')['default']
     Spinner: typeof import('./src/components/Spinner.vue')['default']
-    SystemAdmin: typeof import('./src/pages/SystemAdmin.vue')['default']
   }
 }

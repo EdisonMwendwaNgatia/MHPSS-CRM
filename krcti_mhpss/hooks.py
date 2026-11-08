@@ -304,6 +304,7 @@ doc_events = {
     },
     "Client": {
         "after_insert": "krcti_mhpss.permissions.log_client_registration",
+        "on_update": "krcti_mhpss.permissions.log_client_update",
     },
     "Appointment": {
         "after_insert": "krcti_mhpss.permissions.log_appointment_activity",
@@ -312,6 +313,7 @@ doc_events = {
 }
 
 on_login = "krcti_mhpss.permissions.log_user_login"
+on_logout = "krcti_mhpss.permissions.log_user_logout"
 
 # Recreate any missing role whenever the site is updated
 after_migrate = ["krcti_mhpss.install.after_migrate"]

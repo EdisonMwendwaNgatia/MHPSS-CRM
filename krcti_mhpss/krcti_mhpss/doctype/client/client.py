@@ -100,5 +100,5 @@ class Client(Document):
             done = frappe.db.exists(
                 "Appointment", {"client_id": self.name, "session_type": "Termination", "status": "Completed"}
             )
-            if not done:
+            if not done and not getattr(frappe.flags, "close_case_without_termination", False):
                 frappe.throw(_("A case can be closed only after a completed Termination session."))
