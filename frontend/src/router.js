@@ -37,7 +37,9 @@ const router = createRouter({ history: createWebHistory(frontendBase), routes })
 router.beforeEach(async (to, from, next) => {
 	let isLoggedIn = session.isLoggedIn
 	try {
-		const user = await userResource.promise
+		// `promise` is null until a resource fetch is started. Fetch explicitly so
+		// successful logins are verified against the backend session cookie.
+		const user = await userResource.fetch()
 		isLoggedIn = !!user && user !== "Guest"
 		session.user = isLoggedIn ? user : null
 	} catch (error) {
