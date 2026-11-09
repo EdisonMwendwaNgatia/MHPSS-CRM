@@ -86,7 +86,7 @@
 								</dl>
 								<div v-if="selectedSession.audio_recording" class="border-t border-[#ECEDEF] bg-[#FCFCFD] px-5 py-4">
 									<span class="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#858891]"><Volume2 :size="14" /> Session audio</span>
-									<audio :key="selectedSession.name" controls preload="none" class="w-full" :src="selectedSession.audio_recording">Your browser does not support audio playback.</audio>
+									<audio :key="selectedSession.name" controls preload="none" crossorigin="use-credentials" class="w-full" :src="backendUrl(selectedSession.audio_recording)">Your browser does not support audio playback.</audio>
 								</div>
 							</section>
 							<router-link :to="backTo" class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#D9DBE0] bg-white px-4 py-2.5 text-sm font-semibold text-[#33353A] shadow-sm transition hover:bg-[#F7F7F8]">
@@ -214,7 +214,7 @@
 
 												<div v-if="item.audio_recording" class="rounded-lg bg-[#F4F5F7] p-4">
 													<span class="mb-2 block text-xs text-[#5B616B]">Session audio</span>
-													<audio controls preload="none" class="w-full max-w-xl" :src="item.audio_recording">Your browser does not support audio playback.</audio>
+									<audio controls preload="none" crossorigin="use-credentials" class="w-full max-w-xl" :src="backendUrl(item.audio_recording)">Your browser does not support audio playback.</audio>
 												</div>
 
 												<div v-if="item.referral_history?.length" class="space-y-2 rounded-lg bg-[#E0EAFD] px-4 py-3">
@@ -374,7 +374,7 @@
 							<!-- Session audio -->
 							<div v-else-if="currentSection.key === 'audio'" class="max-w-xl">
 								<div v-if="audioUrl" class="rounded-lg bg-[#F4F5F7] p-4">
-									<audio controls preload="none" class="w-full" :src="audioUrl">Your browser does not support audio playback.</audio>
+									<audio controls preload="none" crossorigin="use-credentials" class="w-full" :src="backendUrl(audioUrl)">Your browser does not support audio playback.</audio>
 								</div>
 
 								<FileUploader :class="audioUrl ? 'mt-4' : ''" :fileTypes="['audio/*']" :validateFile="validateAudio" :uploadArgs="audioUploadArgs" @success="onAudioUploaded">
@@ -417,6 +417,7 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from
 import { useRoute, useRouter } from "vue-router"
 import { ArrowLeft, Ban, CalendarClock, Check, ChevronDown, ClipboardCheck, FileText, Loader2, Upload, Volume2 } from "lucide-vue-next"
 import { fmtDateTime } from "../data/format"
+import { backendUrl } from "../data/backend"
 
 const props = defineProps({ name: { type: String, default: "" } })
 const route = useRoute()

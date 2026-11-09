@@ -3,18 +3,21 @@ import vue from "@vitejs/plugin-vue"
 import frappeui from "frappe-ui/vite"
 import { defineConfig } from "vite"
 
+const isVercelBuild = process.env.VERCEL === "1"
+const frappeAssetsDir = "../krcti_mhpss/public/frontend"
+
 export default defineConfig({
 	plugins: [
 		frappeui({
 			// Route dev API requests to this bench site explicitly. The proxy plugin's
 			// default router uses the browser host, which can select the wrong site.
 			frappeProxy: false,
-			jinjaBootData: true,
+			jinjaBootData: !isVercelBuild,
 			lucideIcons: {
     componentGlobs: ['src/**/*.vue'],
   },
-			buildConfig: {
-				outDir: "../krcti_mhpss/public/frontend",
+			buildConfig: isVercelBuild ? false : {
+				outDir: frappeAssetsDir,
 				indexHtmlPath: "../krcti_mhpss/www/frontend.html",
 				emptyOutDir: true,
 				sourcemap: false,
@@ -24,7 +27,7 @@ export default defineConfig({
 	],
 	build: {
 		chunkSizeWarningLimit: 1500,
-		outDir: "../krcti_mhpss/public/frontend",
+		outDir: isVercelBuild ? "dist" : frappeAssetsDir,
 		emptyOutDir: true,
 		target: "es2015",
 		sourcemap: false,

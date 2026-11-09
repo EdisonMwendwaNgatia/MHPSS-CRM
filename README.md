@@ -2,6 +2,11 @@
 
 MHPSS Case Management System
 
+The Vue frontend is built into `krcti_mhpss/public/frontend` whenever Frappe builds
+this app. The generated `www/frontend.html` serves the SPA at `/frontend`, while
+Frappe's route rule sends nested frontend routes back to the same application page.
+Use `bench build --app krcti_mhpss` to rebuild the backend assets and frontend together.
+
 ### Installation
 
 You can install this app using the [bench](https://github.com/frappe/bench) CLI:
