@@ -124,7 +124,7 @@ app_license = "mit"
 # ------------------
 # To hook into the build process
 
-# after_build = "krcti_mhpss.build.after_build"
+after_build = "krcti_mhpss.build.after_build"
 
 # To hook into the build process of other apps
 # The list of apps being built is passed as an argument
