@@ -1,0 +1,11 @@
+{
+  "buildCommand": "yarn build:vercel",
+  "outputDirectory": "dist",
+  "installCommand": "yarn install --frozen-lockfile",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://mhpss.dev.redcross.or.ke/api/$1" },
+    { "source": "/private/files/(.*)", "destination": "https://mhpss.dev.redcross.or.ke/private/files/$1" },
+    { "source": "/files/(.*)", "destination": "https://mhpss.dev.redcross.or.ke/files/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

@@ -118,7 +118,7 @@
 
 											<div v-if="entry.status === 'Completed' && entry.audio_recording" class="rounded-lg border border-[#ECEDEF] bg-[#FAFAFB] p-4">
 												<span class="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#858891]"><Volume2 :size="14" /> Session audio</span>
-												<audio controls preload="none" class="w-full max-w-md"><source :src="entry.audio_recording" /></audio>
+								<audio controls preload="none" crossorigin="use-credentials" class="w-full max-w-md"><source :src="backendUrl(entry.audio_recording)" /></audio>
 											</div>
 
 											<p v-for="referral in entry.referral_history || []" :key="`ref-${referral.referred_on}`" class="rounded-lg bg-[#E0EAFD] px-3.5 py-2.5 text-xs leading-5 text-[#1B4DB1]">
@@ -353,6 +353,7 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue"
 import { useRoute } from "vue-router"
 import { ArrowLeft, Ban, BookOpen, CalendarClock, Check, ChevronDown, ChevronsUpDown, ClipboardCheck, ClipboardList, Eye, EyeOff, FileText, HeartPulse, Home, Layers, LifeBuoy, LoaderCircle, Search, Trash2, UserRoundPlus, UsersRound, UserX, Volume2, X } from "lucide-vue-next"
 import { fmtDateTime } from "../data/format"
+import { backendUrl } from "../data/backend"
 
 const props = defineProps({ kind: { type: String, required: true } })
 const route = useRoute()
