@@ -31,12 +31,15 @@ const routes = [
 	{ path: "/audit-logs", name: "AuditLogs", component: () => import("@/pages/AuditLogs.vue"), meta: app(["dpo"]) },
 ]
 
-const router = createRouter({ history: createWebHistory("/frontend"), routes })
+const frontendBase = import.meta.env.VITE_APP_BASE || "/frontend"
+const router = createRouter({ history: createWebHistory(frontendBase), routes })
 
 router.beforeEach(async (to, from, next) => {
 	let isLoggedIn = session.isLoggedIn
 	try {
-		await userResource.promise
+		const user = await userResource.promise
+		isLoggedIn = !!user && user !== "Guest"
+		session.user = isLoggedIn ? user : null
 	} catch (error) {
 		isLoggedIn = false
 	}

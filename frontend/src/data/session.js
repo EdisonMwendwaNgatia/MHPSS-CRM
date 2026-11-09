@@ -1,6 +1,8 @@
 import { createResource } from "frappe-ui"
 import { computed, reactive } from "vue"
 
+const frontendBase = (import.meta.env.VITE_APP_BASE || "/frontend").replace(/\/$/, "")
+
 export function sessionUser() {
 	const cookies = new URLSearchParams(document.cookie.split("; ").join("&"))
 	let user = cookies.get("user_id")
@@ -15,13 +17,13 @@ export const session = reactive({
 			return { usr: email, pwd: password }
 		},
 		onSuccess() {
-			window.location.assign("/frontend/")
+			window.location.assign(`${frontendBase}/` || "/")
 		},
 	}),
 	logout: createResource({
 		url: "logout",
 		onSuccess() {
-			window.location.assign("/frontend/login")
+			window.location.assign(`${frontendBase}/login`)
 		},
 	}),
 	user: sessionUser(),

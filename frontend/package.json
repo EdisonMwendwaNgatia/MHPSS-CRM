@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build --base=/assets/krcti_mhpss/frontend/ && npm run copy-html-entry",
+    "build:vercel": "VERCEL=1 VITE_APP_BASE=/ VITE_FRAPPE_URL=https://mhpss.dev.redcross.or.ke VITE_FRAPPE_SITE_NAME=mhpss.dev.redcross.or.ke VITE_FRAPPE_PROXY=1 vite build --base=/",
     "preview": "vite preview",
     "lint": "biome check --write .",
     "test": "vitest",
