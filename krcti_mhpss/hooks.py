@@ -66,8 +66,8 @@ app_license = "mit"
 # Home Pages
 # ----------
 
-# application home page (will override Website Settings)
-# home_page = "login"
+# Use the Vue SPA as the website landing page for guests and logged-in users.
+home_page = "frontend"
 
 # website user home page (by Role)
 # role_home_page = {
@@ -324,5 +324,7 @@ scheduler_events = {
     },
 }
 
-# The Frappe UI app at /frontend
-website_route_rules = [{"from_route": "/frontend/<path:app_path>", "to_route": "frontend"}]
+# The Vue SPA is available at both / and /frontend, including its nested routes.
+website_route_rules = [
+    {"from_route": "/frontend/<path:app_path>", "to_route": "frontend"},
+]
