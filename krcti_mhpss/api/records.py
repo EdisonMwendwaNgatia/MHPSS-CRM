@@ -13,7 +13,7 @@ CLIENT_TEXT = (
 CLIENT_NUMBERS = ("age", "year_of_study")
 CLIENT_CHECKS = ("disability_status", "refugee_status")
 CLIENT_EDIT = CLIENT_TEXT + CLIENT_NUMBERS + CLIENT_CHECKS
-CLIENT_CREATE = CLIENT_EDIT
+CLIENT_CREATE = CLIENT_EDIT + ("scholar_code",)
 CASE_STATUSES = ("Active", "Follow-Up Pending", "Closed")
 
 BASELINE_SHORT = (
@@ -159,6 +159,7 @@ def save_client(name=None, data=None):
             frappe.throw(_("Register clients while logged in as a counsellor."))
         _only(data, CLIENT_CREATE)
         doc = frappe.new_doc("Client")
+        doc.scholar_code = _short(data.get("scholar_code"), "Scholar/Participant Code")
 
     for key in CLIENT_TEXT:
         if key in data:
@@ -208,6 +209,7 @@ def register_programme_client(data=None, assigned_counsellor=None):
     for key in CLIENT_CHECKS:
         if key in data:
             doc.set(key, 1 if data[key] else 0)
+    doc.scholar_code = _short(data.get("scholar_code"), "Scholar/Participant Code")
     doc.assigned_counsellor = assigned_counsellor
     doc.insert(ignore_permissions=True)
     return {"name": doc.name, "assigned_counsellor": assigned_counsellor}

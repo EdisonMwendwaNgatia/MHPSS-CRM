@@ -3,12 +3,11 @@ import re
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.model.naming import make_autoname
 from frappe.utils import cint
 
 from krcti_mhpss.utils import COUNSELLOR, is_admin, is_counsellor, normalize_phone
 
-CODE = re.compile(r"^(?:WoC-\d{4}|[A-Z0-9][A-Z0-9/_-]{2,39})$")
+CODE = re.compile(r"^WoCS_C\d{3}$")
 
 
 class Client(Document):
@@ -18,14 +17,6 @@ class Client(Document):
             self.assigned_counsellor = frappe.session.user
 
     def validate(self):
-        if not self.scholar_code:
-            while True:
-                generated = make_autoname("WoC-.####")
-                if not re.fullmatch(r"WoC-\d{4}", generated):
-                    frappe.throw(_("The WoC participant code range is exhausted."))
-                if not frappe.db.exists("Client", {"scholar_code": generated}):
-                    self.scholar_code = generated
-                    break
         self.tidy()
         self.check_immutable()
         self.check_code()
@@ -34,8 +25,7 @@ class Client(Document):
         self.check_case_status()
 
     def tidy(self):
-        code = " ".join((self.scholar_code or "").split())
-        self.scholar_code = f"WoC-{code[4:]}" if re.fullmatch(r"woc-\d{4}", code, re.IGNORECASE) else code.upper()
+        self.scholar_code = " ".join((self.scholar_code or "").split())
         self.full_name = " ".join((self.full_name or "").split())
         self.institution = " ".join((self.institution or "").split())
         self.phone_number = normalize_phone(self.phone_number)
@@ -46,8 +36,10 @@ class Client(Document):
             frappe.throw(_("The Scholar/Participant Code cannot be changed. Ask the System Administrator."))
 
     def check_code(self):
-        if not CODE.match(self.scholar_code or ""):
-            frappe.throw(_("Enter a valid Scholar/Participant Code (letters, numbers, - / _ and at least 3 characters)."))
+        before = self.get_doc_before_save()
+        # Keep existing historical identifiers valid when editing older client records.
+        if not CODE.fullmatch(self.scholar_code or "") and not (before and before.scholar_code == self.scholar_code):
+            frappe.throw(_("Enter a Scholar/Participant Code in the format WoCS_C###, for example WoCS_C001."))
         other = frappe.db.get_value(
             "Client",
             {"scholar_code": self.scholar_code, "name": ["!=", self.name or ""]},
@@ -70,8 +62,8 @@ class Client(Document):
     def check_values(self):
         if not 10 <= cint(self.age) <= 100:
             frappe.throw(_("Enter a valid age (10 to 100)."))
-        if not 1 <= cint(self.year_of_study) <= 8:
-            frappe.throw(_("Year of study must be between 1 and 8."))
+        if not 1 <= cint(self.year_of_study) <= 10:
+            frappe.throw(_("Year of study must be between 1 and 10."))
         if not 9 <= len(self.phone_number or "") <= 15:
             frappe.throw(_("Enter a valid phone number."))
         if self.disability_status and not (self.disability_type or "").strip():
