@@ -50,8 +50,8 @@
    "unique": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "read_only": 1,
-   "description": "Generated automatically when the client is registered"
+   "read_only": 0,
+   "description": "Enter a unique code in the format WoCS_C###, for example WoCS_C001."
   },
   {
    "fieldname": "full_name",

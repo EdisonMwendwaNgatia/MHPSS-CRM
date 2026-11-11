@@ -30,7 +30,17 @@
             </div>
 
             <div class="grid gap-x-4 gap-y-5 sm:grid-cols-6">
-              <div class="sm:col-span-6">
+              <div v-if="isNew" class="contents">
+                <div class="sm:col-span-3">
+                  <label class="lbl" for="f-first_name">First name <span class="req" aria-hidden="true">*</span></label>
+                  <input id="f-first_name" v-model="form.first_name" class="inp" type="text" autocomplete="given-name" />
+                </div>
+                <div class="sm:col-span-3">
+                  <label class="lbl" for="f-last_name">Last name <span class="req" aria-hidden="true">*</span></label>
+                  <input id="f-last_name" v-model="form.last_name" class="inp" type="text" autocomplete="family-name" />
+                </div>
+              </div>
+              <div v-else class="sm:col-span-6">
                 <label class="lbl" for="f-full_name">Full name <span class="req" aria-hidden="true">*</span></label>
                 <input id="f-full_name" v-model="form.full_name" class="inp" type="text" autocomplete="off" />
               </div>
@@ -41,15 +51,15 @@
                   <input
                     id="f-scholar_code"
                     v-model="form.scholar_code"
-                    class="inp pr-11"
+                    class="inp"
                     type="text"
-                    readonly
-                    :placeholder="isNew ? 'Generated automatically on registration' : ''"
+                    :readonly="!isNew"
+                    maxlength="9"
+                    placeholder="WoCS_C001"
                     autocomplete="off"
                   />
-                  <Lock :size="16" class="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#5B616B]" />
                 </div>
-                <p class="hint">Generated automatically when the client is registered.</p>
+                <p class="hint">Enter a unique code in the format WoCS_C###, for example WoCS_C001.</p>
               </div>
 
               <div class="sm:col-span-3">
@@ -135,7 +145,7 @@
         </section>
 
         <!-- Education -->
-        <section class="overflow-visible rounded-xl border border-[#E4E6EA] bg-white" :class="openDropdown === 'institution_county' ? 'relative z-20' : ''">
+        <section class="overflow-visible rounded-xl border border-[#E4E6EA] bg-white" :class="['institution_county', 'year_of_study'].includes(openDropdown) ? 'relative z-20' : ''">
           <div class="grid gap-x-8 gap-y-5 px-5 py-6 sm:px-6 lg:grid-cols-[210px_minmax(0,1fr)]">
             <div class="flex items-center gap-3 lg:items-start">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#FCE8EB] text-[#A10E24]"><GraduationCap :size="19" /></span>
@@ -155,8 +165,15 @@
                 <input id="f-course_programme" v-model="form.course_programme" class="inp" type="text" autocomplete="off" required />
               </div>
               <div class="sm:col-span-2">
-                <label class="lbl" for="f-year_of_study">Year of study <span class="req" aria-hidden="true">*</span></label>
-                <input id="f-year_of_study" v-model="form.year_of_study" class="inp" type="number" inputmode="numeric" min="1" max="8" step="1" required />
+                <label id="f-year_of_study-label" class="lbl">Year of study <span class="req" aria-hidden="true">*</span></label>
+                <div class="relative" data-client-dropdown>
+                  <button id="f-year_of_study" type="button" class="select-control" :class="form.year_of_study ? '' : 'select-placeholder'" :aria-labelledby="'f-year_of_study-label f-year_of_study-value'" :aria-expanded="openDropdown === 'year_of_study'" aria-haspopup="listbox" @click="toggleDropdown('year_of_study')" @keydown.esc="openDropdown = ''">
+                    <span id="f-year_of_study-value">{{ form.year_of_study || 'Select year' }}</span><ChevronDown :size="17" class="text-[#737780] transition-transform" :class="openDropdown === 'year_of_study' ? 'rotate-180' : ''" />
+                  </button>
+                  <div v-if="openDropdown === 'year_of_study'" class="select-menu" role="listbox" aria-labelledby="f-year_of_study-label">
+                    <button v-for="year in YEAR_OF_STUDY" :key="year.value" type="button" role="option" :aria-selected="Number(form.year_of_study) === year.value" class="select-option" :class="Number(form.year_of_study) === year.value ? 'select-option-active' : ''" @click="chooseOption('year_of_study', year.value)">{{ year.label }}<Check v-if="Number(form.year_of_study) === year.value" :size="16" /></button>
+                  </div>
+                </div>
               </div>
               <div class="sm:col-span-3">
                 <label id="f-institution_county-label" class="lbl">County of school <span class="req" aria-hidden="true">*</span></label>
@@ -271,7 +288,7 @@
 import { createResource } from "frappe-ui"
 import { computed, onMounted, onUnmounted, reactive, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { AlertCircle, ArrowLeft, Check, ChevronDown, GraduationCap, Heart, Loader2, Lock, MapPin, UserRound } from "lucide-vue-next"
+import { AlertCircle, ArrowLeft, Check, ChevronDown, GraduationCap, Heart, Loader2, MapPin, UserRound } from "lucide-vue-next"
 import { DISABILITY_TYPES, GENDERS, KENYA_COUNTIES, REFERRALS, STREAMS } from "../data/options"
 import { me } from "../data/me"
 
@@ -288,10 +305,13 @@ const back = computed(() => (isNew.value ? (isProgrammeManager.value ? { name: "
 const TEXT = ["full_name", "phone_number", "gender", "disability_type", "institution", "institution_county",
 	"course_programme", "county_location", "programme_stream", "referral_source", "referral_source_other"]
 const NUMBERS = ["age", "year_of_study"]
+const YEAR_OF_STUDY = Array.from({ length: 10 }, (_, index) => ({ label: String(index + 1), value: index + 1 }))
 const CHECKS = ["disability_status", "refugee_status"]
 
 const form = reactive({
 	...Object.fromEntries([...TEXT, ...NUMBERS].map((k) => [k, ""])),
+	first_name: "",
+	last_name: "",
 	scholar_code: "",
 	disability_status: false,
 	refugee_status: false,
@@ -369,7 +389,9 @@ const updater = saver // the template may still mention it
 
 function values() {
 	const data = {}
+	if (isNew.value) data.scholar_code = form.scholar_code.trim()
 	for (const k of TEXT) data[k] = form[k]
+	if (isNew.value) data.full_name = `${form.first_name.trim()} ${form.last_name.trim()}`.trim()
 	for (const k of NUMBERS) data[k] = form[k] === "" ? "" : Number(form[k])
 	for (const k of CHECKS) data[k] = form[k] ? 1 : 0
 	return data
@@ -377,6 +399,18 @@ function values() {
 
 function save() {
 	formError.value = ""
+	if (isNew.value && (!form.first_name.trim() || !form.last_name.trim())) {
+		formError.value = "Enter both the client’s first name and last name."
+		return
+	}
+	if (!isNew.value && !form.full_name.trim()) {
+		formError.value = "Enter the client’s full name."
+		return
+	}
+	if (isNew.value && !/^WoCS_C\d{3}$/.test(form.scholar_code.trim())) {
+		formError.value = "Enter a scholar code in the format WoCS_C###, for example WoCS_C001."
+		return
+	}
 	if (form.age === "" || form.age === null) {
 		formError.value = "Age is required."
 		return
@@ -386,7 +420,7 @@ function save() {
 		return
 	}
 	if (!form.gender || !form.institution.trim() || !form.course_programme.trim() || !form.year_of_study ||
-		Number(form.year_of_study) < 1 || Number(form.year_of_study) > 8 || !form.institution_county || !form.county_location) {
+		Number(form.year_of_study) < 1 || Number(form.year_of_study) > 10 || !form.institution_county || !form.county_location) {
 		formError.value = "Complete the required identity, education, and county fields before saving."
 		return
 	}
