@@ -22,6 +22,7 @@ const routes = [
 	{ path: "/sessions", name: "SessionRecords", component: () => import("@/pages/SessionRecords.vue"), meta: app(COUNSELLOR) },
 	{ path: "/sessions/:name", name: "SessionRecord", component: () => import("@/pages/SessionRecord.vue"), props: true, meta: app(COUNSELLOR) },
 	{ path: "/programme", name: "Programme", component: () => import("@/pages/Programme.vue"), meta: app(OVERSIGHT) },
+	{ path: "/programme/settings", name: "ProgrammeSettings", component: () => import("@/pages/ProgrammeSettings.vue"), meta: app(OVERSIGHT) },
 	{ path: "/programme/clients/new", name: "ProgrammeClientNew", component: () => import("@/pages/ClientForm.vue"), meta: app(OVERSIGHT) },
 	{ path: "/programme/clients", name: "ProgrammeClients", component: () => import("@/pages/ProgrammeClients.vue"), meta: app(OVERSIGHT) },
 	{ path: "/programme/clients/:name", name: "ProgrammeClientDetail", component: () => import("@/pages/ProgrammeOperations.vue"), props: { kind: "client" }, meta: app(OVERSIGHT) },

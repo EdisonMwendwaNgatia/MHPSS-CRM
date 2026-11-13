@@ -46,6 +46,12 @@
               </div>
 
               <div class="sm:col-span-3">
+                <label class="lbl" for="f-cohort">{{ isNew ? 'Active cohort' : 'Cohort' }}</label>
+                <input id="f-cohort" v-model="form.cohort" class="inp" type="text" readonly :placeholder="cohortLoading ? 'Loading active cohort…' : 'Cohort unavailable'" />
+                <p v-if="isNew" class="hint">Assigned automatically from Programme Settings. Each cohort supports up to 99 clients.</p>
+              </div>
+
+              <div class="sm:col-span-3">
                 <label class="lbl" for="f-scholar_code">Scholar / participant code</label>
                 <div class="relative">
                   <input
@@ -53,13 +59,12 @@
                     v-model="form.scholar_code"
                     class="inp"
                     type="text"
-                    :readonly="!isNew"
-                    maxlength="9"
-                    placeholder="WoCS_C001"
+                    readonly
+                    placeholder="Generated on registration"
                     autocomplete="off"
                   />
                 </div>
-                <p class="hint">Enter a unique code in the format WoCS_C###, for example WoCS_C001.</p>
+                <p class="hint">Generated automatically as WoCS_C&lt;cohort&gt;&lt;two-digit number&gt;.</p>
               </div>
 
               <div class="sm:col-span-3">
@@ -312,6 +317,7 @@ const form = reactive({
 	...Object.fromEntries([...TEXT, ...NUMBERS].map((k) => [k, ""])),
 	first_name: "",
 	last_name: "",
+	cohort: "",
 	scholar_code: "",
 	disability_status: false,
 	refugee_status: false,
@@ -320,6 +326,7 @@ const form = reactive({
 const loading = ref(false)
 const openDropdown = ref("")
 const formError = ref("")
+const cohortLoading = ref(false)
 const countySearch = reactive({ institution_county: "", county_location: "" })
 const counsellorSearch = ref("")
 const counsellors = createResource({ url: "krcti_mhpss.api.records.programme_counsellors" })
@@ -359,6 +366,7 @@ const profile = createResource({
 	url: "krcti_mhpss.api.counsellor.client_profile",
 	onSuccess(data) {
 		const c = data.client
+		form.cohort = c.cohort ?? ""
 		form.scholar_code = c.scholar_code ?? ""
 		for (const k of [...TEXT, ...NUMBERS]) form[k] = c[k] ?? ""
 		for (const k of CHECKS) form[k] = !!c[k]
@@ -366,7 +374,22 @@ const profile = createResource({
 	},
 })
 
+const registrationSettings = createResource({
+	url: "krcti_mhpss.api.records.client_registration_settings",
+	onSuccess(data) {
+		form.cohort = data.active_cohort || ""
+		cohortLoading.value = false
+	},
+	onError() {
+		cohortLoading.value = false
+	},
+})
+
 onMounted(() => {
+	if (isNew.value) {
+		cohortLoading.value = true
+		registrationSettings.submit()
+	}
 	if (isProgrammeManager.value) {
 		counsellors.submit()
 		if (isWoCProgrammeManager.value) form.programme_stream = "Scholarship/Education"
@@ -389,7 +412,6 @@ const updater = saver // the template may still mention it
 
 function values() {
 	const data = {}
-	if (isNew.value) data.scholar_code = form.scholar_code.trim()
 	for (const k of TEXT) data[k] = form[k]
 	if (isNew.value) data.full_name = `${form.first_name.trim()} ${form.last_name.trim()}`.trim()
 	for (const k of NUMBERS) data[k] = form[k] === "" ? "" : Number(form[k])
@@ -407,8 +429,8 @@ function save() {
 		formError.value = "Enter the client’s full name."
 		return
 	}
-	if (isNew.value && !/^WoCS_C\d{3}$/.test(form.scholar_code.trim())) {
-		formError.value = "Enter a scholar code in the format WoCS_C###, for example WoCS_C001."
+	if (isNew.value && !/^[1-9]$/.test(form.cohort)) {
+		formError.value = "The active cohort could not be loaded. Refresh the form before registering this client."
 		return
 	}
 	if (form.age === "" || form.age === null) {

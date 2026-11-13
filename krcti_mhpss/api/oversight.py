@@ -6,12 +6,48 @@ from frappe import _
 from frappe.query_builder.functions import Count
 from frappe.utils import add_days, cint, getdate, now_datetime, nowdate
 
-from krcti_mhpss.utils import ADMIN_ROLE, ADMIN_ROLES, COUNSELLOR, KRCTI_PM, MODES, WOC_PM, require_roles, roles_of
+from krcti_mhpss.utils import ADMIN_ROLE, ADMIN_ROLES, COUNSELLOR, KRCTI_PM, MODES, WOC_PM, get_active_cohort, require_roles, roles_of
 
 
 WOC_STREAM = "Scholarship/Education"
 PM_NOTIFICATION_APP = "krcti_mhpss"
 PM_NOTIFICATION_TITLES = ("Appointment booked", "Session completed")
+
+
+def _cohort_settings_payload():
+    active = get_active_cohort()
+    cohorts = []
+    for number in range(1, 10):
+        count = frappe.db.count("Client", {"cohort": str(number)})
+        cohorts.append({"cohort": str(number), "count": count, "remaining": max(0, 99 - count), "full": count >= 99})
+    return {"active_cohort": active, "cohorts": cohorts}
+
+
+@frappe.whitelist()
+def programme_cohort_settings():
+    require_roles(KRCTI_PM, WOC_PM)
+    return _cohort_settings_payload()
+
+
+@frappe.whitelist(methods=["POST"])
+def set_active_cohort(cohort=None):
+    require_roles(KRCTI_PM, WOC_PM)
+    cohort = str(cohort or "").strip()
+    if cohort not in {str(number) for number in range(1, 10)}:
+        frappe.throw(_("Choose a cohort from 1 to 9."))
+    current = get_active_cohort()
+    if cohort == current:
+        return _cohort_settings_payload()
+    next_cohort = str(int(current) + 1)
+    if int(current) >= 9 or cohort != next_cohort:
+        next_label = next_cohort if int(current) < 9 else _("none; all cohorts are active")
+        frappe.throw(_("Cohorts must be activated in order. The next cohort available is {0}; earlier cohorts cannot be reactivated and later cohorts cannot be skipped.").format(next_label))
+    if frappe.db.count("Client", {"cohort": cohort}) >= 99:
+        frappe.throw(_("Cohort {0} already has 99 clients. Choose a cohort with available places.").format(cohort))
+    settings = frappe.get_single("MHPSS Programme Settings")
+    settings.active_cohort = cohort
+    settings.save(ignore_permissions=True)
+    return _cohort_settings_payload()
 
 
 def _range(date_from, date_to):

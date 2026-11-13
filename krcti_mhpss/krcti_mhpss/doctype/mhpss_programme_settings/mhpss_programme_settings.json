@@ -1,0 +1,24 @@
+{
+ "doctype": "DocType",
+ "name": "MHPSS Programme Settings",
+ "module": "Krcti Mhpss",
+ "custom": 0,
+ "issingle": 1,
+ "track_changes": 1,
+ "field_order": ["active_cohort"],
+ "fields": [
+  {
+   "fieldname": "active_cohort",
+   "fieldtype": "Select",
+   "label": "Active client cohort",
+   "options": "\n1\n2\n3\n4\n5\n6\n7\n8\n9",
+   "default": "1",
+   "reqd": 1,
+   "description": "New clients receive a code in this cohort. Existing clients and scholar codes are not changed. Each cohort can contain up to 99 clients."
+  }
+ ],
+ "permissions": [
+  {"role": "KRCTI Programme Manager", "read": 1, "write": 1, "create": 1},
+  {"role": "WoC Programme Manager", "read": 1, "write": 1, "create": 1}
+ ]
+}

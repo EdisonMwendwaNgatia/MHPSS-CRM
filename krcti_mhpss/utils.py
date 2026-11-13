@@ -20,6 +20,15 @@ PHYSICAL_MODES = ("Physical Individual", "Physical Group", "School Campaign")
 GROUP_MODES = ("Physical Group", "School Campaign")
 
 
+def get_active_cohort():
+    """Return the cohort used for future client registrations."""
+    value = frappe.db.get_single_value("MHPSS Programme Settings", "active_cohort")
+    value = str(value or "1").strip()
+    if value not in {str(number) for number in range(1, 10)}:
+        frappe.throw("Programme Settings must contain an active cohort from 1 to 9.")
+    return value
+
+
 def roles_of(user=None):
     return set(frappe.get_roles(user or frappe.session.user))
 
