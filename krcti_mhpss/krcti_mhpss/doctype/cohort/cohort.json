@@ -1,0 +1,134 @@
+{
+ "doctype": "DocType",
+ "name": "Cohort",
+ "module": "Krcti Mhpss",
+ "custom": 0,
+ "engine": "InnoDB",
+ "autoname": "field:cohort_name",
+ "title_field": "cohort_name",
+ "show_title_field_in_link": 1,
+ "track_changes": 1,
+ "field_order": [
+  "sec_cohort",
+  "cohort_name",
+  "programme_stream",
+  "col_1",
+  "start_date",
+  "end_date",
+  "status",
+  "sec_details",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "sec_cohort",
+   "fieldtype": "Section Break",
+   "label": "Cohort Information"
+  },
+  {
+   "fieldname": "cohort_name",
+   "fieldtype": "Data",
+   "label": "Cohort Name",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "programme_stream",
+   "fieldtype": "Select",
+   "label": "Programme Stream",
+   "options": "\nScholarship/Education\nEnterprise Development\nWorkforce Development",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "col_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nCompleted\nArchived",
+   "default": "Active",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "sec_details",
+   "fieldtype": "Section Break",
+   "label": "Additional Information",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "KRCTI System Administrator",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "KRCTI Programme Manager",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "WoC Programme Manager",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "MHPSS Counsellor",
+   "permlevel": 0,
+   "read": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "search_fields": "cohort_name,programme_stream"
+}
