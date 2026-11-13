@@ -30,7 +30,6 @@
   "col_3",
   "county_location",
   "programme_stream",
-  "cohort",
   "referral_source",
   "referral_source_other",
   "sec_case",
@@ -209,16 +208,6 @@
    "default": "Active",
    "in_list_view": 1,
    "in_standard_filter": 1
-  },
-  {
-   "fieldname": "cohort",
-   "fieldtype": "Link",
-   "label": "Cohort",
-   "options": "Cohort",
-   "insert_after": "programme_stream",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "description": "Select the centrally managed programme cohort."
   }
  ],
  "permissions": [
