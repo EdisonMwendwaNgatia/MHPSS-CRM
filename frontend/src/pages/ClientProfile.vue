@@ -289,6 +289,7 @@ const detailGroups = computed(() => [
 		hint: "Identity and circumstances",
 		icon: UserRound,
 		fields: [
+			{ label: "Cohort", value: c.value.cohort || "—" },
 			{ label: "Age", value: c.value.age },
 			{ label: "Gender", value: c.value.gender },
 			{ label: "Refugee status", value: yes(c.value.refugee_status) },
