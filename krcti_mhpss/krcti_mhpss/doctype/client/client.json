@@ -10,6 +10,7 @@
  "track_changes": 1,
  "field_order": [
   "sec_identity",
+  "cohort",
   "scholar_code",
   "full_name",
   "phone_number",
@@ -43,6 +44,14 @@
    "label": "Client"
   },
   {
+   "fieldname": "cohort",
+   "fieldtype": "Select",
+   "label": "Cohort",
+   "options": "\n1\n2\n3\n4\n5\n6\n7\n8\n9",
+   "in_standard_filter": 1,
+   "description": "Choose the client's cohort. Each cohort supports up to 99 clients."
+  },
+  {
    "fieldname": "scholar_code",
    "fieldtype": "Data",
    "label": "Scholar/Participant Code",
@@ -50,8 +59,8 @@
    "unique": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "read_only": 0,
-   "description": "Enter a unique code in the format WoCS_C###, for example WoCS_C001."
+   "read_only": 1,
+   "description": "Generated automatically from the selected cohort."
   },
   {
    "fieldname": "full_name",

@@ -27,6 +27,7 @@ declare module 'vue' {
     ProgrammeClients: typeof import('./src/pages/ProgrammeClients.vue')['default']
     ProgrammeOperations: typeof import('./src/pages/ProgrammeOperations.vue')['default']
     ProgrammeSessionManagement: typeof import('./src/pages/ProgrammeSessionManagement.vue')['default']
+    ProgrammeSettings: typeof import('./src/pages/ProgrammeSettings.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SessionRecord: typeof import('./src/pages/SessionRecord.vue')['default']
