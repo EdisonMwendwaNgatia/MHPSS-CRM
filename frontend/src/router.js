@@ -9,6 +9,7 @@ const app = (roles) => ({ app: true, roles })
 const routes = [
 	{ path: "/", redirect: { name: "Home" } },
 	{ path: "/login", name: "Login", component: () => import("@/pages/Login.vue") },
+	{ path: "/baseline/:token", name: "PublicBaseline", component: () => import("@/pages/BaselineForm.vue"), props: true, meta: { public: true } },
 	{ path: "/home", name: "Home", component: () => import("@/pages/Home.vue"), meta: { app: true } },
 	{ path: "/clients", name: "Clients", component: () => import("@/pages/Clients.vue"), meta: app(COUNSELLOR) },
 	{ path: "/clients/new", name: "ClientNew", component: () => import("@/pages/ClientForm.vue"), meta: app(COUNSELLOR) },
@@ -26,6 +27,7 @@ const routes = [
 	{ path: "/programme/clients/new", name: "ProgrammeClientNew", component: () => import("@/pages/ClientForm.vue"), meta: app(OVERSIGHT) },
 	{ path: "/programme/clients", name: "ProgrammeClients", component: () => import("@/pages/ProgrammeClients.vue"), meta: app(OVERSIGHT) },
 	{ path: "/programme/clients/:name", name: "ProgrammeClientDetail", component: () => import("@/pages/ProgrammeOperations.vue"), props: { kind: "client" }, meta: app(OVERSIGHT) },
+	{ path: "/programme/clients/:name/baseline", name: "ProgrammeBaseline", component: () => import("@/pages/BaselineForm.vue"), props: true, meta: app(OVERSIGHT) },
 	{ path: "/programme/counsellors", name: "ProgrammeCounsellors", component: () => import("@/pages/ProgrammeOperations.vue"), props: { kind: "counsellors" }, meta: app(OVERSIGHT) },
 	{ path: "/programme/sessions", name: "ProgrammeSessions", component: () => import("@/pages/ProgrammeSessionManagement.vue"), meta: app(OVERSIGHT) },
 	{ path: "/programme/activity", name: "ProgrammeActivity", redirect: { name: "ProgrammeSessions" }, meta: app(OVERSIGHT) },
@@ -36,6 +38,7 @@ const frontendBase = import.meta.env.VITE_APP_BASE || "/frontend"
 const router = createRouter({ history: createWebHistory(frontendBase), routes })
 
 router.beforeEach(async (to, from, next) => {
+	if (to.meta.public) return next()
 	let isLoggedIn = session.isLoggedIn
 	try {
 		// `promise` is null until a resource fetch is started. Fetch explicitly so
