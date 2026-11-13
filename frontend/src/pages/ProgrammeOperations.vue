@@ -388,6 +388,7 @@ const initials = (value) => {
 const clientInfo = computed(() => {
 	const c = client.data || {}
 	return [
+		{ label: "Cohort", value: c.cohort ? `Cohort ${c.cohort}` : "—" },
 		{ label: "Phone", value: c.phone_number },
 		{ label: "Age", value: c.age },
 		{ label: "Sex", value: c.gender },
