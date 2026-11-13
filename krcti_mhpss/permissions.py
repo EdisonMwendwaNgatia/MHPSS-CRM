@@ -205,7 +205,7 @@ def log_user_logout(login_manager=None):
 
 
 def log_client_registration(doc, method=None):
-    write_audit_log("Client registered", doc.name, "Client management")
+	write_audit_log("Client registered", doc.name, "Client management", details=f"client email={doc.email or 'not provided'}")
 
 
 def log_client_update(doc, method=None):

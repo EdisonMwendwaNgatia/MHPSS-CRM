@@ -54,6 +54,9 @@ class Client(Document):
     def tidy(self):
         self.scholar_code = " ".join((self.scholar_code or "").split())
         self.full_name = " ".join((self.full_name or "").split())
+        self.email = " ".join((self.email or "").split()).lower()
+        if self.email and not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", self.email):
+            frappe.throw(_("Enter a valid email address or leave it blank."))
         self.institution = " ".join((self.institution or "").split())
         self.phone_number = normalize_phone(self.phone_number)
 
@@ -117,7 +120,7 @@ class Client(Document):
             if not enabled or COUNSELLOR not in frappe.get_roles(self.assigned_counsellor):
                 frappe.throw(_("The assigned counsellor must be an active counsellor."))
         before = self.get_doc_before_save()
-        if before and before.assigned_counsellor != self.assigned_counsellor and not is_admin():
+        if before and before.assigned_counsellor != self.assigned_counsellor and not is_admin() and not getattr(frappe.flags, "allow_programme_counsellor_assignment", False):
             frappe.throw(_("Only the System Administrator can reassign a client."))
 
     def check_case_status(self):

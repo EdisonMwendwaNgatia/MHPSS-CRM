@@ -11,6 +11,15 @@
  "field_order": [
   "sec_client",
   "client_id",
+  "cycle",
+  "review_status",
+  "submitted_via",
+  "email_sent_to",
+  "token_hash",
+  "token_expires_on",
+  "verified_by",
+  "verified_on",
+  "review_notes",
   "client_name",
   "scholar_code",
   "col_1",
@@ -55,8 +64,71 @@
    "label": "Client",
    "options": "Client",
    "reqd": 1,
-   "unique": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "cycle",
+   "fieldtype": "Int",
+   "label": "Form cycle",
+   "default": 1,
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "review_status",
+   "fieldtype": "Select",
+   "label": "Review status",
+   "options": "Not Required\nPending Client\nAwaiting Review\nRejected\nVerified",
+   "default": "Not Required",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "submitted_via",
+   "fieldtype": "Select",
+   "label": "Submitted via",
+   "options": "\nCounsellor\nProgramme Manager\nClient email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "email_sent_to",
+   "fieldtype": "Data",
+   "label": "Form sent to",
+   "read_only": 1
+  },
+  {
+   "fieldname": "token_hash",
+   "fieldtype": "Data",
+   "label": "Public form token hash",
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "token_expires_on",
+   "fieldtype": "Datetime",
+   "label": "Public form token expiry",
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "verified_by",
+   "fieldtype": "Link",
+   "label": "Verified by",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "verified_on",
+   "fieldtype": "Datetime",
+   "label": "Verified on",
+   "read_only": 1
+  },
+  {
+   "fieldname": "review_notes",
+   "fieldtype": "Small Text",
+   "label": "Review notes",
+   "read_only": 1
   },
   {
    "fieldname": "client_name",

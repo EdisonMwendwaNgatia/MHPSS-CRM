@@ -98,6 +98,9 @@
 								<td class="max-w-[240px] px-4 py-3.5 text-sm text-[#555860]"><span class="block truncate">{{ row.institution || '—' }}</span></td>
 								<td class="px-4 py-3.5"><Badge :label="row.case_status || 'Active'" :theme="caseTheme(row.case_status)" /></td>
 								<td class="px-5 py-3.5 text-right">
+									<button v-if="!row.assigned_counsellor" type="button" class="mr-2 inline-flex items-center gap-1.5 rounded-lg border border-[#D9DBE0] bg-white px-3.5 py-2 text-sm font-semibold text-[#33353A] shadow-sm transition disabled:cursor-not-allowed disabled:opacity-55" :disabled="row.baseline_review_status !== 'Verified'" :title="row.baseline_review_status === 'Verified' ? 'Open assignment controls' : 'Assign counsellor is available after baseline verification'" @click="$router.push({ name: 'ProgrammeClientDetail', params: { name: row.name }, query: { tab: 'survey' } })">
+										<UserRoundPlus :size="15" /> Assign counsellor
+									</button>
 									<router-link :to="{ name: 'ProgrammeClientDetail', params: { name: row.name } }" class="inline-flex items-center gap-1.5 rounded-lg border border-[#D9DBE0] bg-white px-3.5 py-2 text-sm font-semibold text-[#33353A] shadow-sm transition hover:border-[#C8102E] hover:text-[#A10E24]">
 										<Eye :size="15" /> View record
 									</router-link>

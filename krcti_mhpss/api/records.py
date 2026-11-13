@@ -1,3 +1,5 @@
+import re
+
 import frappe
 from frappe import _
 from frappe.utils import get_datetime, get_url, now_datetime
@@ -7,7 +9,7 @@ from krcti_mhpss.api.oversight import notify_programme_managers
 from krcti_mhpss.utils import ADMIN_ROLE, COUNSELLOR, KRCTI_PM, WOC_PM, is_admin, is_counsellor, require_roles
 
 CLIENT_TEXT = (
-    "full_name", "phone_number", "gender", "disability_type", "institution", "institution_county", "course_programme",
+    "full_name", "phone_number", "email", "gender", "disability_type", "institution", "institution_county", "course_programme",
     "county_location", "programme_stream", "referral_source", "referral_source_other",
 )
 CLIENT_NUMBERS = ("age", "year_of_study")
@@ -154,6 +156,7 @@ def save_client(name=None, data=None):
     if name:
         doc = _client_for_user(name)
         _only(data, CLIENT_EDIT)  # the code, the counsellor and the case status are not editable here
+        previous_email = doc.email or ""
     else:
         if is_admin() and not is_counsellor():
             frappe.throw(_("Register clients while logged in as a counsellor."))
@@ -171,6 +174,9 @@ def save_client(name=None, data=None):
             doc.set(key, 1 if data[key] else 0)
 
     doc.save() if name else doc.insert()
+    if name and previous_email != (doc.email or ""):
+        from krcti_mhpss.permissions import write_audit_log
+        write_audit_log("Client email updated", doc.name, "Client management", details=f"previous={previous_email or 'empty'}; current={doc.email or 'empty'}")
     return {"name": doc.name}
 
 
@@ -183,21 +189,13 @@ def programme_counsellors():
 
 @frappe.whitelist(methods=["POST"])
 def register_programme_client(data=None, assigned_counsellor=None):
-    """Register a client for a programme manager and assign an active counsellor."""
+    """Register a client for a programme manager; counsellor assignment follows verified baseline review."""
     require_roles(KRCTI_PM, WOC_PM)
     data = _data(data)
     _only(data, CLIENT_CREATE)
-    if not assigned_counsellor:
-        frappe.throw(_("Choose a counsellor for this client."))
-    counsellor = frappe.db.get_value("User", assigned_counsellor, ["enabled"], as_dict=True)
-    if not counsellor or not counsellor.enabled or COUNSELLOR not in frappe.get_roles(assigned_counsellor):
-        frappe.throw(_("Choose an active counsellor account."))
-    if assigned_counsellor not in {row.name for row in programme_counsellors()}:
-        frappe.throw(_("Choose a counsellor within your programme scope."), frappe.PermissionError)
-    roles = frappe.get_roles()
-    if WOC_PM in roles and KRCTI_PM not in roles and data.get("programme_stream") != "Scholarship/Education":
-        frappe.throw(_("WoC Programme Managers can only register Scholarship/Education clients."), frappe.PermissionError)
-
+    email = str(data.get("email") or "").strip().lower()
+    if email and not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
+        frappe.throw(_("Enter a valid email address or leave it blank."))
     doc = frappe.new_doc("Client")
     for key in CLIENT_TEXT:
         if key in data:
@@ -208,9 +206,9 @@ def register_programme_client(data=None, assigned_counsellor=None):
     for key in CLIENT_CHECKS:
         if key in data:
             doc.set(key, 1 if data[key] else 0)
-    doc.assigned_counsellor = assigned_counsellor
+    doc.assigned_counsellor = None
     doc.insert(ignore_permissions=True)
-    return {"name": doc.name, "assigned_counsellor": assigned_counsellor}
+    return {"name": doc.name, "assigned_counsellor": None}
 
 
 @frappe.whitelist()
@@ -244,6 +242,8 @@ def record_baseline(client=None, data=None):
     owner = _client_for_user(client)
     if owner.case_status == "Closed":
         frappe.throw(_("Closed cases are read-only."))
+    if frappe.db.exists("Baseline Survey", {"client_id": owner.name, "review_status": ["!=", "Rejected"]}):
+        frappe.throw(_("A baseline survey has already been submitted for this client."))
     data = _data(data)
     _only(data, BASELINE_ALLOWED)
     if data.get("consent") not in ("Consented", "Declined"):
@@ -260,6 +260,9 @@ def record_baseline(client=None, data=None):
 
     doc = frappe.new_doc("Baseline Survey")
     doc.client_id = owner.name
+    doc.cycle = 1 + frappe.db.count("Baseline Survey", {"client_id": owner.name})
+    doc.review_status = "Not Required"
+    doc.submitted_via = "Counsellor"
     doc.consent = data["consent"]
     if data["consent"] == "Declined":
         doc.declined_reason = _long(data.get("declined_reason"), _("The reason"))
@@ -278,6 +281,8 @@ def record_baseline(client=None, data=None):
                 doc.set(key, 1 if data[key] else 0)
         doc.status = "Completed"
     doc.insert()
+    from krcti_mhpss.permissions import write_audit_log
+    write_audit_log("Baseline submitted", owner.name, "Baseline workflow", details=f"cycle={doc.cycle}; via=Counsellor")
     return {"name": doc.name}
 
 

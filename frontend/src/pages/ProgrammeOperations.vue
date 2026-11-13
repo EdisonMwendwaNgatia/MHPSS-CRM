@@ -143,17 +143,63 @@
 								<div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
 									<div>
 										<h2 class="text-base font-semibold text-[#25272B]">Baseline survey</h2>
-										<p class="mt-0.5 text-xs text-[#858891]">{{ baselineSurvey ? `Completed ${dateTime(baselineSurvey.completed_on)}` : 'Not yet submitted' }}</p>
+										<p class="mt-0.5 text-xs text-[#858891]">{{ baselineSurvey ? `Cycle ${baselineSurvey.cycle || 1} · ${baselineStatusLabel}` : 'Not yet started' }}</p>
 									</div>
-									<span v-if="baselineSurvey" class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="baselineSurvey.consent === 'Declined' ? 'bg-[#E4E6EA] text-[#3A3F47]' : 'bg-[#DCF3E4] text-[#146C3A]'">{{ baselineSurvey.status || (baselineSurvey.consent === 'Declined' ? 'Consent declined' : 'Recorded') }}</span>
+									<span v-if="baselineSurvey" class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="baselineStatusTone">{{ baselineSurvey.review_status || baselineSurvey.status || 'Pending' }}</span>
+								</div>
+								<div class="border-t border-[#ECEDEF] bg-[#FCFCFD] px-5 py-4">
+									<div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+										<div class="min-w-0">
+											<p class="text-sm font-semibold text-[#33353A]">Client email</p>
+											<p v-if="!editingEmail" class="mt-0.5 text-sm text-[#737780]">{{ client.data.email || 'No email provided' }}</p>
+											<p v-if="!client.data.email && !editingEmail" class="mt-1 text-xs text-[#8A5200]">Email is required for the email path. You can still fill the form on the client’s behalf.</p>
+										</div>
+										<button v-if="!editingEmail && baselineSurvey?.review_status !== 'Verified'" type="button" class="inline-flex h-9 items-center justify-center gap-2 self-start rounded-lg border border-[#D9DBE0] bg-white px-3 text-xs font-semibold text-[#33353A] hover:bg-[#F7F7F8] sm:self-auto" @click="beginEmailEdit"><Pencil :size="14" /> {{ client.data.email ? 'Edit email' : 'Add email' }}</button>
+									</div>
+									<form v-if="editingEmail" class="mt-3 flex flex-col gap-2 sm:flex-row" @submit.prevent="saveClientEmail">
+										<input v-model="emailDraft" class="field min-w-0 flex-1" type="email" maxlength="140" placeholder="name@example.com" aria-label="Client email address" />
+										<button type="submit" class="primary" :disabled="emailUpdate.loading">Save email</button>
+										<button type="button" class="secondary" @click="editingEmail = false">Cancel</button>
+									</form>
+									<ErrorMessage class="mt-2" :message="emailUpdate.error" />
+									<div class="mt-4 flex flex-wrap gap-2" v-if="baselineCanStart || baselineWaitingClient">
+										<button type="button" class="primary" :disabled="baselineStart.loading || !client.data.email" :title="!client.data.email ? 'Add a client email to send the baseline form, or fill it on their behalf.' : ''" @click="startBaseline('email')"><Mail :size="15" /> {{ baselineWaitingClient ? 'Resend baseline form' : 'Send baseline form' }}</button>
+										<button type="button" class="secondary" :disabled="baselineStart.loading" @click="startBaseline('staff')"><FileText :size="15" /> Fill on behalf of client</button>
+									</div>
+									<p v-if="baselineWaitingClient" class="mt-2 text-xs text-[#737780]">Awaiting client submission for cycle {{ baselineSurvey.cycle }}. Resending keeps the same cycle and invalidates the previous link.</p>
+									<div v-if="baselineAwaitingReview" class="mt-4 flex flex-wrap gap-2">
+										<button type="button" class="primary" @click="reviewAction = 'verify'"><Check :size="15" /> Mark baseline verified</button>
+										<button type="button" class="secondary" @click="reviewAction = 'reject'; rejectionReason = ''"><X :size="15" /> Reject submission</button>
+									</div>
+									<p v-if="baselineAwaitingReview" class="mt-2 text-xs text-[#737780]">Submitted {{ dateTime(baselineSurvey.completed_on) }} via {{ baselineSurvey.submitted_via || 'baseline form' }}. Review the answers below before deciding.</p>
+									<div v-if="baselineVerified && !client.data.assigned_counsellor" class="mt-4 rounded-lg border border-[#B8E0C6] bg-[#F0FAF3] p-4">
+										<p class="text-sm font-semibold text-[#176B37]">Baseline verified and locked</p>
+										<p class="mt-1 text-xs text-[#4F6B58]">Assign a counsellor to complete the registration workflow.</p>
+										<div class="mt-3 flex flex-col gap-2 sm:flex-row">
+											<select v-model="selectedCounsellor" class="field min-w-0 flex-1" aria-label="Select counsellor to assign"><option value="">Select an active counsellor</option><option v-for="person in activeCounsellors" :key="person.name" :value="person.name">{{ person.full_name || person.name }}</option></select>
+											<button type="button" class="primary" :disabled="!selectedCounsellor || assignment.loading" @click="assignCounsellor">Assign counsellor</button>
+										</div>
+									</div>
+									<p v-if="baselineVerified && client.data.assigned_counsellor" class="mt-4 rounded-lg border border-[#B8E0C6] bg-[#F0FAF3] px-4 py-3 text-sm font-medium text-[#176B37]">Baseline verified and locked · assigned counsellor: {{ client.data.assigned_counsellor_name || client.data.assigned_counsellor }}</p>
+									<ErrorMessage class="mt-3" :message="baselineStart.error || baselineReview.error || assignment.error" />
+									<p v-if="baselineActionMessage" class="mt-3 rounded-lg border border-[#B8E0C6] bg-[#F0FAF3] px-3 py-2 text-xs font-medium text-[#176B37]" role="status">{{ baselineActionMessage }}</p>
+									<div v-if="baselineCycles.length > 1" class="mt-4 border-t border-[#ECEDEF] pt-3">
+										<p class="text-xs font-semibold text-[#555860]">Form cycle history</p>
+										<ul class="mt-2 flex flex-wrap gap-2">
+											<li v-for="cycle in baselineCycles" :key="cycle.name" class="rounded-full bg-white px-3 py-1.5 text-xs text-[#555860] ring-1 ring-[#E4E6EA]">Cycle {{ cycle.cycle }} · {{ cycle.review_status || cycle.status }}<template v-if="cycle.review_status === 'Rejected'"> · {{ cycle.review_notes }}</template></li>
+										</ul>
+									</div>
 								</div>
 
 								<div v-if="!baselineSurvey" class="border-t border-[#ECEDEF] px-5 py-14 text-center">
 									<span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F5F7] text-[#858891]"><FileText :size="22" /></span>
 									<p class="mt-3 text-sm font-semibold text-[#33353A]">No baseline survey recorded</p>
-									<p class="mx-auto mt-1 max-w-sm text-sm text-[#858891]">No baseline survey has been submitted for this client.</p>
+									<p class="mx-auto mt-1 max-w-sm text-sm text-[#858891]">Choose an email link or fill the same baseline form on the client’s behalf.</p>
 								</div>
 
+								<div v-else-if="baselineSurvey.status === 'Pending'" class="border-t border-[#ECEDEF] p-5">
+									<div class="rounded-lg border border-[#D6E2F7] bg-[#F4F8FF] p-4 text-sm text-[#315184]">This cycle has not been submitted yet. Submitted answers will appear here for review.</div>
+								</div>
 								<div v-else-if="baselineSurvey.consent === 'Declined'" class="border-t border-[#ECEDEF] p-5">
 									<div class="flex items-start gap-3 rounded-lg border border-[#ECEDEF] bg-[#FAFAFB] p-4">
 										<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E4E6EA] text-[#3A3F47]"><Ban :size="17" /></span>
@@ -202,6 +248,29 @@
 										</dl>
 									</section>
 								</div>
+							</div>
+							<div v-if="baselineCycles.length > 1" class="border-t border-[#ECEDEF] px-5 py-4">
+								<h3 class="text-sm font-semibold text-[#33353A]">Archived baseline submissions</h3>
+								<details v-for="cycle in baselineCycles.slice(1)" :key="`archive-${cycle.name}`" class="mt-2 rounded-lg border border-[#E4E6EA] bg-white">
+									<summary class="cursor-pointer px-4 py-3 text-sm font-medium text-[#555860]">Cycle {{ cycle.cycle }} · {{ cycle.review_status || cycle.status }} · {{ dateTime(cycle.completed_on) }}</summary>
+									<dl class="grid gap-2 border-t border-[#ECEDEF] p-4 sm:grid-cols-2">
+										<div v-for="[label, value] in archivedBaselineRows(cycle)" :key="label" class="rounded-md bg-[#FAFAFB] p-3">
+											<dt class="text-[11px] font-semibold uppercase tracking-wide text-[#858891]">{{ label }}</dt><dd class="mt-1 whitespace-pre-line text-sm text-[#33353A]">{{ value || '—' }}</dd>
+										</div>
+									</dl>
+									<p v-if="cycle.review_notes" class="border-t border-[#ECEDEF] px-4 py-3 text-xs text-[#A10E24]">Rejection note: {{ cycle.review_notes }}</p>
+								</details>
+							</div>
+							<div v-if="reviewAction" class="fixed inset-0 z-50 flex items-center justify-center bg-[#17191D]/45 p-4" @click.self="reviewAction = ''">
+								<section class="w-full max-w-md rounded-xl bg-white p-5 shadow-xl" role="alertdialog" aria-modal="true">
+									<h2 class="text-lg font-semibold text-[#25272B]">{{ reviewAction === 'verify' ? 'Verify and lock baseline?' : 'Reject baseline submission?' }}</h2>
+									<p v-if="reviewAction === 'verify'" class="mt-2 text-sm leading-6 text-[#555860]">Verifying locks this baseline permanently. It cannot be undone. Continue?</p>
+									<label v-else class="mt-3 block text-sm font-medium text-[#555860]">Reason for rejection<textarea v-model="rejectionReason" class="field mt-1.5 min-h-24" maxlength="2000" required placeholder="Explain what needs correction"></textarea></label>
+									<div class="mt-5 flex justify-end gap-2">
+										<button type="button" class="secondary" @click="reviewAction = ''">Go back</button>
+										<button type="button" class="primary" :disabled="baselineReview.loading || (reviewAction === 'reject' && rejectionReason.trim().length < 3)" @click="submitBaselineReview">{{ baselineReview.loading ? 'Saving…' : reviewAction === 'verify' ? 'Confirm verification' : 'Confirm rejection' }}</button>
+									</div>
+								</section>
 							</div>
 						</section>
 					</div>
@@ -350,13 +419,14 @@
 <script setup>
 import { createResource } from "frappe-ui"
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue"
-import { useRoute } from "vue-router"
-import { ArrowLeft, Ban, BookOpen, CalendarClock, Check, ChevronDown, ChevronsUpDown, ClipboardCheck, ClipboardList, Eye, EyeOff, FileText, HeartPulse, Home, Layers, LifeBuoy, LoaderCircle, Search, Trash2, UserRoundPlus, UsersRound, UserX, Volume2, X } from "lucide-vue-next"
+import { useRoute, useRouter } from "vue-router"
+import { ArrowLeft, Ban, BookOpen, CalendarClock, Check, ChevronDown, ChevronsUpDown, ClipboardCheck, ClipboardList, Eye, EyeOff, FileText, HeartPulse, Home, Layers, LifeBuoy, LoaderCircle, Mail, Pencil, Search, Trash2, UserRoundPlus, UsersRound, UserX, Volume2, X } from "lucide-vue-next"
 import { fmtDateTime } from "../data/format"
 import { backendUrl } from "../data/backend"
 
 const props = defineProps({ kind: { type: String, required: true } })
 const route = useRoute()
+const router = useRouter()
 const kind = computed(() => props.kind)
 const client = createResource({ url: "krcti_mhpss.api.oversight.programme_client_detail" })
 const counsellors = createResource({ url: "krcti_mhpss.api.oversight.programme_counsellors" })
@@ -371,6 +441,33 @@ const saveUser = createResource({
 const showCreate = ref(false)
 const showPassword = ref(false)
 const newUser = reactive({ first_name: "", last_name: "", email: "", password: "" })
+
+const editingEmail = ref(false)
+const emailDraft = ref("")
+const selectedCounsellor = ref("")
+const reviewAction = ref("")
+const rejectionReason = ref("")
+const baselineActionMessage = ref("")
+const baselineStartPath = ref("")
+const emailUpdate = createResource({
+	url: "krcti_mhpss.api.baseline_workflow.programme_update_client_email",
+	onSuccess(data) { client.data.email = data.email; emailDraft.value = data.email; editingEmail.value = false; baselineActionMessage.value = "Client email updated and recorded." },
+})
+const baselineStart = createResource({
+	url: "krcti_mhpss.api.baseline_workflow.programme_baseline_start",
+	onSuccess(data) {
+		if (baselineStartPath.value === "staff") router.push({ name: "ProgrammeBaseline", params: { name: client.data.name }, query: { survey: data.survey } })
+		else { baselineActionMessage.value = `Baseline form sent to ${data.email} for cycle ${data.cycle}.`; client.submit({ name: client.data.name }) }
+	},
+})
+const baselineReview = createResource({
+	url: "krcti_mhpss.api.baseline_workflow.programme_baseline_review",
+	onSuccess(data) { reviewAction.value = ""; baselineActionMessage.value = data.review_status === "Verified" ? "Baseline verified and permanently locked." : "Submission rejected. The previous cycle is archived; start another cycle by email or on the client’s behalf."; client.submit({ name: client.data.name }) },
+})
+const assignment = createResource({
+	url: "krcti_mhpss.api.baseline_workflow.programme_assign_counsellor",
+	onSuccess(data) { baselineActionMessage.value = `Assigned to ${data.assigned_counsellor}.`; selectedCounsellor.value = ""; client.submit({ name: client.data.name }) },
+})
 
 const dateTime = (value) => value ? fmtDateTime(value) : "—"
 const issueText = (value) => { try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed.join(", ") : value } catch { return value || "—" } }
@@ -390,6 +487,7 @@ const clientInfo = computed(() => {
 	return [
 		{ label: "Cohort", value: c.cohort ? `Cohort ${c.cohort}` : "—" },
 		{ label: "Phone", value: c.phone_number },
+		{ label: "Email", value: c.email },
 		{ label: "Age", value: c.age },
 		{ label: "Sex", value: c.gender },
 		{ label: "Institution", value: c.institution },
@@ -402,6 +500,14 @@ const activeTab = ref("history")
 const historyFilter = ref("all")
 const history = computed(() => client.data?.case_history || [])
 const baselineSurvey = computed(() => client.data?.baseline_survey || null)
+const baselineCycles = computed(() => client.data?.baseline_surveys || [])
+const baselineVerified = computed(() => baselineSurvey.value?.review_status === "Verified")
+const baselineAwaitingReview = computed(() => baselineSurvey.value?.review_status === "Awaiting Review")
+const baselineWaitingClient = computed(() => baselineSurvey.value?.review_status === "Pending Client" && baselineSurvey.value?.status === "Pending")
+const baselineCanStart = computed(() => (!baselineSurvey.value && !client.data?.assigned_counsellor) || (baselineSurvey.value?.review_status === "Rejected" && !client.data?.assigned_counsellor))
+const baselineStatusLabel = computed(() => baselineSurvey.value?.review_status === "Pending Client" ? "Awaiting client submission" : baselineSurvey.value?.review_status === "Awaiting Review" ? "Submitted · awaiting review" : baselineSurvey.value?.review_status === "Verified" ? "Verified and locked" : baselineSurvey.value?.review_status === "Rejected" ? "Rejected" : baselineSurvey.value?.status || "Not yet submitted")
+const baselineStatusTone = computed(() => ({ "Verified": "bg-[#DCF3E4] text-[#146C3A]", "Awaiting Review": "bg-[#FFF4E5] text-[#8A5200]", "Pending Client": "bg-[#E0EAFD] text-[#1B4DB1]", "Rejected": "bg-[#FBE0E4] text-[#A10E24]" })[baselineSurvey.value?.review_status] || "bg-[#E4E6EA] text-[#3A3F47]")
+const activeCounsellors = computed(() => (counsellors.data || []).filter((person) => person.enabled))
 
 const mainTabs = computed(() => [
 	{ key: "history", label: "Case history", icon: ClipboardList, badge: history.value.length },
@@ -425,6 +531,24 @@ const surveyValue = (value) => {
 		} catch {}
 	}
 	return value
+}
+function archivedBaselineRows(survey) {
+	return [
+		["Consent", survey.consent],
+		["Decline reason", survey.declined_reason],
+		["Wellbeing self-rating", survey.wellbeing_self_rating ? `${survey.wellbeing_self_rating} / 10` : ""],
+		["Recent stress frequency", survey.stress_frequency],
+		["Main concerns", [surveyValue(survey.main_concerns), survey.main_concerns_other ? `Other: ${survey.main_concerns_other}` : ""].filter(Boolean).join(" · ")],
+		["Support available", survey.support_availability],
+		["Coping ability", survey.coping_ability],
+		["Coping behaviour", survey.coping_behaviour === "Other" ? `Other: ${survey.coping_behaviour_other || ""}` : survey.coping_behaviour],
+		["Preferred support", survey.preferred_support_type],
+		["Interested in support", yesNo(survey.interest_in_support)],
+		["Willing to take part in follow-up", yesNo(survey.willingness_for_followup)],
+		["Marital status", survey.marital_status], ["Dependants", survey.dependants],
+		["Domestic situation", survey.domestic_situation], ["Conflict or disaster exposure", survey.conflict_exposure],
+		["Exposure details", survey.exposure_details],
+	]
 }
 const wellbeingScore = computed(() => {
 	const n = Number(baselineSurvey.value?.wellbeing_self_rating)
@@ -547,14 +671,32 @@ onUnmounted(() => document.removeEventListener("click", onOutsideClick))
 
 function load() {
 	if (kind.value === "client") {
-		activeTab.value = "history"
+		activeTab.value = route.query.tab === "survey" ? "survey" : "history"
 		historyFilter.value = "all"
 		openEntries.value = new Set()
 		client.submit({ name: route.params.name })
+		counsellors.submit()
 	}
 	if (kind.value === "counsellors") counsellors.submit()
 }
-watch([kind, () => route.params.name], load, { immediate: true })
+watch([kind, () => route.params.name, () => route.query.tab], load, { immediate: true })
+
+function beginEmailEdit() { emailDraft.value = client.data?.email || ""; editingEmail.value = true }
+function saveClientEmail() {
+	if (emailDraft.value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailDraft.value.trim())) return
+	emailUpdate.submit({ client: client.data.name, email: emailDraft.value.trim() })
+}
+function startBaseline(path) {
+	baselineActionMessage.value = ""
+	baselineStartPath.value = path
+	baselineStart.submit({ client: client.data.name, path })
+}
+function submitBaselineReview() {
+	baselineReview.submit({ client: client.data.name, survey: baselineSurvey.value.name, action: reviewAction.value, reason: rejectionReason.value })
+}
+function assignCounsellor() {
+	assignment.submit({ client: client.data.name, counsellor: selectedCounsellor.value })
+}
 
 function createCounsellor() { saveUser.submit({ ...newUser, action: "create" }) }
 function retireCounsellor(row, action) {

@@ -9,7 +9,7 @@ from frappe.utils import add_days, cint, getdate, now_datetime, nowdate
 from krcti_mhpss.utils import ADMIN_ROLE, ADMIN_ROLES, COUNSELLOR, KRCTI_PM, MODES, WOC_PM, get_active_cohort, require_roles, roles_of
 
 
-WOC_STREAM = "Scholarship/Education"
+WOC_STREAMS = ("Scholarship/Education", "Enterprise Development", "Workforce Development")
 PM_NOTIFICATION_APP = "krcti_mhpss"
 PM_NOTIFICATION_TITLES = ("Appointment booked", "Session completed")
 
@@ -69,13 +69,13 @@ def _conditions(table, scope, client_field="client_id"):
     if scope != "WoC":
         return []
     Client = frappe.qb.DocType("Client")
-    client_names = frappe.qb.from_(Client).select(Client.name).where(Client.programme_stream == WOC_STREAM)
+    client_names = frappe.qb.from_(Client).select(Client.name).where(Client.programme_stream.isin(WOC_STREAMS))
     return [getattr(table, client_field).isin(client_names)]
 
 
 def _programme_client(name):
     client = frappe.db.get_value("Client", name, ["name", "programme_stream"], as_dict=True)
-    if not client or (_scope() == "WoC" and client.programme_stream != WOC_STREAM):
+    if not client or (_scope() == "WoC" and client.programme_stream not in WOC_STREAMS):
         frappe.throw(_("Client not found in your programme."), frappe.PermissionError)
     return client
 
@@ -108,7 +108,7 @@ def _activity_scope_log(row, scope):
         client_name = record
     else:
         return False
-    return bool(client_name and frappe.db.get_value("Client", client_name, "programme_stream") == WOC_STREAM)
+    return bool(client_name and frappe.db.get_value("Client", client_name, "programme_stream") in WOC_STREAMS)
 
 
 @frappe.whitelist()
@@ -117,7 +117,7 @@ def programme_clients(search=None, status=None, start=0, page_length=50):
     start, page_length = max(0, cint(start)), max(1, min(cint(page_length) or 50, 100))
     filters = {}
     if _scope() == "WoC":
-        filters["programme_stream"] = WOC_STREAM
+        filters["programme_stream"] = ["in", WOC_STREAMS]
     status = str(status or "").strip()
     if status == "Active":
         filters["case_status"] = ["!=", "Closed"]
@@ -135,8 +135,16 @@ def programme_clients(search=None, status=None, start=0, page_length=50):
         fields=["name", "full_name", "scholar_code", "phone_number", "programme_stream", "case_status", "assigned_counsellor", "institution", "modified"],
         order_by="modified desc", start=start, page_length=page_length)
     names = _names({row.assigned_counsellor for row in rows if row.assigned_counsellor})
+    client_names = [row.name for row in rows]
+    latest_baselines = {}
+    if client_names:
+        surveys = frappe.get_all("Baseline Survey", filters={"client_id": ["in", client_names]}, fields=["name", "client_id", "cycle", "review_status"], order_by="cycle desc, creation desc", limit=0)
+        for survey in surveys:
+            latest_baselines.setdefault(survey.client_id, survey)
     for row in rows:
         row["counsellor_name"] = names.get(row.assigned_counsellor, "Unassigned")
+        baseline = latest_baselines.get(row.name)
+        row["baseline_review_status"] = baseline.review_status if baseline else "Not started"
         # Follow-Up Pending remains an internal workflow value; the programme list
         # presents the requested two-state status of Active or Closed.
         row["case_status"] = "Closed" if row.case_status == "Closed" else "Active"
@@ -151,8 +159,14 @@ def programme_client_detail(name=None):
     _programme_client(name)
     client = frappe.get_doc("Client", name).as_dict()
     client["programme_case_status"] = "Closed" if client.get("case_status") == "Closed" else "Active"
-    survey_name = frappe.db.get_value("Baseline Survey", {"client_id": name}, "name")
-    client["baseline_survey"] = frappe.get_doc("Baseline Survey", survey_name).as_dict() if survey_name else None
+    survey_names = frappe.get_all("Baseline Survey", filters={"client_id": name}, fields=["name", "cycle"], order_by="cycle desc, creation desc", limit=0)
+    client["baseline_surveys"] = []
+    for row in survey_names:
+        survey = frappe.get_doc("Baseline Survey", row.name).as_dict()
+        survey.pop("token_hash", None)
+        survey.pop("token_expires_on", None)
+        client["baseline_surveys"].append(survey)
+    client["baseline_survey"] = client["baseline_surveys"][0] if client["baseline_surveys"] else None
     appointments = frappe.get_all("Appointment", filters={"client_id": name}, fields=[
         "name", "scholar_code", "counsellor_id", "counsellor_name", "date_time", "session_type", "mode_of_contact", "status",
         "session_details", "presenting_issues", "issue_subclassifications", "interventions_applied", "referrals_made", "urgency_level", "risk_assessment",
@@ -236,7 +250,7 @@ def programme_sessions(counsellor=None):
     _programme_counsellor(counsellor)
     filters = {"counsellor_id": counsellor}
     if _scope() == "WoC":
-        client_names = frappe.get_all("Client", filters={"programme_stream": WOC_STREAM}, pluck="name", limit=0)
+        client_names = frappe.get_all("Client", filters={"programme_stream": ["in", WOC_STREAMS]}, pluck="name", limit=0)
         if not client_names:
             return []
         filters["client_id"] = ["in", client_names]
@@ -321,7 +335,7 @@ def notify_programme_managers(appointment, event):
     if not client:
         return
     manager_roles = [KRCTI_PM]
-    if client.programme_stream == WOC_STREAM:
+    if client.programme_stream in WOC_STREAMS:
         manager_roles.append(WOC_PM)
     recipients = frappe.get_all(
         "Has Role", filters={"role": ["in", manager_roles], "parenttype": "User"}, pluck="parent",
@@ -374,7 +388,7 @@ def programme_notifications():
             )
             and frappe.db.get_value(
                 "Client", frappe.db.get_value("Appointment", row.document_name, "client_id"), "programme_stream"
-            ) == WOC_STREAM
+            ) in WOC_STREAMS
         ]
     return {"notifications": rows, "unread_count": len(rows)}
 
@@ -426,8 +440,9 @@ def _appointment_trends(scope, first, last):
     params = [first, last]
     client_filter = ""
     if scope == "WoC":
-        client_filter = " AND client_id IN (SELECT name FROM `tabClient` WHERE programme_stream = %s)"
-        params.append(WOC_STREAM)
+        placeholders = ", ".join(["%s"] * len(WOC_STREAMS))
+        client_filter = f" AND client_id IN (SELECT name FROM `tabClient` WHERE programme_stream IN ({placeholders}))"
+        params.extend(WOC_STREAMS)
     rows = frappe.db.sql(
         """SELECT DATE(date_time) AS day, status, COUNT(*) AS n
            FROM `tabAppointment`

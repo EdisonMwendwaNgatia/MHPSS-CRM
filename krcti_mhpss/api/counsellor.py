@@ -5,7 +5,7 @@ from frappe.utils import add_days, getdate, now_datetime, nowdate
 from krcti_mhpss.utils import ADMIN_ROLE, COUNSELLOR, is_overdue, normalize_phone, require_roles
 
 CLIENT_FIELDS = (
-    "name", "scholar_code", "cohort", "full_name", "phone_number", "age", "gender", "disability_status",
+    "name", "scholar_code", "cohort", "full_name", "phone_number", "email", "age", "gender", "disability_status",
     "disability_type", "institution", "course_programme", "year_of_study", "county_location",
     "refugee_status", "programme_stream", "referral_source", "referral_source_other",
     "assigned_counsellor", "case_status",
@@ -119,7 +119,8 @@ def client_profile(name=None):
     """The client record with the baseline survey (read-only) and the session history."""
     require_roles(COUNSELLOR, ADMIN_ROLE)
     doc = _client_for_user(name)
-    survey_name = frappe.db.get_value("Baseline Survey", {"client_id": doc.name}, "name")
+    survey_names = frappe.get_all("Baseline Survey", filters={"client_id": doc.name}, fields=["name"], order_by="cycle desc, creation desc", limit=1)
+    survey_name = survey_names[0].name if survey_names else None
     survey = frappe.get_doc("Baseline Survey", survey_name) if survey_name else None
     appointments = frappe.get_list(
         "Appointment", filters={"client_id": doc.name}, fields=APPOINTMENT_FIELDS,
