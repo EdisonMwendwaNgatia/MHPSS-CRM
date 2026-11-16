@@ -288,6 +288,9 @@
 								</span>
 							</div>
 							<div class="p-1.5">
+								<button type="button" role="menuitem" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-[#44474E] transition hover:bg-[#F4F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/30" @click="openPasswordDialog">
+									<KeyRound :size="17" /> Change password
+								</button>
 								<button type="button" role="menuitem" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-[#A10E24] transition hover:bg-[#FCE8EB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/30" @click="logout">
 									<LogOut :size="17" /> Log out
 								</button>
@@ -311,6 +314,45 @@
 			</div>
 			<slot v-else />
 		</div>
+		<Transition name="shell-fade">
+			<div v-if="passwordDialogOpen" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#1F232D]/45 p-4 backdrop-blur-[2px]" @click.self="closePasswordDialog">
+				<section class="w-full max-w-md rounded-2xl border border-[#E4E6EA] bg-white p-6 shadow-[0_24px_70px_rgba(31,35,45,0.25)]" role="dialog" aria-modal="true" aria-labelledby="change-password-title">
+					<div class="flex items-start gap-3">
+						<span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FCE8EB] text-[#A10E24]"><KeyRound :size="20" /></span>
+						<div class="min-w-0 flex-1">
+							<h2 id="change-password-title" class="text-lg font-semibold text-[#25272B]">Change password</h2>
+							<p class="mt-1 text-sm leading-5 text-[#737780]">Enter your current password, then choose a new one.</p>
+						</div>
+						<button type="button" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#737780] transition hover:bg-[#F4F5F7] hover:text-[#25272B]" aria-label="Close change password" @click="closePasswordDialog"><X :size="18" /></button>
+					</div>
+					<form class="mt-5 space-y-4" @submit.prevent="submitPasswordChange">
+						<label class="block">
+							<span class="mb-1.5 block text-xs font-semibold text-[#555860]">Current password</span>
+							<input v-model="passwordForm.current" class="w-full rounded-lg border border-[#D9DBE0] bg-white px-3.5 py-2.5 text-sm text-[#33353A] outline-none transition focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/10" type="password" autocomplete="current-password" required />
+						</label>
+						<label class="block">
+							<span class="mb-1.5 block text-xs font-semibold text-[#555860]">New password</span>
+							<input v-model="passwordForm.next" class="w-full rounded-lg border border-[#D9DBE0] bg-white px-3.5 py-2.5 text-sm text-[#33353A] outline-none transition focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/10" type="password" autocomplete="new-password" minlength="8" required />
+							<span class="mt-1 block text-xs text-[#858891]">At least 8 characters. Frappe will also check the site’s password policy.</span>
+						</label>
+						<label class="block">
+							<span class="mb-1.5 block text-xs font-semibold text-[#555860]">Confirm new password</span>
+							<input v-model="passwordForm.confirm" class="w-full rounded-lg border border-[#D9DBE0] bg-white px-3.5 py-2.5 text-sm text-[#33353A] outline-none transition focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/10" type="password" autocomplete="new-password" minlength="8" required />
+						</label>
+						<p v-if="passwordFormError" class="text-sm text-[#A10E24]" role="alert">{{ passwordFormError }}</p>
+						<ErrorMessage v-if="passwordChange.error" :message="passwordChange.error" />
+						<p v-if="passwordSaved" class="rounded-lg bg-[#E8F5EC] px-3 py-2.5 text-sm font-medium text-[#146C3A]" role="status">Password changed. Reloading your session…</p>
+						<div class="flex justify-end gap-2 pt-1">
+							<button type="button" class="rounded-lg border border-[#D9DBE0] bg-white px-4 py-2.5 text-sm font-semibold text-[#555860] transition hover:bg-[#F7F7F8]" :disabled="passwordChange.loading" @click="closePasswordDialog">Cancel</button>
+							<button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-[#C8102E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#A10E24] disabled:cursor-wait disabled:opacity-60" :disabled="passwordChange.loading || passwordSaved">
+								<LoaderCircle v-if="passwordChange.loading" :size="15" class="animate-spin" />
+								{{ passwordChange.loading ? 'Updating…' : 'Update password' }}
+							</button>
+						</div>
+					</form>
+				</section>
+			</div>
+		</Transition>
 	</div>
 </template>
 
@@ -318,7 +360,7 @@
 import { createResource } from "frappe-ui"
 import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import { useRoute } from "vue-router"
-import { AlertTriangle, ArrowLeft, ArrowRight, Bell, BellRing, BookOpen, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, ClipboardCheck, ClipboardList, HeartHandshake, LayoutDashboard, ListFilter, LoaderCircle, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldAlert, Users, UsersRound, X } from "lucide-vue-next"
+import { AlertTriangle, ArrowLeft, ArrowRight, Bell, BellRing, BookOpen, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, ClipboardCheck, ClipboardList, HeartHandshake, KeyRound, LayoutDashboard, ListFilter, LoaderCircle, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldAlert, Users, UsersRound, X } from "lucide-vue-next"
 import { me } from "../data/me"
 import { session } from "../data/session"
 
@@ -362,6 +404,18 @@ const notificationsOpen = ref(false)
 const filterOpen = ref(false)
 const notificationFilter = ref("all")
 const accountOpen = ref(false)
+const passwordDialogOpen = ref(false)
+const passwordForm = ref({ current: "", next: "", confirm: "" })
+const passwordFormError = ref("")
+const passwordSaved = ref(false)
+const passwordChange = createResource({
+	url: "frappe.core.doctype.user.user.update_password",
+	onSuccess() {
+		passwordSaved.value = true
+		passwordForm.value = { current: "", next: "", confirm: "" }
+		window.setTimeout(() => window.location.reload(), 1200)
+	},
+})
 const clientSearch = createResource({ url: "krcti_mhpss.api.counsellor.search_clients" })
 const notificationData = createResource({ url: "krcti_mhpss.api.counsellor.home" })
 const referralNotificationData = createResource({ url: "krcti_mhpss.api.records.referral_notifications" })
@@ -561,6 +615,34 @@ function logout() {
 	accountOpen.value = false
 	session.logout.submit()
 }
+function openPasswordDialog() {
+	accountOpen.value = false
+	passwordFormError.value = ""
+	passwordSaved.value = false
+	passwordDialogOpen.value = true
+}
+function closePasswordDialog() {
+	if (passwordChange.loading || passwordSaved.value) return
+	passwordDialogOpen.value = false
+	passwordFormError.value = ""
+	passwordForm.value = { current: "", next: "", confirm: "" }
+}
+function submitPasswordChange() {
+	passwordFormError.value = ""
+	if (passwordForm.value.next !== passwordForm.value.confirm) {
+		passwordFormError.value = "The new passwords do not match."
+		return
+	}
+	if (passwordForm.value.current === passwordForm.value.next) {
+		passwordFormError.value = "Choose a new password that differs from your current password."
+		return
+	}
+	passwordChange.submit({
+		old_password: passwordForm.value.current,
+		new_password: passwordForm.value.next,
+		logout_all_sessions: 0,
+	})
+}
 
 // ---- Global listeners ----
 function closeHeaderMenus(event) {
@@ -573,6 +655,10 @@ function closeHeaderMenus(event) {
 }
 function onKeydown(event) {
 	if (event.key === "Escape") {
+		if (passwordDialogOpen.value) {
+			closePasswordDialog()
+			return
+		}
 		if (filterOpen.value) {
 			filterOpen.value = false
 			return
