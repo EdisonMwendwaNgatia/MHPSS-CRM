@@ -9,6 +9,19 @@ from frappe.utils import cint
 from krcti_mhpss.utils import COUNSELLOR, get_active_cohort, is_admin, is_counsellor, normalize_phone
 
 CODE = re.compile(r"^WoCS_C([1-9])(\d{2})$")
+INSTITUTIONS = {
+    "Mary Immaculate Teachers Training college",
+    "Meru National Polytechnic",
+    "Nakuru Teachers Training college",
+    "Nyandarua National Polytechnic",
+    "Nyeri National Polytechnic",
+}
+COURSES = {
+    "Diploma in Primary Teacher Education (DPTE)",
+    "Diploma in Electricals and Electronics Engineering",
+    "Diploma in Building Technician",
+    "Diploma in Automotive Engineering Technician",
+}
 
 
 class Client(Document):
@@ -48,6 +61,8 @@ class Client(Document):
         self.check_immutable()
         self.check_code()
         self.check_values()
+        self.check_institution()
+        self.check_course_programme()
         self.check_counsellor()
         self.check_case_status()
 
@@ -113,6 +128,20 @@ class Client(Document):
             self.disability_type = ""
         if self.referral_source != "Other":
             self.referral_source_other = ""
+
+    def check_institution(self):
+        before = self.get_doc_before_save()
+        # Preserve historical values, but require the approved list for new records
+        # and whenever the institution is changed.
+        if (not before or before.institution != self.institution) and self.institution not in INSTITUTIONS:
+            frappe.throw(_("Choose a college or learning institution from the approved list."))
+
+    def check_course_programme(self):
+        before = self.get_doc_before_save()
+        # Preserve historical values, but require the approved list for new records
+        # and whenever the course or programme is changed.
+        if (not before or before.course_programme != self.course_programme) and self.course_programme not in COURSES:
+            frappe.throw(_("Choose a course or programme from the approved list."))
 
     def check_counsellor(self):
         if self.assigned_counsellor:

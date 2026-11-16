@@ -135,15 +135,17 @@
   },
   {
    "fieldname": "institution",
-   "fieldtype": "Data",
+   "fieldtype": "Select",
    "label": "College or learning institution",
+   "options": "\nMary Immaculate Teachers Training college\nMeru National Polytechnic\nNakuru Teachers Training college\nNyandarua National Polytechnic\nNyeri National Polytechnic",
    "reqd": 1,
    "in_list_view": 1
   },
   {
    "fieldname": "course_programme",
-   "fieldtype": "Data",
+   "fieldtype": "Select",
    "label": "Course or programme",
+   "options": "\nDiploma in Primary Teacher Education (DPTE)\nDiploma in Electricals and Electronics Engineering\nDiploma in Building Technician\nDiploma in Automotive Engineering Technician",
    "reqd": 1
   },
   {

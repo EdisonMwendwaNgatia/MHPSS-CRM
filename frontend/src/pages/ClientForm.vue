@@ -145,7 +145,7 @@
         </section>
 
         <!-- Education -->
-        <section class="overflow-visible rounded-xl border border-[#E4E6EA] bg-white" :class="['institution_county', 'year_of_study'].includes(openDropdown) ? 'relative z-20' : ''">
+        <section class="overflow-visible rounded-xl border border-[#E4E6EA] bg-white" :class="['institution', 'course_programme', 'institution_county', 'year_of_study'].includes(openDropdown) ? 'relative z-20' : ''">
           <div class="grid gap-x-8 gap-y-5 px-5 py-6 sm:px-6 lg:grid-cols-[210px_minmax(0,1fr)]">
             <div class="flex items-center gap-3 lg:items-start">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#FCE8EB] text-[#A10E24]"><GraduationCap :size="19" /></span>
@@ -157,12 +157,26 @@
 
             <div class="grid gap-x-4 gap-y-5 sm:grid-cols-6">
               <div class="sm:col-span-6">
-                <label class="lbl" for="f-institution">College or learning institution <span class="req" aria-hidden="true">*</span></label>
-                <input id="f-institution" v-model="form.institution" class="inp" type="text" autocomplete="off" required />
+                <label id="f-institution-label" class="lbl">College or learning institution <span class="req" aria-hidden="true">*</span></label>
+                <div class="relative" data-client-dropdown>
+                  <button id="f-institution" type="button" class="select-control" :class="form.institution ? '' : 'select-placeholder'" :aria-labelledby="'f-institution-label f-institution-value'" :aria-expanded="openDropdown === 'institution'" aria-haspopup="listbox" @click="toggleDropdown('institution')" @keydown.esc="openDropdown = ''">
+                    <span id="f-institution-value">{{ form.institution || 'Select institution' }}</span><ChevronDown :size="17" class="text-[#737780] transition-transform" :class="openDropdown === 'institution' ? 'rotate-180' : ''" />
+                  </button>
+                  <div v-if="openDropdown === 'institution'" class="select-menu" role="listbox" aria-labelledby="f-institution-label">
+                    <button v-for="institution in INSTITUTIONS" :key="institution" type="button" role="option" :aria-selected="form.institution === institution" class="select-option" :class="form.institution === institution ? 'select-option-active' : ''" @click="chooseOption('institution', institution)">{{ institution }}<Check v-if="form.institution === institution" :size="16" /></button>
+                  </div>
+                </div>
               </div>
               <div class="sm:col-span-4">
-                <label class="lbl" for="f-course_programme">Course or programme <span class="req" aria-hidden="true">*</span></label>
-                <input id="f-course_programme" v-model="form.course_programme" class="inp" type="text" autocomplete="off" required />
+                <label id="f-course_programme-label" class="lbl">Course or programme <span class="req" aria-hidden="true">*</span></label>
+                <div class="relative" data-client-dropdown>
+                  <button id="f-course_programme" type="button" class="select-control" :class="form.course_programme ? '' : 'select-placeholder'" :aria-labelledby="'f-course_programme-label f-course_programme-value'" :aria-expanded="openDropdown === 'course_programme'" aria-haspopup="listbox" @click="toggleDropdown('course_programme')" @keydown.esc="openDropdown = ''">
+                    <span id="f-course_programme-value">{{ form.course_programme || 'Select course or programme' }}</span><ChevronDown :size="17" class="text-[#737780] transition-transform" :class="openDropdown === 'course_programme' ? 'rotate-180' : ''" />
+                  </button>
+                  <div v-if="openDropdown === 'course_programme'" class="select-menu" role="listbox" aria-labelledby="f-course_programme-label">
+                    <button v-for="course in COURSES" :key="course" type="button" role="option" :aria-selected="form.course_programme === course" class="select-option" :class="form.course_programme === course ? 'select-option-active' : ''" @click="chooseOption('course_programme', course)">{{ course }}<Check v-if="form.course_programme === course" :size="16" /></button>
+                  </div>
+                </div>
               </div>
               <div class="sm:col-span-2">
                 <label id="f-year_of_study-label" class="lbl">Year of study <span class="req" aria-hidden="true">*</span></label>
@@ -301,6 +315,19 @@ const back = computed(() => (isNew.value ? (isProgrammeManager.value ? { name: "
 const TEXT = ["full_name", "phone_number", "email", "gender", "disability_type", "institution", "institution_county",
 	"course_programme", "county_location", "programme_stream", "referral_source", "referral_source_other"]
 const NUMBERS = ["age", "year_of_study"]
+const INSTITUTIONS = [
+	"Mary Immaculate Teachers Training college",
+	"Meru National Polytechnic",
+	"Nakuru Teachers Training college",
+	"Nyandarua National Polytechnic",
+	"Nyeri National Polytechnic",
+]
+const COURSES = [
+	"Diploma in Primary Teacher Education (DPTE)",
+	"Diploma in Electricals and Electronics Engineering",
+	"Diploma in Building Technician",
+	"Diploma in Automotive Engineering Technician",
+]
 const YEAR_OF_STUDY = Array.from({ length: 10 }, (_, index) => ({ label: String(index + 1), value: index + 1 }))
 const CHECKS = ["disability_status", "refugee_status"]
 
