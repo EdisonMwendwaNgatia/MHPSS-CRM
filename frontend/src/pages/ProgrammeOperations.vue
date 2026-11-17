@@ -215,13 +215,13 @@
 									<div v-if="wellbeingScore !== null" class="rounded-xl border border-[#E4E6EA] bg-white p-4 sm:p-5">
 										<div class="flex items-end justify-between gap-3">
 											<div>
-												<p class="text-[11px] font-semibold uppercase tracking-wide text-[#858891]">Wellbeing self-rating</p>
-												<p class="mt-1 text-[28px] font-semibold leading-none tabular-nums text-[#25272B]">{{ wellbeingScore }}<span class="text-base font-medium text-[#858891]"> / 10</span></p>
+											<p class="text-[11px] font-semibold uppercase tracking-wide text-[#858891]">Wellbeing rating</p>
+											<p class="mt-1 text-[28px] font-semibold leading-none text-[#25272B]">{{ wellbeingScore }}</p>
 											</div>
 											<p v-if="baselineSurvey.stress_frequency" class="text-right text-xs text-[#737780]">Recent stress<span class="mt-0.5 block text-sm font-semibold text-[#33353A]">{{ baselineSurvey.stress_frequency }}</span></p>
 										</div>
-										<div class="mt-4 h-2 overflow-hidden rounded-full bg-[#E4E6EA]">
-											<div class="h-full rounded-full bg-[#C8102E] transition-all" :style="{ width: `${Math.min(100, wellbeingScore * 10)}%` }"></div>
+										<div v-if="wellbeingProgress !== null" class="mt-4 h-2 overflow-hidden rounded-full bg-[#E4E6EA]">
+											<div class="h-full rounded-full bg-[#C8102E] transition-all" :style="{ width: `${wellbeingProgress}%` }"></div>
 										</div>
 									</div>
 
@@ -538,12 +538,12 @@ function archivedBaselineRows(survey) {
 	return [
 		["Consent", survey.consent],
 		["Decline reason", survey.declined_reason],
-		["Wellbeing self-rating", survey.wellbeing_self_rating ? `${survey.wellbeing_self_rating} / 10` : ""],
+		["Wellbeing rating", survey.wellbeing_self_rating || ""],
 		["Recent stress frequency", survey.stress_frequency],
 		["Main concerns", [surveyValue(survey.main_concerns), survey.main_concerns_other ? `Other: ${survey.main_concerns_other}` : ""].filter(Boolean).join(" · ")],
 		["Support available", survey.support_availability],
 		["Coping ability", survey.coping_ability],
-		["Coping behaviour", survey.coping_behaviour === "Other" ? `Other: ${survey.coping_behaviour_other || ""}` : survey.coping_behaviour],
+		["Coping behaviour rating", survey.coping_behaviour],
 		["Preferred support", survey.preferred_support_type],
 		["Interested in support", yesNo(survey.interest_in_support)],
 		["Willing to take part in follow-up", yesNo(survey.willingness_for_followup)],
@@ -553,8 +553,12 @@ function archivedBaselineRows(survey) {
 	]
 }
 const wellbeingScore = computed(() => {
-	const n = Number(baselineSurvey.value?.wellbeing_self_rating)
-	return Number.isFinite(n) && baselineSurvey.value?.wellbeing_self_rating ? n : null
+	return baselineSurvey.value?.wellbeing_self_rating || null
+})
+const wellbeingProgress = computed(() => {
+	const levels = ["Bad", "Fair", "Good", "Very good", "Excellent"]
+	const index = levels.indexOf(wellbeingScore.value)
+	return index < 0 ? null : (index + 1) * 20
 })
 const concernList = computed(() => {
 	const raw = baselineSurvey.value?.main_concerns

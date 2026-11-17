@@ -14,33 +14,34 @@ from krcti_mhpss.utils import COUNSELLOR, KRCTI_PM, WOC_PM, require_roles
 
 
 SHORT_FIELDS = (
-    "stress_frequency", "support_availability", "coping_ability", "coping_behaviour",
+    "wellbeing_self_rating", "stress_frequency", "support_availability", "coping_ability", "coping_behaviour",
     "preferred_support_type", "marital_status", "conflict_exposure",
 )
 LONG_FIELDS = (
     "declined_reason", "main_concerns", "main_concerns_other", "coping_behaviour_other",
     "domestic_situation", "exposure_details",
 )
-NUMBER_FIELDS = ("wellbeing_self_rating", "dependants")
+NUMBER_FIELDS = ("dependants",)
 CHECK_FIELDS = ("interest_in_support", "willingness_for_followup")
 ALLOWED_FIELDS = {"consent", *SHORT_FIELDS, *LONG_FIELDS, *NUMBER_FIELDS, *CHECK_FIELDS}
 REQUIRED_FIELDS = {
-    "wellbeing_self_rating": "Wellbeing self-rating",
+    "wellbeing_self_rating": "Wellbeing rating",
     "stress_frequency": "Recent stress frequency",
     "main_concerns": "Main concerns",
     "support_availability": "Support availability",
     "coping_ability": "Coping ability",
     "preferred_support_type": "Preferred support type",
-    "coping_behaviour": "Coping behaviour",
+    "coping_behaviour": "Coping behaviour rating",
     "marital_status": "Marital status",
     "domestic_situation": "Domestic situation",
     "conflict_exposure": "Conflict or disaster exposure",
 }
 SELECTS = {
-    "stress_frequency": {"Daily", "Weekly", "Monthly", "Rarely"},
-    "support_availability": {"Yes", "No", "Partial"},
-    "coping_ability": {"Strong", "Moderate", "Weak"},
-    "coping_behaviour": {"Talk to friend or family", "Keep it to myself", "Pray/spiritual practice", "Other"},
+    "wellbeing_self_rating": {"Bad", "Fair", "Good", "Very good", "Excellent"},
+    "stress_frequency": {"Never", "Sometimes", "Always"},
+    "support_availability": {"Yes", "No", "Partial", "Not sure"},
+    "coping_ability": {"Bad", "Fair", "Good", "Very good", "Excellent"},
+    "coping_behaviour": {"Bad", "Fair", "Good", "Very good", "Excellent"},
     "preferred_support_type": {"Individual counselling", "Group session", "Stress management", "Peer support", "Referral services", "Psychoeducation"},
     "marital_status": {"Single", "Married", "Separated", "Divorced", "Widowed", "Other"},
     "conflict_exposure": {"Yes", "No", "Prefer not to say"},
@@ -139,24 +140,19 @@ def _validate_answers(data):
         if value not in options:
             frappe.throw(_("Choose a valid option for {0}.").format(key.replace("_", " ")))
         cleaned[key] = value
-    rating = data.get("wellbeing_self_rating")
     dependants = data.get("dependants") or 0
     try:
-        rating, dependants = int(rating), int(dependants or 0)
+        dependants = int(dependants or 0)
     except (TypeError, ValueError):
-        frappe.throw(_("Wellbeing rating and dependants must be whole numbers."))
-    if not 1 <= rating <= 10:
-        frappe.throw(_("Wellbeing self-rating must be between 1 and 10."))
+        frappe.throw(_("Dependants must be a whole number."))
     if dependants < 0:
         frappe.throw(_("Dependants cannot be negative."))
-    cleaned["wellbeing_self_rating"], cleaned["dependants"] = rating, dependants
+    cleaned["dependants"] = dependants
     for key in LONG_FIELDS:
         value = str(data.get(key) or "").strip()
         if len(value) > 2000:
             frappe.throw(_("{0} cannot exceed 2000 characters.").format(key.replace("_", " ")))
         cleaned[key] = value
-    if cleaned["coping_behaviour"] == "Other" and not cleaned["coping_behaviour_other"]:
-        frappe.throw(_("Describe the other coping mechanism."))
     concerns = [part.strip() for part in cleaned["main_concerns"].split(",") if part.strip()]
     allowed_concerns = {"Academic pressure", "Financial challenges", "Family issues", "Relationships", "Loneliness", "Health Concerns", "Substance/Gambling", "Other"}
     if not concerns or any(item not in allowed_concerns for item in concerns):

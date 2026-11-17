@@ -35,7 +35,7 @@
 				<p class="mt-1 text-sm text-[#5B616B]">This form cycle has been submitted and is locked.</p>
 				<div class="mt-5 grid gap-3 sm:grid-cols-2">
 					<div class="rounded-lg bg-[#F4F5F7] p-4 text-sm"><span class="block text-xs text-[#5B616B]">Consent</span><span class="mt-1 block font-medium">{{ profile.data.survey.consent }}</span></div>
-					<div v-if="profile.data.survey.wellbeing_self_rating" class="rounded-lg bg-[#F4F5F7] p-4 text-sm"><span class="block text-xs text-[#5B616B]">Wellbeing self-rating</span><span class="mt-1 block font-medium">{{ profile.data.survey.wellbeing_self_rating }} / 10</span></div>
+					<div v-if="profile.data.survey.wellbeing_self_rating" class="rounded-lg bg-[#F4F5F7] p-4 text-sm"><span class="block text-xs text-[#5B616B]">Wellbeing rating</span><span class="mt-1 block font-medium">{{ profile.data.survey.wellbeing_self_rating }}</span></div>
 				</div>
 			</div>
 
@@ -102,7 +102,7 @@
 							</div>
 						</div>
 						<div v-else-if="step === 2" class="max-w-xl">
-							<FormControl label="Wellbeing self-rating (1 lowest, 10 highest)" type="select" :options="RATINGS" v-model="form.wellbeing_self_rating" />
+							<FormControl label="Wellbeing rating" type="select" :options="RATINGS" v-model="form.wellbeing_self_rating" />
 							<p v-if="fieldErrors.wellbeing_self_rating" class="mt-1 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.wellbeing_self_rating }}</p>
 						</div>
 						<div v-else-if="step === 3" class="max-w-xl">
@@ -137,10 +137,8 @@
 						<div v-else-if="step === 6" class="max-w-xl space-y-5">
 							<FormControl label="Coping ability" type="select" :options="COPING" v-model="form.coping_ability" />
 							<p v-if="fieldErrors.coping_ability" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.coping_ability }}</p>
-							<FormControl label="Coping behaviour" type="select" :options="COPING_BEHAVIOURS" v-model="form.coping_behaviour" @update:model-value="formError = ''" />
+							<FormControl label="Coping behaviour rating" type="select" :options="COPING_BEHAVIOURS" v-model="form.coping_behaviour" @update:model-value="formError = ''" />
 							<p v-if="fieldErrors.coping_behaviour" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.coping_behaviour }}</p>
-							<FormControl v-if="form.coping_behaviour === 'Other'" label="Specify the coping mechanism" type="textarea" v-model="form.coping_behaviour_other" />
-							<p v-if="fieldErrors.coping_behaviour_other" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.coping_behaviour_other }}</p>
 						</div>
 						<div v-else-if="step === 7" class="max-w-xl space-y-5">
 							<FormControl type="checkbox" label="Interested in MHPSS support" v-model="form.interest_in_support" />
@@ -306,18 +304,11 @@ function submit() {
 			step.value = sectionForField(missing[0] || "main_concerns")
 			return
 		}
-		const rating = Number(form.wellbeing_self_rating)
-		if (!Number.isInteger(rating) || rating < 1 || rating > 10) { fieldErrors.wellbeing_self_rating = "Choose a rating from 1 to 10."; step.value = 2; formError.value = "Correct the highlighted answer."; return }
+		if (!RATINGS.some((option) => option.value === form.wellbeing_self_rating && option.value)) { fieldErrors.wellbeing_self_rating = "Choose a wellbeing rating."; step.value = 2; formError.value = "Correct the highlighted answer."; return }
 		if (form.dependants !== "" && (!Number.isInteger(Number(form.dependants)) || Number(form.dependants) < 0)) { fieldErrors.dependants = "Enter a whole number of zero or more."; step.value = 8; formError.value = "Correct the highlighted answer."; return }
 		const textFields = ["main_concerns", "main_concerns_other", "coping_behaviour_other", "domestic_situation", "exposure_details"]
 		const tooLong = textFields.find((key) => String(form[key] || "").length > 2000)
 		if (tooLong) { fieldErrors[tooLong] = "Keep this answer to 2000 characters or fewer."; step.value = sectionForField(tooLong); formError.value = "Correct the highlighted answer."; return }
-	}
-	if (form.consent === "Consented" && form.coping_behaviour === "Other" && !form.coping_behaviour_other.trim()) {
-		step.value = 6
-		fieldErrors.coping_behaviour_other = "Describe the other coping mechanism."
-		formError.value = "Describe the other coping mechanism before submitting."
-		return
 	}
 	if (form.consent === "Consented" && selectedMainConcerns.value.includes("Other") && !form.main_concerns_other.trim()) {
 		step.value = 4
@@ -341,11 +332,11 @@ function confirmSubmit() {
 	if (form.consent === "Declined") {
 		data.declined_reason = form.declined_reason
 	} else {
-		for (const key of ["stress_frequency", "main_concerns_other", "support_availability", "coping_ability", "coping_behaviour", "coping_behaviour_other", "preferred_support_type", "marital_status", "domestic_situation", "conflict_exposure", "exposure_details"]) {
+		for (const key of ["stress_frequency", "main_concerns_other", "support_availability", "coping_ability", "coping_behaviour", "preferred_support_type", "marital_status", "domestic_situation", "conflict_exposure", "exposure_details"]) {
 			data[key] = form[key]
 		}
 		data.main_concerns = selectedMainConcerns.value.join(", ")
-		data.wellbeing_self_rating = form.wellbeing_self_rating === "" ? "" : Number(form.wellbeing_self_rating)
+		data.wellbeing_self_rating = form.wellbeing_self_rating
 		data.dependants = form.dependants === "" ? 0 : Number(form.dependants)
 		data.interest_in_support = form.interest_in_support ? 1 : 0
 		data.willingness_for_followup = form.willingness_for_followup ? 1 : 0

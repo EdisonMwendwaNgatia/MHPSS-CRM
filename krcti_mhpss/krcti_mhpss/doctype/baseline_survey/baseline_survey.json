@@ -3,6 +3,7 @@
  "name": "Baseline Survey",
  "module": "Krcti Mhpss",
  "custom": 0,
+ "allow_import": 1,
  "engine": "InnoDB",
  "naming_rule": "Expression",
  "sort_field": "modified",
@@ -179,14 +180,15 @@
   },
   {
    "fieldname": "wellbeing_self_rating",
-   "fieldtype": "Int",
-   "label": "Wellbeing self-rating (1 lowest, 10 highest)"
+   "fieldtype": "Select",
+   "label": "Wellbeing rating",
+   "options": "\nBad\nFair\nGood\nVery good\nExcellent"
   },
   {
    "fieldname": "stress_frequency",
    "fieldtype": "Select",
    "label": "Recent stress frequency",
-   "options": "\nDaily\nWeekly\nMonthly\nRarely"
+   "options": "\nNever\nSometimes\nAlways"
   },
   {
    "fieldname": "main_concerns",
@@ -208,19 +210,19 @@
    "fieldname": "support_availability",
    "fieldtype": "Select",
    "label": "Support available to the client",
-   "options": "\nYes\nNo\nPartial"
+   "options": "\nYes\nNo\nPartial\nNot sure"
   },
   {
    "fieldname": "coping_ability",
    "fieldtype": "Select",
    "label": "Coping ability",
-   "options": "\nStrong\nModerate\nWeak"
+   "options": "\nBad\nFair\nGood\nVery good\nExcellent"
   },
   {
    "fieldname": "coping_behaviour",
    "fieldtype": "Select",
-   "label": "Coping behaviour",
-   "options": "\nTalk to friend or family\nKeep it to myself\nPray/spiritual practice\nOther"
+   "label": "Coping behaviour rating",
+   "options": "\nBad\nFair\nGood\nVery good\nExcellent"
   },
   {
    "fieldname": "coping_behaviour_other",
@@ -317,6 +319,8 @@
    "role": "System Manager",
    "permlevel": 0,
    "read": 1,
+   "create": 1,
+   "import": 1,
    "report": 1,
    "export": 1,
    "share": 1,

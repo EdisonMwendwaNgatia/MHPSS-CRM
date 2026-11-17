@@ -6,13 +6,13 @@ from frappe.utils import cint, now_datetime
 from krcti_mhpss.utils import is_admin
 
 REQUIRED = {
-    "wellbeing_self_rating": "Wellbeing self-rating",
+    "wellbeing_self_rating": "Wellbeing rating",
     "stress_frequency": "Recent stress frequency",
     "main_concerns": "Main concerns",
     "support_availability": "Support availability",
     "coping_ability": "Coping ability",
     "preferred_support_type": "Preferred support type",
-    "coping_behaviour": "Coping behaviour",
+    "coping_behaviour": "Coping behaviour rating",
     "marital_status": "Marital status",
     "domestic_situation": "Domestic situation",
     "conflict_exposure": "Conflict or disaster exposure",
@@ -82,16 +82,14 @@ class BaselineSurvey(Document):
     def check_values(self):
         if self.consent != "Consented":
             return
-        rating = cint(self.wellbeing_self_rating)
-        if not 1 <= rating <= 10:
-            frappe.throw(_("The wellbeing self-rating must be between 1 and 10."))
         if cint(self.dependants) < 0:
             frappe.throw(_("Dependants cannot be negative."))
         options = {
-            "stress_frequency": {"Daily", "Weekly", "Monthly", "Rarely"},
-            "support_availability": {"Yes", "No", "Partial"},
-            "coping_ability": {"Strong", "Moderate", "Weak"},
-            "coping_behaviour": {"Talk to friend or family", "Keep it to myself", "Pray/spiritual practice", "Other"},
+            "wellbeing_self_rating": {"Bad", "Fair", "Good", "Very good", "Excellent"},
+            "stress_frequency": {"Never", "Sometimes", "Always"},
+            "support_availability": {"Yes", "No", "Partial", "Not sure"},
+            "coping_ability": {"Bad", "Fair", "Good", "Very good", "Excellent"},
+            "coping_behaviour": {"Bad", "Fair", "Good", "Very good", "Excellent"},
             "preferred_support_type": {"Individual counselling", "Group session", "Stress management", "Peer support", "Referral services", "Psychoeducation"},
             "marital_status": {"Single", "Married", "Separated", "Divorced", "Widowed", "Other"},
             "conflict_exposure": {"Yes", "No", "Prefer not to say"},
@@ -102,8 +100,6 @@ class BaselineSurvey(Document):
         for field in ("declined_reason", "main_concerns", "main_concerns_other", "coping_behaviour_other", "domestic_situation", "exposure_details"):
             if len(str(self.get(field) or "")) > 2000:
                 frappe.throw(_("{0} cannot exceed 2000 characters.").format(field.replace("_", " ")))
-        if self.coping_behaviour == "Other" and not (self.coping_behaviour_other or "").strip():
-            frappe.throw(_("Describe the other coping mechanism."))
         concerns = [part.strip() for part in str(self.main_concerns or "").split(",") if part.strip()]
         valid_concerns = {"Academic pressure", "Financial challenges", "Family issues", "Relationships", "Loneliness", "Health Concerns", "Substance/Gambling", "Other"}
         if not concerns or any(item not in valid_concerns for item in concerns):
