@@ -186,7 +186,6 @@
    "fieldtype": "Link",
    "label": "Study Programme",
    "options": "Study Programme",
-   "reqd": 1,
    "in_standard_filter": 1
   },
   {

@@ -203,10 +203,10 @@
                 </div>
               </div>
               <div class="sm:col-span-3">
-                <label id="f-study_programme-label" class="lbl">Client programme <span class="req" aria-hidden="true">*</span></label>
+                <label id="f-study_programme-label" class="lbl">Client programme <span class="text-xs font-normal text-[#858891]">(optional)</span></label>
                 <div class="relative" data-client-dropdown>
                   <button id="f-study_programme" type="button" class="select-control" :class="form.study_programme ? '' : 'select-placeholder'" :aria-labelledby="'f-study_programme-label f-study_programme-value'" :aria-expanded="openDropdown === 'study_programme'" aria-haspopup="listbox" @click="toggleDropdown('study_programme')" @keydown.esc="openDropdown = ''">
-                    <span id="f-study_programme-value">{{ form.study_programme || 'Select client programme' }}</span><ChevronDown :size="17" class="text-[#737780] transition-transform" :class="openDropdown === 'study_programme' ? 'rotate-180' : ''" />
+                    <span id="f-study_programme-value">{{ form.study_programme || 'Select client programme (optional)' }}</span><ChevronDown :size="17" class="text-[#737780] transition-transform" :class="openDropdown === 'study_programme' ? 'rotate-180' : ''" />
                   </button>
                   <div v-if="openDropdown === 'study_programme'" class="select-menu" role="listbox" aria-labelledby="f-study_programme-label">
                     <button v-for="programme in masterOptions.programmes" :key="programme" type="button" role="option" :aria-selected="form.study_programme === programme" class="select-option" :class="form.study_programme === programme ? 'select-option-active' : ''" @click="chooseOption('study_programme', programme)">{{ programme }}<Check v-if="form.study_programme === programme" :size="16" /></button>
@@ -474,7 +474,7 @@ function save() {
 		formError.value = ageError.value
 		return
 	}
-	if (!form.gender || !form.institution || !form.course_programme || !form.study_program || !form.study_programme || !form.year_of_study ||
+	if (!form.gender || !form.institution || !form.course_programme || !form.study_program || !form.year_of_study ||
 		Number(form.year_of_study) < 1 || Number(form.year_of_study) > 10 || !form.institution_county || !form.county_location) {
 		formError.value = "Complete the required identity, education, and county fields before saving."
 		return
