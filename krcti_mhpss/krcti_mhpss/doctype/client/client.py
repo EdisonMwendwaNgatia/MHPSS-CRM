@@ -9,19 +9,6 @@ from frappe.utils import cint
 from krcti_mhpss.utils import COUNSELLOR, get_active_cohort, is_admin, is_counsellor, normalize_phone
 
 CODE = re.compile(r"^WoCS_C([1-9])(\d{2})$")
-INSTITUTIONS = {
-    "Mary Immaculate Teachers Training college",
-    "Meru National Polytechnic",
-    "Nakuru Teachers Training college",
-    "Nyandarua National Polytechnic",
-    "Nyeri National Polytechnic",
-}
-COURSES = {
-    "Diploma in Primary Teacher Education (DPTE)",
-    "Diploma in Electricals and Electronics Engineering",
-    "Diploma in Building Technician",
-    "Diploma in Automotive Engineering Technician",
-}
 STUDY_PROGRAMS = {"Teaching", "Engineering"}
 
 
@@ -67,6 +54,7 @@ class Client(Document):
 
     def validate(self):
         self.tidy()
+        self.check_active_master_links()
         self.check_immutable()
         self.check_code()
         self.check_values()
@@ -82,8 +70,42 @@ class Client(Document):
         self.email = " ".join((self.email or "").split()).lower()
         if self.email and not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", self.email):
             frappe.throw(_("Enter a valid email address or leave it blank."))
-        self.institution = " ".join((self.institution or "").split())
         self.phone_number = normalize_phone(self.phone_number)
+
+    def check_active_master_links(self):
+        before = self.get_doc_before_save()
+
+        fields = {
+            "institution": "Institution",
+            "course_programme": "Course Programme",
+            "study_programme": "Study Programme",
+        }
+
+        for fieldname, doctype in fields.items():
+            value = self.get(fieldname)
+            if not value:
+                continue
+
+            previous_value = before.get(fieldname) if before else None
+
+            # Preserve unchanged historical values, including inactive options.
+            if before and previous_value == value:
+                continue
+
+            is_active = frappe.db.get_value(doctype, value, "is_active")
+            if is_active is None:
+                frappe.throw(
+                    _("{0} does not exist. Select a valid option.").format(
+                        _(fieldname.replace("_", " ").title())
+                    )
+                )
+
+            if not cint(is_active):
+                frappe.throw(
+                    _("{0} is inactive. Select an active option.").format(
+                        _(fieldname.replace("_", " ").title())
+                    )
+                )
 
     def check_immutable(self):
         before = self.get_doc_before_save()
@@ -142,18 +164,23 @@ class Client(Document):
             self.referral_source_other = ""
 
     def check_institution(self):
-        before = self.get_doc_before_save()
-        # Preserve historical values, but require the approved list for new records
-        # and whenever the institution is changed.
-        if (not before or before.institution != self.institution) and self.institution not in INSTITUTIONS:
-            frappe.throw(_("Choose a college or learning institution from the approved list."))
+        self.check_active_master("institution", "Institution")
 
     def check_course_programme(self):
+        self.check_active_master("course_programme", "Course Programme")
+
+    def check_active_master(self, fieldname, doctype):
+        value = self.get(fieldname)
+        if not value:
+            return
         before = self.get_doc_before_save()
-        # Preserve historical values, but require the approved list for new records
-        # and whenever the course or programme is changed.
-        if (not before or before.course_programme != self.course_programme) and self.course_programme not in COURSES:
-            frappe.throw(_("Choose a course or programme from the approved list."))
+        if before and before.get(fieldname) == value:
+            return
+        is_active = frappe.db.get_value(doctype, value, "is_active")
+        if is_active is None:
+            frappe.throw(_("{0} does not exist. Select a valid option.").format(_(fieldname.replace("_", " ").title())))
+        if not cint(is_active):
+            frappe.throw(_("{0} is inactive. Select an active option.").format(_(fieldname.replace("_", " ").title())))
 
     def check_study_program(self):
         before = self.get_doc_before_save()

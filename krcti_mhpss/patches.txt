@@ -6,3 +6,5 @@
 # Patches added in this section will be executed after doctypes are migrated
 krcti_mhpss.patches.create_roles
 krcti_mhpss.patches.configure_security
+
+krcti_mhpss.patches.seed_programme_masters

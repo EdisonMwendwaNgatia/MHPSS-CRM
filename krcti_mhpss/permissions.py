@@ -142,9 +142,14 @@ def validate_user_roles(doc, method=None):
     # and every role on the site. Preserve that built-in full-access behavior.
     if any(row.role == "System Manager" for row in doc.roles):
         return
-    held = sorted({row.role for row in doc.roles} & set(SINGLE_ROLES))
-    if len(held) > 1:
-        frappe.throw(_("Each user holds exactly one role. This user has: {0}.").format(", ".join(held)))
+    held = {row.role for row in doc.roles} & set(SINGLE_ROLES)
+
+    # Shared partnership managers may manage both programme portfolios.
+    allowed_shared_roles = {"KRCTI Programme Manager", "WoC Programme Manager"}
+    if len(held) > 1 and held != allowed_shared_roles:
+        frappe.throw(
+            _("Users may hold one role, except shared managers who may hold both programme manager roles.")
+        )
 
 
 def validate_user_password(doc, method=None):
@@ -229,3 +234,24 @@ def log_appointment_activity(doc, method=None):
         write_audit_log("Appointment reassigned", doc.name, "Session management")
     elif any(before.get(field) != doc.get(field) for field in ("date_time", "duration_minutes", "session_type", "mode_of_contact", "location", "notes")):
         write_audit_log("Appointment updated", doc.name, "Appointments")
+
+
+# ---- active options for administrator-maintained master DocTypes ----
+
+def _active_master_conditions(doctype, user=None):
+    user = user or frappe.session.user
+    if is_admin(user):
+        return ""
+    return f"`tab{doctype}`.`is_active` = 1"
+
+
+def institution_conditions(user=None):
+    return _active_master_conditions("Institution", user)
+
+
+def course_programme_conditions(user=None):
+    return _active_master_conditions("Course Programme", user)
+
+
+def study_programme_conditions(user=None):
+    return _active_master_conditions("Study Programme", user)

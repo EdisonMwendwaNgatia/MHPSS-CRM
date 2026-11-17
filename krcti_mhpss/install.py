@@ -30,7 +30,7 @@ def ensure_custom_fields():
         "fieldname": "krcti_programme_scope",
         "label": "KRCTI Programme Scope",
         "fieldtype": "Select",
-        "options": "KRCTI\nWoC",
+        "options": "KRCTI\nWoC\nBoth",
         "insert_after": "user_type",
         "default": "KRCTI",
         "no_copy": 1,

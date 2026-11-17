@@ -31,6 +31,7 @@
   "institution_county",
   "col_3",
   "county_location",
+  "study_programme",
   "programme_stream",
   "referral_source",
   "referral_source_other",
@@ -136,18 +137,18 @@
   },
   {
    "fieldname": "institution",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "College or learning institution",
-   "options": "\nMary Immaculate Teachers Training college\nMeru National Polytechnic\nNakuru Teachers Training college\nNyandarua National Polytechnic\nNyeri National Polytechnic",
    "reqd": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "options": "Institution"
   },
   {
    "fieldname": "course_programme",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Course or programme",
-   "options": "\nDiploma in Primary Teacher Education (DPTE)\nDiploma in Electricals and Electronics Engineering\nDiploma in Building Technician\nDiploma in Automotive Engineering Technician",
-   "reqd": 1
+   "reqd": 1,
+   "options": "Course Programme"
   },
   {
    "fieldname": "study_program",
@@ -179,6 +180,14 @@
    "label": "County location",
    "options": "\nBaringo\nBomet\nBungoma\nBusia\nElgeyo-Marakwet\nEmbu\nGarissa\nHoma Bay\nIsiolo\nKajiado\nKakamega\nKericho\nKiambu\nKilifi\nKirinyaga\nKisii\nKisumu\nKitui\nKwale\nLaikipia\nLamu\nMachakos\nMakueni\nMandera\nMarsabit\nMeru\nMigori\nMombasa\nMurang'a\nNairobi\nNakuru\nNandi\nNarok\nNyamira\nNyandarua\nNyeri\nSamburu\nSiaya\nTaita-Taveta\nTana River\nTharaka-Nithi\nTrans Nzoia\nTurkana\nUasin Gishu\nVihiga\nWajir\nWest Pokot",
    "reqd": 1
+  },
+  {
+   "fieldname": "study_programme",
+   "fieldtype": "Link",
+   "label": "Study Programme",
+   "options": "Study Programme",
+   "reqd": 1,
+   "in_standard_filter": 1
   },
   {
    "fieldname": "programme_stream",

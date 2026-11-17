@@ -145,7 +145,7 @@
         </section>
 
         <!-- Education -->
-        <section class="overflow-visible rounded-xl border border-[#E4E6EA] bg-white" :class="['institution', 'course_programme', 'study_program', 'institution_county', 'year_of_study'].includes(openDropdown) ? 'relative z-20' : ''">
+        <section class="overflow-visible rounded-xl border border-[#E4E6EA] bg-white" :class="['institution', 'course_programme', 'study_program', 'study_programme', 'institution_county', 'year_of_study'].includes(openDropdown) ? 'relative z-20' : ''">
           <div class="grid gap-x-8 gap-y-5 px-5 py-6 sm:px-6 lg:grid-cols-[210px_minmax(0,1fr)]">
             <div class="flex items-center gap-3 lg:items-start">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#FCE8EB] text-[#A10E24]"><GraduationCap :size="19" /></span>
@@ -163,7 +163,8 @@
                     <span id="f-institution-value">{{ form.institution || 'Select institution' }}</span><ChevronDown :size="17" class="text-[#737780] transition-transform" :class="openDropdown === 'institution' ? 'rotate-180' : ''" />
                   </button>
                   <div v-if="openDropdown === 'institution'" class="select-menu" role="listbox" aria-labelledby="f-institution-label">
-                    <button v-for="institution in INSTITUTIONS" :key="institution" type="button" role="option" :aria-selected="form.institution === institution" class="select-option" :class="form.institution === institution ? 'select-option-active' : ''" @click="chooseOption('institution', institution)">{{ institution }}<Check v-if="form.institution === institution" :size="16" /></button>
+                    <button v-for="institution in masterOptions.institutions" :key="institution" type="button" role="option" :aria-selected="form.institution === institution" class="select-option" :class="form.institution === institution ? 'select-option-active' : ''" @click="chooseOption('institution', institution)">{{ institution }}<Check v-if="form.institution === institution" :size="16" /></button>
+                    <p v-if="!masterOptions.institutions.length" class="select-empty">No active institutions are available.</p>
                   </div>
                 </div>
               </div>
@@ -174,7 +175,8 @@
                     <span id="f-course_programme-value">{{ form.course_programme || 'Select course or programme' }}</span><ChevronDown :size="17" class="text-[#737780] transition-transform" :class="openDropdown === 'course_programme' ? 'rotate-180' : ''" />
                   </button>
                   <div v-if="openDropdown === 'course_programme'" class="select-menu" role="listbox" aria-labelledby="f-course_programme-label">
-                    <button v-for="course in COURSES" :key="course" type="button" role="option" :aria-selected="form.course_programme === course" class="select-option" :class="form.course_programme === course ? 'select-option-active' : ''" @click="chooseOption('course_programme', course)">{{ course }}<Check v-if="form.course_programme === course" :size="16" /></button>
+                    <button v-for="course in masterOptions.courses" :key="course" type="button" role="option" :aria-selected="form.course_programme === course" class="select-option" :class="form.course_programme === course ? 'select-option-active' : ''" @click="chooseOption('course_programme', course)">{{ course }}<Check v-if="form.course_programme === course" :size="16" /></button>
+                    <p v-if="!masterOptions.courses.length" class="select-empty">No active courses are available.</p>
                   </div>
                 </div>
               </div>
@@ -197,6 +199,18 @@
                   </button>
                   <div v-if="openDropdown === 'study_program'" class="select-menu" role="listbox" aria-labelledby="f-study_program-label">
                     <button v-for="program in STUDY_PROGRAMS" :key="program" type="button" role="option" :aria-selected="form.study_program === program" class="select-option" :class="form.study_program === program ? 'select-option-active' : ''" @click="chooseOption('study_program', program)">{{ program }}<Check v-if="form.study_program === program" :size="16" /></button>
+                  </div>
+                </div>
+              </div>
+              <div class="sm:col-span-3">
+                <label id="f-study_programme-label" class="lbl">Client programme <span class="req" aria-hidden="true">*</span></label>
+                <div class="relative" data-client-dropdown>
+                  <button id="f-study_programme" type="button" class="select-control" :class="form.study_programme ? '' : 'select-placeholder'" :aria-labelledby="'f-study_programme-label f-study_programme-value'" :aria-expanded="openDropdown === 'study_programme'" aria-haspopup="listbox" @click="toggleDropdown('study_programme')" @keydown.esc="openDropdown = ''">
+                    <span id="f-study_programme-value">{{ form.study_programme || 'Select client programme' }}</span><ChevronDown :size="17" class="text-[#737780] transition-transform" :class="openDropdown === 'study_programme' ? 'rotate-180' : ''" />
+                  </button>
+                  <div v-if="openDropdown === 'study_programme'" class="select-menu" role="listbox" aria-labelledby="f-study_programme-label">
+                    <button v-for="programme in masterOptions.programmes" :key="programme" type="button" role="option" :aria-selected="form.study_programme === programme" class="select-option" :class="form.study_programme === programme ? 'select-option-active' : ''" @click="chooseOption('study_programme', programme)">{{ programme }}<Check v-if="form.study_programme === programme" :size="16" /></button>
+                    <p v-if="!masterOptions.programmes.length" class="select-empty">No active programmes are available.</p>
                   </div>
                 </div>
               </div>
@@ -324,21 +338,8 @@ const isProgrammeManager = computed(() => ["krcti_pm", "woc_pm"].includes(role.v
 const back = computed(() => (isNew.value ? (isProgrammeManager.value ? { name: "ProgrammeClients" } : { name: "Clients" }) : { name: "ClientProfile", params: { name: clientName.value } }))
 
 const TEXT = ["full_name", "phone_number", "email", "gender", "disability_type", "institution", "institution_county",
-	"course_programme", "study_program", "county_location", "programme_stream", "referral_source", "referral_source_other"]
+	"course_programme", "study_program", "study_programme", "county_location", "programme_stream", "referral_source", "referral_source_other"]
 const NUMBERS = ["age", "year_of_study"]
-const INSTITUTIONS = [
-	"Mary Immaculate Teachers Training college",
-	"Meru National Polytechnic",
-	"Nakuru Teachers Training college",
-	"Nyandarua National Polytechnic",
-	"Nyeri National Polytechnic",
-]
-const COURSES = [
-	"Diploma in Primary Teacher Education (DPTE)",
-	"Diploma in Electricals and Electronics Engineering",
-	"Diploma in Building Technician",
-	"Diploma in Automotive Engineering Technician",
-]
 const STUDY_PROGRAMS = ["Teaching", "Engineering"]
 const YEAR_OF_STUDY = Array.from({ length: 10 }, (_, index) => ({ label: String(index + 1), value: index + 1 }))
 const CHECKS = ["disability_status", "refugee_status"]
@@ -357,6 +358,7 @@ const openDropdown = ref("")
 const formError = ref("")
 const cohortLoading = ref(false)
 const countySearch = reactive({ institution_county: "", county_location: "" })
+const masterOptions = reactive({ institutions: [], courses: [], programmes: [] })
 const ageError = computed(() => {
 	if (form.age === "" || form.age === null) return ""
 	const age = Number(form.age)
@@ -410,7 +412,17 @@ const registrationSettings = createResource({
 	},
 })
 
-	onMounted(() => {
+const clientMasterOptions = createResource({
+	url: "krcti_mhpss.api.records.client_master_options",
+	onSuccess(data) {
+		masterOptions.institutions = data.institutions || []
+		masterOptions.courses = data.courses || []
+		masterOptions.programmes = data.programmes || []
+	},
+})
+
+onMounted(() => {
+	clientMasterOptions.submit()
 	if (isNew.value) {
 		cohortLoading.value = true
 		registrationSettings.submit()
@@ -462,7 +474,7 @@ function save() {
 		formError.value = ageError.value
 		return
 	}
-	if (!form.gender || !form.institution.trim() || !form.course_programme.trim() || !form.study_program || !form.year_of_study ||
+	if (!form.gender || !form.institution || !form.course_programme || !form.study_program || !form.study_programme || !form.year_of_study ||
 		Number(form.year_of_study) < 1 || Number(form.year_of_study) > 10 || !form.institution_county || !form.county_location) {
 		formError.value = "Complete the required identity, education, and county fields before saving."
 		return
