@@ -285,6 +285,9 @@ permission_query_conditions = {
     "Client": "krcti_mhpss.permissions.client_conditions",
     "Baseline Survey": "krcti_mhpss.permissions.baseline_conditions",
     "Appointment": "krcti_mhpss.permissions.appointment_conditions",
+    "Institution": "krcti_mhpss.permissions.institution_conditions",
+    "Course Programme": "krcti_mhpss.permissions.course_programme_conditions",
+    "Study Programme": "krcti_mhpss.permissions.study_programme_conditions",
 }
 
 has_permission = {

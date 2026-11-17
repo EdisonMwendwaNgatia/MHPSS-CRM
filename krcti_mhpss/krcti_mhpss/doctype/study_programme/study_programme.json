@@ -1,0 +1,70 @@
+{
+ "doctype": "DocType",
+ "name": "Study Programme",
+ "module": "Krcti Mhpss",
+ "custom": 0,
+ "autoname": "field:study_programme_name",
+ "engine": "InnoDB",
+ "track_changes": 1,
+ "field_order": [
+  "study_programme_name",
+  "is_active"
+ ],
+ "fields": [
+  {
+   "fieldname": "study_programme_name",
+   "fieldtype": "Data",
+   "label": "Study Programme Name",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active",
+   "default": "1",
+   "in_list_view": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "KRCTI System Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "MHPSS Counsellor",
+   "read": 1
+  },
+  {
+   "role": "KRCTI Programme Manager",
+   "read": 1
+  },
+  {
+   "role": "WoC Programme Manager",
+   "read": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

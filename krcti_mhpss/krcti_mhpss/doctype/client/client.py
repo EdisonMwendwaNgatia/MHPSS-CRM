@@ -45,6 +45,7 @@ class Client(Document):
 
     def validate(self):
         self.tidy()
+        self.check_active_master_links()
         self.check_immutable()
         self.check_code()
         self.check_values()
@@ -57,8 +58,42 @@ class Client(Document):
         self.email = " ".join((self.email or "").split()).lower()
         if self.email and not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", self.email):
             frappe.throw(_("Enter a valid email address or leave it blank."))
-        self.institution = " ".join((self.institution or "").split())
         self.phone_number = normalize_phone(self.phone_number)
+
+    def check_active_master_links(self):
+        before = self.get_doc_before_save()
+
+        fields = {
+            "institution": "Institution",
+            "course_programme": "Course Programme",
+            "study_programme": "Study Programme",
+        }
+
+        for fieldname, doctype in fields.items():
+            value = self.get(fieldname)
+            if not value:
+                continue
+
+            previous_value = before.get(fieldname) if before else None
+
+            # Preserve unchanged historical values, including inactive options.
+            if before and previous_value == value:
+                continue
+
+            is_active = frappe.db.get_value(doctype, value, "is_active")
+            if is_active is None:
+                frappe.throw(
+                    _("{0} does not exist. Select a valid option.").format(
+                        _(fieldname.replace("_", " ").title())
+                    )
+                )
+
+            if not cint(is_active):
+                frappe.throw(
+                    _("{0} is inactive. Select an active option.").format(
+                        _(fieldname.replace("_", " ").title())
+                    )
+                )
 
     def check_immutable(self):
         before = self.get_doc_before_save()
