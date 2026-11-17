@@ -26,6 +26,7 @@
   "sec_programme",
   "institution",
   "course_programme",
+  "study_program",
   "year_of_study",
   "institution_county",
   "col_3",
@@ -149,6 +150,13 @@
    "reqd": 1
   },
   {
+   "fieldname": "study_program",
+   "fieldtype": "Select",
+   "label": "Study programme",
+   "options": "\nTeaching\nEngineering",
+   "reqd": 1
+  },
+  {
    "fieldname": "year_of_study",
    "fieldtype": "Int",
    "label": "Year of study",
@@ -242,6 +250,7 @@
   }
  ],
  "autoname": "format:CL-{#####}",
+ "allow_import": 1,
  "title_field": "full_name",
  "show_title_field_in_link": 1,
  "search_fields": "scholar_code,full_name,phone_number,institution"

@@ -491,6 +491,7 @@ const clientInfo = computed(() => {
 		{ label: "Age", value: c.age },
 		{ label: "Sex", value: c.gender },
 		{ label: "Institution", value: c.institution },
+		{ label: "Study programme", value: c.study_program },
 		{ label: "Counsellor", value: c.assigned_counsellor },
 		{ label: "Referral source", value: joinParts([c.referral_source, c.referral_source_other], " — ") },
 	]

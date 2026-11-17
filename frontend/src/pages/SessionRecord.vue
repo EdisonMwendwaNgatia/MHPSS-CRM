@@ -2,6 +2,7 @@
 	<main class="min-h-[calc(100vh-68px)] bg-[#F4F5F7] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
 		<div class="mx-auto max-w-[1440px]">
 			<PageLoader v-if="resource.loading && !resource.data" />
+			<ErrorMessage v-else-if="resource.error" :message="resource.error" />
 
 			<template v-else-if="record">
 				<!-- Breadcrumb -->
@@ -406,7 +407,9 @@
 				</div>
 			</template>
 
-			<ErrorMessage v-else :message="resource.error" />
+			<div v-else-if="!resource.loading" class="rounded-xl border border-[#E4E6EA] bg-white p-6 text-sm text-[#5B616B]">
+				Session details could not be loaded.
+			</div>
 		</div>
 	</main>
 </template>

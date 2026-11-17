@@ -303,6 +303,7 @@ const detailGroups = computed(() => [
 		fields: [
 			{ label: "Institution", value: c.value.institution, wide: true },
 			{ label: "Course / programme", value: c.value.course_programme, wide: true },
+			{ label: "Study programme", value: c.value.study_program },
 			{ label: "Year of study", value: c.value.year_of_study },
 		],
 	},

@@ -22,17 +22,26 @@ COURSES = {
     "Diploma in Building Technician",
     "Diploma in Automotive Engineering Technician",
 }
+STUDY_PROGRAMS = {"Teaching", "Engineering"}
 
 
 class Client(Document):
     def before_insert(self):
-        self.case_status = "Active"
-        if is_counsellor() and not is_admin():
-            self.assigned_counsellor = frappe.session.user
-        # Cohort is a programme-wide setting. Never trust a cohort submitted by a
-        # client form; changing the setting only affects records created from now on.
-        self.cohort = get_active_cohort()
-        self.generate_scholar_code()
+        importing = bool(frappe.flags.in_import)
+        if not importing:
+            self.case_status = "Active"
+            if is_counsellor() and not is_admin():
+                self.assigned_counsellor = frappe.session.user
+            # Cohort is a programme-wide setting. Never trust a cohort submitted by a
+            # client form; changing the setting only affects records created from now on.
+            self.cohort = get_active_cohort()
+
+        # Data Import may carry existing cohort codes. Preserve those values; normal
+        # client registration continues to use the active cohort and generated code.
+        if not (importing and self.scholar_code):
+            self.generate_scholar_code()
+        if not self.case_status:
+            self.case_status = "Active"
 
     def generate_scholar_code(self):
         cohort = cint(self.cohort)
@@ -63,6 +72,7 @@ class Client(Document):
         self.check_values()
         self.check_institution()
         self.check_course_programme()
+        self.check_study_program()
         self.check_counsellor()
         self.check_case_status()
 
@@ -118,6 +128,8 @@ class Client(Document):
             frappe.throw(_("Choose a cohort from 1 to 9."))
         if self.cohort and not 1 <= cint(self.cohort) <= 9:
             frappe.throw(_("Cohort must be from 1 to 9."))
+        if self.is_new() and frappe.flags.in_import and frappe.db.count("Client", {"cohort": str(cint(self.cohort))}) >= 99:
+            frappe.throw(_("Cohort {0} already has 99 clients. Activate another cohort before importing more.").format(cint(self.cohort)))
         if not 1 <= cint(self.year_of_study) <= 10:
             frappe.throw(_("Year of study must be between 1 and 10."))
         if not 9 <= len(self.phone_number or "") <= 15:
@@ -142,6 +154,11 @@ class Client(Document):
         # and whenever the course or programme is changed.
         if (not before or before.course_programme != self.course_programme) and self.course_programme not in COURSES:
             frappe.throw(_("Choose a course or programme from the approved list."))
+
+    def check_study_program(self):
+        before = self.get_doc_before_save()
+        if (not before or before.study_program != self.study_program) and self.study_program not in STUDY_PROGRAMS:
+            frappe.throw(_("Choose Teaching or Engineering as the study programme."))
 
     def check_counsellor(self):
         if self.assigned_counsellor:

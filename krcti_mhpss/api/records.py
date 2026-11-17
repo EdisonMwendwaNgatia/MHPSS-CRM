@@ -10,7 +10,7 @@ from krcti_mhpss.utils import ADMIN_ROLE, COUNSELLOR, KRCTI_PM, WOC_PM, is_admin
 
 CLIENT_TEXT = (
     "full_name", "phone_number", "email", "gender", "disability_type", "institution", "institution_county", "course_programme",
-    "county_location", "programme_stream", "referral_source", "referral_source_other",
+    "study_program", "county_location", "programme_stream", "referral_source", "referral_source_other",
 )
 CLIENT_NUMBERS = ("age", "year_of_study")
 CLIENT_CHECKS = ("disability_status", "refugee_status")

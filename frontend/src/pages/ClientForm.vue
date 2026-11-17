@@ -145,7 +145,7 @@
         </section>
 
         <!-- Education -->
-        <section class="overflow-visible rounded-xl border border-[#E4E6EA] bg-white" :class="['institution', 'course_programme', 'institution_county', 'year_of_study'].includes(openDropdown) ? 'relative z-20' : ''">
+        <section class="overflow-visible rounded-xl border border-[#E4E6EA] bg-white" :class="['institution', 'course_programme', 'study_program', 'institution_county', 'year_of_study'].includes(openDropdown) ? 'relative z-20' : ''">
           <div class="grid gap-x-8 gap-y-5 px-5 py-6 sm:px-6 lg:grid-cols-[210px_minmax(0,1fr)]">
             <div class="flex items-center gap-3 lg:items-start">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#FCE8EB] text-[#A10E24]"><GraduationCap :size="19" /></span>
@@ -186,6 +186,17 @@
                   </button>
                   <div v-if="openDropdown === 'year_of_study'" class="select-menu" role="listbox" aria-labelledby="f-year_of_study-label">
                     <button v-for="year in YEAR_OF_STUDY" :key="year.value" type="button" role="option" :aria-selected="Number(form.year_of_study) === year.value" class="select-option" :class="Number(form.year_of_study) === year.value ? 'select-option-active' : ''" @click="chooseOption('year_of_study', year.value)">{{ year.label }}<Check v-if="Number(form.year_of_study) === year.value" :size="16" /></button>
+                  </div>
+                </div>
+              </div>
+              <div class="sm:col-span-3">
+                <label id="f-study_program-label" class="lbl">Study programme <span class="req" aria-hidden="true">*</span></label>
+                <div class="relative" data-client-dropdown>
+                  <button id="f-study_program" type="button" class="select-control" :class="form.study_program ? '' : 'select-placeholder'" :aria-labelledby="'f-study_program-label f-study_program-value'" :aria-expanded="openDropdown === 'study_program'" aria-haspopup="listbox" @click="toggleDropdown('study_program')" @keydown.esc="openDropdown = ''">
+                    <span id="f-study_program-value">{{ form.study_program || 'Select study programme' }}</span><ChevronDown :size="17" class="text-[#737780] transition-transform" :class="openDropdown === 'study_program' ? 'rotate-180' : ''" />
+                  </button>
+                  <div v-if="openDropdown === 'study_program'" class="select-menu" role="listbox" aria-labelledby="f-study_program-label">
+                    <button v-for="program in STUDY_PROGRAMS" :key="program" type="button" role="option" :aria-selected="form.study_program === program" class="select-option" :class="form.study_program === program ? 'select-option-active' : ''" @click="chooseOption('study_program', program)">{{ program }}<Check v-if="form.study_program === program" :size="16" /></button>
                   </div>
                 </div>
               </div>
@@ -313,7 +324,7 @@ const isProgrammeManager = computed(() => ["krcti_pm", "woc_pm"].includes(role.v
 const back = computed(() => (isNew.value ? (isProgrammeManager.value ? { name: "ProgrammeClients" } : { name: "Clients" }) : { name: "ClientProfile", params: { name: clientName.value } }))
 
 const TEXT = ["full_name", "phone_number", "email", "gender", "disability_type", "institution", "institution_county",
-	"course_programme", "county_location", "programme_stream", "referral_source", "referral_source_other"]
+	"course_programme", "study_program", "county_location", "programme_stream", "referral_source", "referral_source_other"]
 const NUMBERS = ["age", "year_of_study"]
 const INSTITUTIONS = [
 	"Mary Immaculate Teachers Training college",
@@ -328,6 +339,7 @@ const COURSES = [
 	"Diploma in Building Technician",
 	"Diploma in Automotive Engineering Technician",
 ]
+const STUDY_PROGRAMS = ["Teaching", "Engineering"]
 const YEAR_OF_STUDY = Array.from({ length: 10 }, (_, index) => ({ label: String(index + 1), value: index + 1 }))
 const CHECKS = ["disability_status", "refugee_status"]
 
@@ -450,7 +462,7 @@ function save() {
 		formError.value = ageError.value
 		return
 	}
-	if (!form.gender || !form.institution.trim() || !form.course_programme.trim() || !form.year_of_study ||
+	if (!form.gender || !form.institution.trim() || !form.course_programme.trim() || !form.study_program || !form.year_of_study ||
 		Number(form.year_of_study) < 1 || Number(form.year_of_study) > 10 || !form.institution_county || !form.county_location) {
 		formError.value = "Complete the required identity, education, and county fields before saving."
 		return

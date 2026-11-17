@@ -6,7 +6,7 @@ from krcti_mhpss.utils import ADMIN_ROLE, COUNSELLOR, is_overdue, normalize_phon
 
 CLIENT_FIELDS = (
     "name", "scholar_code", "cohort", "full_name", "phone_number", "email", "age", "gender", "disability_status",
-    "disability_type", "institution", "course_programme", "year_of_study", "county_location",
+    "disability_type", "institution", "course_programme", "study_program", "year_of_study", "county_location",
     "refugee_status", "programme_stream", "referral_source", "referral_source_other",
     "assigned_counsellor", "case_status",
 )
