@@ -529,6 +529,140 @@ def programme_summary(date_from=None, date_to=None):
     return result
 
 
+def _analysis_distribution(rows, field, split=False):
+    counts = {}
+    for row in rows:
+        value = row.get(field)
+        if value in (None, ""):
+            continue
+        values = value if isinstance(value, (list, tuple)) else [value]
+        if split and isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+                values = parsed if isinstance(parsed, list) else [parsed]
+            except (TypeError, ValueError):
+                values = re.split(r"[,;\n]+", value)
+        for item in values:
+            label = str(item or "").strip()
+            if label:
+                counts[label] = counts.get(label, 0) + 1
+    return dict(sorted(counts.items(), key=lambda item: (-item[1], item[0].casefold())))
+
+
+def _numeric_summary(rows, field):
+    values = []
+    for row in rows:
+        try:
+            value = float(row.get(field))
+        except (TypeError, ValueError):
+            continue
+        if value >= 0:
+            values.append(value)
+    values.sort()
+    n = len(values)
+    if not n:
+        return {"n": 0, "mean": None, "median": None, "min": None, "max": None}
+    middle = n // 2
+    median = values[middle] if n % 2 else (values[middle - 1] + values[middle]) / 2
+    return {"n": n, "mean": round(sum(values) / n, 2), "median": round(median, 2), "min": values[0], "max": values[-1]}
+
+
+@frappe.whitelist()
+def programme_analysis():
+    """Return aggregate-only profile, verified baseline, and completed session analysis."""
+    require_roles(KRCTI_PM, WOC_PM, ADMIN_ROLE)
+    scope = _scope()
+    clients = frappe.get_all(
+        "Client", filters={"programme_stream": ["in", WOC_STREAMS]} if scope == "WoC" else {},
+        fields=["age", "gender", "institution", "year_of_study", "study_program", "course_programme", "study_programme", "programme_stream", "cohort", "institution_county", "county_location", "case_status", "disability_status", "refugee_status", "referral_source", "assigned_counsellor"],
+        limit=0,
+    )
+    total_clients = len(clients)
+    client_analysis = {
+        "total": total_clients,
+        "age": _numeric_summary(clients, "age"),
+        "age_bands": _analysis_distribution([
+            {"age_band": "Under 18" if (row.age or 0) < 18 else "18–24" if row.age <= 24 else "25–34" if row.age <= 34 else "35+"}
+            for row in clients if row.age is not None
+        ], "age_band"),
+        "distributions": {field: _analysis_distribution(clients, field) for field in (
+            "gender", "institution", "year_of_study", "study_program", "course_programme", "study_programme",
+            "programme_stream", "cohort", "institution_county", "county_location", "case_status",
+            "disability_status", "refugee_status", "referral_source",
+        )},
+        "assigned": sum(1 for row in clients if row.get("assigned_counsellor")),
+        "unassigned": sum(1 for row in clients if not row.get("assigned_counsellor")),
+    }
+
+    surveys = frappe.get_all(
+        "Baseline Survey",
+        fields=["client_id", "cycle", "creation", "consent", "status", "review_status", "wellbeing_self_rating", "stress_frequency", "main_concerns", "support_availability", "coping_ability", "coping_behaviour", "interest_in_support", "preferred_support_type", "willingness_for_followup", "marital_status", "dependants", "conflict_exposure"],
+        order_by="cycle desc, creation desc", limit=0,
+    )
+    if scope == "WoC":
+        allowed_clients = {row.name for row in frappe.get_all("Client", filters={"programme_stream": ["in", WOC_STREAMS]}, fields=["name"], limit=0)}
+        surveys = [row for row in surveys if row.client_id in allowed_clients]
+    latest_survey_by_client = {}
+    for row in surveys:
+        latest_survey_by_client.setdefault(row.client_id, row)
+    latest_surveys = list(latest_survey_by_client.values())
+    verified_surveys = [row for row in latest_surveys if row.consent == "Consented" and row.status == "Completed" and row.review_status == "Verified"]
+    baseline_fields = (
+        "wellbeing_self_rating", "stress_frequency", "main_concerns", "support_availability", "coping_ability",
+        "coping_behaviour", "interest_in_support", "preferred_support_type", "willingness_for_followup",
+        "marital_status", "conflict_exposure",
+    )
+    baseline_analysis = {
+        "verified_clients": len(verified_surveys),
+        "latest_cycle_status": _analysis_distribution(latest_surveys, "review_status"),
+        "dependants": _numeric_summary(verified_surveys, "dependants"),
+        "distributions": {field: _analysis_distribution(verified_surveys, field, split=(field == "main_concerns")) for field in baseline_fields},
+        "ordinal_scores": {},
+    }
+    ordinal_maps = {
+        "wellbeing_self_rating": {"Bad": 1, "Fair": 2, "Good": 3, "Very good": 4, "Excellent": 5},
+        "coping_ability": {"Bad": 1, "Fair": 2, "Good": 3, "Very good": 4, "Excellent": 5},
+        "coping_behaviour": {"Bad": 1, "Fair": 2, "Good": 3, "Very good": 4, "Excellent": 5},
+    }
+    for field, mapping in ordinal_maps.items():
+        values = [mapping[row.get(field)] for row in verified_surveys if row.get(field) in mapping]
+        values.sort()
+        if values:
+            n = len(values)
+            mid = n // 2
+            median = values[mid] if n % 2 else (values[mid - 1] + values[mid]) / 2
+            baseline_analysis["ordinal_scores"][field] = {"n": n, "mean": round(sum(values) / n, 2), "median": median, "scale": "1=lowest, 5=highest"}
+
+    appointments = frappe.get_all(
+        "Appointment", filters={"status": "Completed"},
+        fields=["client_id", "session_type", "mode_of_contact", "duration_minutes", "presenting_issues", "issue_subclassifications", "interventions_applied", "referrals_made", "urgency_level", "needs_follow_up", "followup_new_issues_present", "followup_new_presenting_issues", "followup_evident_changes_present", "followup_mood_affect", "followup_wellbeing_rating", "followup_stress_frequency", "followup_engagement_level", "followup_risk_concerns", "session_details", "notes", "risk_assessment", "follow_up_plan", "progress_previous_goals", "followup_goals_discussed", "followup_challenges", "followup_new_issues", "followup_evident_changes", "followup_coping_support", "followup_support_effectiveness", "followup_additional_support", "counsellor_observations", "next_session_focus", "followup_recommendations", "followup_takeaways", "followup_action"],
+        limit=0,
+    )
+    if scope == "WoC":
+        allowed_clients = {row.name for row in frappe.get_all("Client", filters={"programme_stream": ["in", WOC_STREAMS]}, fields=["name"], limit=0)}
+        appointments = [row for row in appointments if row.client_id in allowed_clients]
+    session_fields = (
+        "session_type", "mode_of_contact", "urgency_level", "needs_follow_up", "followup_new_issues_present",
+        "followup_new_presenting_issues", "followup_evident_changes_present", "followup_mood_affect",
+        "followup_wellbeing_rating", "followup_stress_frequency", "followup_engagement_level", "followup_risk_concerns",
+    )
+    narrative_fields = (
+        "session_details", "notes", "presenting_issues", "issue_subclassifications", "interventions_applied",
+        "referrals_made", "risk_assessment", "follow_up_plan", "progress_previous_goals", "followup_goals_discussed",
+        "followup_challenges", "followup_new_issues", "followup_evident_changes", "followup_coping_support",
+        "followup_support_effectiveness", "followup_additional_support", "counsellor_observations",
+        "next_session_focus", "followup_recommendations", "followup_takeaways", "followup_action",
+    )
+    session_analysis = {
+        "completed_sessions": len(appointments),
+        "duration_minutes": _numeric_summary(appointments, "duration_minutes"),
+        "distributions": {field: _analysis_distribution(appointments, field) for field in session_fields},
+        "form_completion": {field: sum(1 for row in appointments if row.get(field)) for field in narrative_fields},
+        "clients_served": len({row.client_id for row in appointments if row.client_id}),
+    }
+    return {"scope": scope, "clients": client_analysis, "baseline": baseline_analysis, "sessions": session_analysis}
+
+
 @frappe.whitelist()
 def programme_calendar(date_from=None, date_to=None):
     """Calendar feed with participant codes but no names or notes, programme-scoped."""

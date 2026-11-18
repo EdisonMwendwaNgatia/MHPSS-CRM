@@ -14,14 +14,6 @@
           </p>
 <p v-if="syncedAt" class="mt-2  text-sm text-[#858891]">Last Update {{ syncedAt }}</p>
         </div>
-        <div class="no-print flex flex-wrap gap-2">
-          <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-[#D9DBE0] bg-white px-4 py-2.5 text-sm font-semibold text-[#34363B] shadow-sm transition hover:border-[#BFC2C8] hover:bg-[#FAFAFB]" @click="exportCsv">
-            <Download :size="17" /> Export Excel (CSV)
-          </button>
-          <button type="button" class="inline-flex items-center gap-2 rounded-lg bg-[#C8102E] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#A10E24]" @click="exportPdf">
-            <Printer :size="17" /> Export PDF
-          </button>
-        </div>
       </div>
 
       <ErrorMessage class="mt-4" :message="summary.error" />
@@ -299,7 +291,7 @@
 import { createResource } from "frappe-ui"
 import { computed, nextTick, onMounted, ref, watch } from "vue"
 import { useRoute } from "vue-router"
-import { Archive, ArrowUpRight, CalendarDays, ClipboardCheck, Clock, Download, LockKeyhole, Printer, Share2, Users } from "lucide-vue-next"
+import { Archive, ArrowUpRight, CalendarDays, ClipboardCheck, Clock, LockKeyhole, Share2, Users } from "lucide-vue-next"
 import { Chart as ChartJS, ArcElement, BarElement, CategoryScale, LinearScale, Tooltip } from "chart.js"
 import { Bar, Doughnut } from "vue-chartjs"
 import { fmtDateTime } from "../data/format"
@@ -475,28 +467,6 @@ const centerText = {
 	},
 }
 
-// ---- Exports ----
-function exportCsv() {
-	const rows = [
-		[`${data.value?.scope || "Programme"} aggregate report`, `${from} to ${to}`],
-		["Overview", "Count"],
-		...tiles.value.map((tile) => [tile.label, tile.value]),
-		["Sessions by contact mode", "Count"], ...modes.value,
-		["Appointments by status", "Count"], ...statusRows.value,
-		["Appointment date", "Count"], ...trendRows.value.map((r) => [r.date, r.total]),
-		["Referral type", "Count"], ...referralRows.value,
-		["Baseline survey status", "Count"], ...baselineRows.value,
-	]
-	if (data.value?.by_counsellor) rows.push(["Counsellor", "Active caseload", "Completed sessions", "Upcoming", "Overdue"], ...data.value.by_counsellor.map((r) => [r.counsellor, r.active_caseload, r.completed_in_range, r.upcoming, r.overdue]))
-	const csv = rows.map((row) => row.map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(",")).join("\r\n")
-	const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }))
-	const link = document.createElement("a")
-	link.href = url
-	link.download = `${data.value?.scope === "WoC" ? "woc" : "krcti"}-programme-report-${from}-to-${to}.csv`
-	link.click()
-	setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
-function exportPdf() { window.print() }
 </script>
 
 <style scoped>

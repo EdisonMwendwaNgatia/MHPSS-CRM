@@ -360,7 +360,7 @@
 import { createResource } from "frappe-ui"
 import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import { useRoute } from "vue-router"
-import { AlertTriangle, ArrowLeft, ArrowRight, Bell, BellRing, BookOpen, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, ClipboardCheck, ClipboardList, HeartHandshake, KeyRound, LayoutDashboard, ListFilter, LoaderCircle, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldAlert, Users, UsersRound, X } from "lucide-vue-next"
+import { AlertTriangle, ArrowLeft, ArrowRight, Bell, BellRing, BookOpen, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, ClipboardCheck, ClipboardList, HeartHandshake, KeyRound, LayoutDashboard, ListFilter, LoaderCircle, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldAlert, Users, UsersRound, ChartNoAxesCombined, X } from "lucide-vue-next"
 import { me } from "../data/me"
 import { session } from "../data/session"
 
@@ -374,6 +374,7 @@ const NAV = [
 	{ label: "Programme clients", name: "ProgrammeClients", icon: UsersRound, match: ["ProgrammeClients", "ProgrammeClientDetail", "ProgrammeClientNew"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
 	{ label: "Counsellors", name: "ProgrammeCounsellors", icon: Users, match: ["ProgrammeCounsellors"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
 	{ label: "Session management", name: "ProgrammeSessions", icon: CalendarDays, match: ["ProgrammeSessions"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
+	{ label: "Analysis", name: "ProgrammeAnalysis", icon: ChartNoAxesCombined, match: ["ProgrammeAnalysis"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
 	{ label: "Programme settings", name: "ProgrammeSettings", icon: Settings, match: ["ProgrammeSettings"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
 	{ label: "Audit logs", name: "AuditLogs", icon: ClipboardCheck, match: ["AuditLogs"], roles: ["dpo"], group: "Compliance" },
 ]
