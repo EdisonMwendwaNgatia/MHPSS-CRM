@@ -115,7 +115,9 @@ def client_has_permission(doc, ptype=None, user=None, **kwargs):
 
 def baseline_has_permission(doc, ptype=None, user=None, **kwargs):
     if is_admin(user):
-        return ptype in ("read", "report", "export", "print")
+        # The controller hook only denies access; Frappe still checks the
+        # System Manager role's DocType permissions for the requested action.
+        return True
     owner = frappe.db.get_value("Client", doc.get("client_id"), "assigned_counsellor") if doc.get("client_id") else None
     return _only_own(doc, ptype, user, owner) or (
         ptype in ("read", "write") and counsellor_in_case(doc.get("client_id"), user)
