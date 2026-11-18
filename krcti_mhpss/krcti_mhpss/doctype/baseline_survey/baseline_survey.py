@@ -80,7 +80,10 @@ class BaselineSurvey(Document):
             self.completed_on = now_datetime()
 
     def check_values(self):
-        if self.consent != "Consented":
+        # A consented survey may be saved as Pending while the client or
+        # programme manager is preparing to complete it. Validate answers
+        # only when that survey is actually submitted as Completed.
+        if self.consent != "Consented" or self.status != "Completed":
             return
         if cint(self.dependants) < 0:
             frappe.throw(_("Dependants cannot be negative."))

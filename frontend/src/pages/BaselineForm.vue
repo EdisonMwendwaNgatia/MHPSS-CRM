@@ -48,12 +48,7 @@
 						<span v-else>Please record the client’s consent before continuing.</span>
 					</div>
 					<div class="flex flex-wrap items-center gap-3">
-						<span v-if="form.consent === 'Consented'" class="rounded-full bg-[#DCF3E4] px-3 py-1 text-xs font-semibold text-[#146C3A]">Consent confirmed</span>
-						<span v-else-if="form.consent === 'Declined'" class="rounded-full bg-[#FDECC8] px-3 py-1 text-xs font-semibold text-[#8A4B00]">Consent declined</span>
-						<FormControl v-if="!form.consent" label="Consent decision" type="select" :options="consentOptions" v-model="form.consent" />
-						<button v-else type="button" class="text-sm font-semibold text-[#A10E24] hover:underline" @click="changeConsent">
-							{{ form.consent === 'Consented' ? 'Client declines instead' : 'Change consent' }}
-						</button>
+						<FormControl label="Consent decision" type="select" :options="consentOptions" v-model="form.consent" />
 					</div>
 				</section>
 
@@ -286,9 +281,6 @@ function previous() {
 function syncConcernDetails() {
 	formError.value = ""
 	if (!selectedMainConcerns.value.includes("Other")) form.main_concerns_other = ""
-}
-function changeConsent() {
-	form.consent = form.consent === "Consented" ? "Declined" : ""
 }
 function submit() {
 	formError.value = ""

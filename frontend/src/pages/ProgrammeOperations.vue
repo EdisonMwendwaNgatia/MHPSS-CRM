@@ -148,6 +148,15 @@
 									<span v-if="baselineSurvey" class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="baselineStatusTone">{{ baselineSurvey.review_status || baselineSurvey.status || 'Pending' }}</span>
 								</div>
 								<div class="border-t border-[#ECEDEF] bg-[#FCFCFD] px-5 py-4">
+									<div v-if="baselineCanStart || baselineWaitingClient" class="mb-4 max-w-md">
+										<label for="baseline-consent" class="mb-1 block text-sm font-semibold text-[#33353A]">Client consent</label>
+										<p class="mb-2 text-xs text-[#737780]">Record the client’s decision before sending the form or filling it on their behalf.</p>
+									<select id="baseline-consent" v-model="baselineConsentValue" class="field w-full" aria-label="Client consent decision">
+											<option value="">Select consent decision</option>
+											<option value="Consented">Client consented</option>
+											<option value="Declined">Client declined</option>
+										</select>
+									</div>
 									<div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
 										<div class="min-w-0">
 											<p class="text-sm font-semibold text-[#33353A]">Client email</p>
@@ -163,8 +172,9 @@
 									</form>
 									<ErrorMessage class="mt-2" :message="emailUpdate.error" />
 									<div class="mt-4 flex flex-wrap gap-2" v-if="baselineCanStart || baselineWaitingClient">
-										<button type="button" class="primary" :disabled="baselineStart.loading || !client.data.email" :title="!client.data.email ? 'Add a client email to send the baseline form, or fill it on their behalf.' : ''" @click="startBaseline('email')"><Mail :size="15" /> {{ baselineWaitingClient ? 'Resend baseline form' : 'Send baseline form' }}</button>
-										<button type="button" class="secondary" :disabled="baselineStart.loading" @click="startBaseline('staff')"><FileText :size="15" /> Fill on behalf of client</button>
+		<button type="button" class="primary" :disabled="baselineStart.loading || !client.data.email || !(baselineConsentValue || baselineSurvey?.consent)" :title="!client.data.email ? 'Add a client email to send the baseline form, or fill it on their behalf.' : !(baselineConsentValue || baselineSurvey?.consent) ? 'Record the client’s consent decision first.' : ''" @click="startBaseline('email')"><Mail :size="15" /> {{ baselineWaitingClient ? 'Resend baseline form' : 'Send baseline form' }}</button>
+		<button type="button" class="secondary" :disabled="baselineStart.loading || !(baselineConsentValue || baselineSurvey?.consent)" @click="startBaseline('staff')"><FileText :size="15" /> Fill on behalf of client</button>
+		<button v-if="(baselineConsentValue || baselineSurvey?.consent) === 'Declined'" type="button" class="secondary" :disabled="baselineStart.loading" @click="startBaseline('declined')"><Ban :size="15" /> Record declined consent</button>
 									</div>
 									<p v-if="baselineWaitingClient" class="mt-2 text-xs text-[#737780]">Awaiting client submission for cycle {{ baselineSurvey.cycle }}. Resending keeps the same cycle and invalidates the previous link.</p>
 									<div v-if="baselineAwaitingReview" class="mt-4 flex flex-wrap gap-2">
@@ -449,6 +459,7 @@ const reviewAction = ref("")
 const rejectionReason = ref("")
 const baselineActionMessage = ref("")
 const baselineStartPath = ref("")
+const baselineConsent = ref("")
 const emailUpdate = createResource({
 	url: "krcti_mhpss.api.baseline_workflow.programme_update_client_email",
 	onSuccess(data) { client.data.email = data.email; emailDraft.value = data.email; editingEmail.value = false; baselineActionMessage.value = "Client email updated and recorded." },
@@ -456,7 +467,8 @@ const emailUpdate = createResource({
 const baselineStart = createResource({
 	url: "krcti_mhpss.api.baseline_workflow.programme_baseline_start",
 	onSuccess(data) {
-		if (baselineStartPath.value === "staff") router.push({ name: "ProgrammeBaseline", params: { name: client.data.name }, query: { survey: data.survey } })
+		if (baselineStartPath.value === "declined") { baselineActionMessage.value = "Client’s declined consent has been recorded."; baselineConsent.value = ""; client.submit({ name: client.data.name }) }
+		else if (baselineStartPath.value === "staff") router.push({ name: "ProgrammeBaseline", params: { name: client.data.name }, query: { survey: data.survey } })
 		else { baselineActionMessage.value = `Baseline form sent to ${data.email} for cycle ${data.cycle}.`; client.submit({ name: client.data.name }) }
 	},
 })
@@ -507,6 +519,10 @@ const baselineVerified = computed(() => baselineSurvey.value?.review_status === 
 const baselineAwaitingReview = computed(() => baselineSurvey.value?.review_status === "Awaiting Review")
 const baselineWaitingClient = computed(() => baselineSurvey.value?.review_status === "Pending Client" && baselineSurvey.value?.status === "Pending")
 const baselineCanStart = computed(() => (!baselineSurvey.value && !client.data?.assigned_counsellor) || (baselineSurvey.value?.review_status === "Rejected" && !client.data?.assigned_counsellor))
+const baselineConsentValue = computed({
+	get: () => baselineWaitingClient.value ? (baselineConsent.value || baselineSurvey.value?.consent || "") : baselineConsent.value,
+	set: (value) => { baselineConsent.value = value },
+})
 const baselineStatusLabel = computed(() => baselineSurvey.value?.review_status === "Pending Client" ? "Awaiting client submission" : baselineSurvey.value?.review_status === "Awaiting Review" ? "Submitted · awaiting review" : baselineSurvey.value?.review_status === "Verified" ? "Verified and locked" : baselineSurvey.value?.review_status === "Rejected" ? "Rejected" : baselineSurvey.value?.status || "Not yet submitted")
 const baselineStatusTone = computed(() => ({ "Verified": "bg-[#DCF3E4] text-[#146C3A]", "Awaiting Review": "bg-[#FFF4E5] text-[#8A5200]", "Pending Client": "bg-[#E0EAFD] text-[#1B4DB1]", "Rejected": "bg-[#FBE0E4] text-[#A10E24]" })[baselineSurvey.value?.review_status] || "bg-[#E4E6EA] text-[#3A3F47]")
 const activeCounsellors = computed(() => (counsellors.data || []).filter((person) => person.enabled))
@@ -695,7 +711,8 @@ function saveClientEmail() {
 function startBaseline(path) {
 	baselineActionMessage.value = ""
 	baselineStartPath.value = path
-	baselineStart.submit({ client: client.data.name, path })
+	const consent = baselineConsentValue.value || baselineSurvey.value?.consent || ""
+	baselineStart.submit({ client: client.data.name, path: path === "declined" ? "staff" : path, consent, record_declined: path === "declined" && consent === "Declined" ? 1 : 0 })
 }
 function submitBaselineReview() {
 	baselineReview.submit({ client: client.data.name, survey: baselineSurvey.value.name, action: reviewAction.value, reason: rejectionReason.value })

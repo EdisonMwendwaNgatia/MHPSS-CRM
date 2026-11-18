@@ -74,7 +74,7 @@ def _latest(client):
     return rows[0] if rows else None
 
 
-def _new_cycle(client, source):
+def _new_cycle(client, source, consent):
     latest = _latest(client.name)
     if latest and latest.review_status == "Verified":
         frappe.throw(_("This baseline has been verified and the workflow is complete."))
@@ -84,6 +84,7 @@ def _new_cycle(client, source):
     survey = frappe.get_doc({
         "doctype": "Baseline Survey", "client_id": client.name,
         "cycle": cycle, "status": "Pending", "review_status": "Pending Client",
+        "consent": consent,
         "submitted_via": source,
     })
     frappe.flags.allow_baseline_workflow = True
@@ -188,7 +189,7 @@ def _save_submission(survey, data, submitted_via):
 
 
 @frappe.whitelist(methods=["POST"])
-def programme_baseline_start(client=None, path="staff"):
+def programme_baseline_start(client=None, path="staff", consent=None, record_declined=0):
     require_roles(KRCTI_PM, WOC_PM)
     owner = _get_client(client)
     latest = _latest(owner.name)
@@ -196,14 +197,29 @@ def programme_baseline_start(client=None, path="staff"):
         frappe.throw(_("This baseline is verified and locked."))
     if latest and latest.review_status == "Awaiting Review":
         frappe.throw(_("This baseline is submitted and awaiting your review."))
+    record_declined = str(record_declined).lower() in ("1", "true")
     if path not in ("staff", "email"):
         frappe.throw(_("Choose email or complete on behalf of the client."))
+    if consent not in ("Consented", "Declined") and latest and latest.review_status == "Pending Client":
+        # Resuming or switching delivery method on an unsubmitted cycle keeps
+        # the consent decision already recorded when that cycle was opened.
+        consent = latest.consent
+    if consent not in ("Consented", "Declined"):
+        frappe.throw(_("Record whether the client consented before starting the baseline form."))
     if path == "email" and not owner.email:
         frappe.throw(_("Add a client email before sending the baseline form."))
+    if record_declined:
+        if latest and latest.review_status == "Pending Client":
+            survey = frappe.get_doc("Baseline Survey", latest.name)
+        else:
+            survey = _new_cycle(owner, "Programme Manager", consent)
+        _save_submission(survey, {"consent": "Declined"}, "Programme Manager")
+        return {"survey": survey.name, "cycle": survey.cycle, "status": "Declined"}
+
     if latest and latest.review_status == "Pending Client":
         survey = frappe.get_doc("Baseline Survey", latest.name)
     else:
-        survey = _new_cycle(owner, "Programme Manager" if path == "staff" else "Client email")
+        survey = _new_cycle(owner, "Programme Manager" if path == "staff" else "Client email", consent)
     if path == "staff":
         survey.submitted_via = "Programme Manager"
         survey.token_hash = ""
