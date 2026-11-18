@@ -5,6 +5,7 @@ import frappe
 from frappe import _
 from frappe.query_builder.functions import Count
 from frappe.utils import add_days, cint, getdate, now_datetime, nowdate
+from frappe.utils.password import check_password
 
 from krcti_mhpss.utils import ADMIN_ROLE, ADMIN_ROLES, COUNSELLOR, KRCTI_PM, MODES, WOC_PM, get_active_cohort, require_roles, roles_of
 
@@ -30,8 +31,14 @@ def programme_cohort_settings():
 
 
 @frappe.whitelist(methods=["POST"])
-def set_active_cohort(cohort=None):
+def set_active_cohort(cohort=None, password=None):
     require_roles(KRCTI_PM, WOC_PM)
+    if not password:
+        frappe.throw(_("Enter your password to confirm the cohort change."), frappe.ValidationError)
+    try:
+        check_password(frappe.session.user, password)
+    except frappe.AuthenticationError:
+        frappe.throw(_("The password is incorrect. Cohort was not changed."), frappe.AuthenticationError)
     cohort = str(cohort or "").strip()
     if cohort not in {str(number) for number in range(1, 10)}:
         frappe.throw(_("Choose a cohort from 1 to 9."))

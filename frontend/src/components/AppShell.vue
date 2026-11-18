@@ -371,10 +371,10 @@ const NAV = [
 	{ label: "Follow-ups", name: "FollowUps", icon: HeartHandshake, match: ["FollowUps"], roles: ["counsellor"], group: "Workspace" },
 	{ label: "Session records", name: "SessionRecords", icon: BookOpen, match: ["SessionRecords", "SessionRecord"], roles: ["counsellor"], group: "Workspace" },
 	{ label: "Programme", name: "Programme", icon: ClipboardList, match: ["Programme"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
-	{ label: "Programme settings", name: "ProgrammeSettings", icon: Settings, match: ["ProgrammeSettings"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
 	{ label: "Programme clients", name: "ProgrammeClients", icon: UsersRound, match: ["ProgrammeClients", "ProgrammeClientDetail", "ProgrammeClientNew"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
 	{ label: "Counsellors", name: "ProgrammeCounsellors", icon: Users, match: ["ProgrammeCounsellors"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
 	{ label: "Session management", name: "ProgrammeSessions", icon: CalendarDays, match: ["ProgrammeSessions"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
+	{ label: "Programme settings", name: "ProgrammeSettings", icon: Settings, match: ["ProgrammeSettings"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
 	{ label: "Audit logs", name: "AuditLogs", icon: ClipboardCheck, match: ["AuditLogs"], roles: ["dpo"], group: "Compliance" },
 ]
 const LABELS = {
