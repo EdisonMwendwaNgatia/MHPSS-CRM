@@ -370,7 +370,11 @@ const dimColor = (c, color) => {
 // ---- Helpers ----
 const PALETTE = ["#C8102E", "#1B4DB1", "#146C3A", "#D99A2B", "#0E8A8A", "#7A3FB5", "#62656D"]
 const OTHER = "#B9BBC1"
-const pretty = (name) => (name === "1" ? "Yes" : name === "0" ? "No" : name)
+const YES_NO_DISTRIBUTIONS = new Set([
+	"disability_status", "refugee_status", "interest_in_support", "willingness_for_followup",
+	"needs_follow_up", "followup_new_issues_present", "followup_new_presenting_issues", "followup_evident_changes_present",
+])
+const pretty = (name, field) => YES_NO_DISTRIBUTIONS.has(field) && name === "1" ? "Yes" : YES_NO_DISTRIBUTIONS.has(field) && name === "0" ? "No" : name
 const pct = (n, d) => (d ? Math.min(100, Math.round((n / d) * 100)) : 0)
 const val = (v) => (v === null || v === undefined ? "—" : v)
 const has = (v) => v !== null && v !== undefined
@@ -403,7 +407,7 @@ function distribution(key, title, counts, extra = {}) {
 	if (numeric) entries.sort((a, b) => Number(a[0]) - Number(b[0]))
 	else if (!extra.ordered) entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
 	const max = Math.max(...entries.map(([, n]) => n))
-	const rows = entries.map(([name, count], i) => ({ name: pretty(name), count, share: (count / total) * 100, pct: Math.round((count / total) * 100), rel: Math.round((count / max) * 100), color: i < 7 ? PALETTE[i] : OTHER }))
+	const rows = entries.map(([name, count], i) => ({ name: pretty(name, key.replace(/^(client|baseline|session)-/, "")), count, share: (count / total) * 100, pct: Math.round((count / total) * 100), rel: Math.round((count / max) * 100), color: i < 7 ? PALETTE[i] : OTHER }))
 
 	const byCount = [...rows].sort((a, b) => b.count - a.count)
 	const grouped = byCount.slice(0, 6).map((r, i) => ({ ...r, color: PALETTE[i] }))

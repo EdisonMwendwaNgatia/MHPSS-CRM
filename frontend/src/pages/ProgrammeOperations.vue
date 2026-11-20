@@ -221,7 +221,7 @@
 								</div>
 
 								<div v-else class="space-y-5 border-t border-[#ECEDEF] bg-[#FCFCFD] p-4 sm:p-5">
-									<!-- Wellbeing highlight -->
+								<!-- Wellbeing rating and main concerns stay first; answer groups follow below. -->
 									<div v-if="wellbeingScore !== null" class="rounded-xl border border-[#E4E6EA] bg-white p-4 sm:p-5">
 										<div class="flex items-end justify-between gap-3">
 											<div>
@@ -500,6 +500,7 @@ const clientInfo = computed(() => {
 		{ label: "Cohort", value: c.cohort ? `Cohort ${c.cohort}` : "—" },
 		{ label: "Phone", value: c.phone_number },
 		{ label: "Email", value: c.email },
+		{ label: "Date of birth", value: c.date_of_birth || "Not recorded" },
 		{ label: "Age", value: c.age },
 		{ label: "Sex", value: c.gender },
 		{ label: "Institution", value: c.institution },
@@ -590,22 +591,24 @@ const yesNo = (value) => value === undefined || value === null || value === "" ?
 const surveyGroups = computed(() => {
 	const s = baselineSurvey.value || {}
 	const groups = [
-		{ title: "Coping & wellbeing", icon: HeartPulse, rows: [
+		{ title: "Background", icon: Home, rows: [
 			["Consent", s.consent],
+			["Marital status", s.marital_status],
+			["Dependants", s.dependants],
+			["Domestic situation", s.domestic_situation],
+			["Conflict or disaster exposure", [s.conflict_exposure, s.exposure_details].filter(Boolean).join(": "), true],
+		] },
+		{ title: "Coping & wellbeing", icon: HeartPulse, rows: [
+			["Recent stress frequency", s.stress_frequency],
 			["Coping ability", s.coping_ability],
-			["Coping behaviour", s.coping_behaviour === "Other" ? `Other: ${s.coping_behaviour_other || "Not specified"}` : s.coping_behaviour],
+			["Coping behaviour", s.coping_behaviour],
+			["Other coping mechanism", s.coping_behaviour_other],
 		] },
 		{ title: "Support", icon: LifeBuoy, rows: [
 			["Support available", s.support_availability],
 			["Interested in support", yesNo(s.interest_in_support)],
 			["Willing to follow up", yesNo(s.willingness_for_followup)],
 			["Support that would be most helpful", s.preferred_support_type, true],
-		] },
-		{ title: "Background", icon: Home, rows: [
-			["Marital status", s.marital_status],
-			["Dependants", s.dependants],
-			["Domestic situation", s.domestic_situation],
-			["Conflict or disaster exposure", [s.conflict_exposure, s.exposure_details].filter(Boolean).join(": "), true],
 		] },
 	]
 	return groups

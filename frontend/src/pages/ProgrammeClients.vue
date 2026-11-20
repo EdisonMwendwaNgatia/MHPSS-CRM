@@ -69,6 +69,7 @@
 								<th class="px-4 py-3">Participant code</th>
 								<th class="px-4 py-3">Counsellor</th>
 								<th class="px-4 py-3">Institution</th>
+								<th class="px-4 py-3 text-center">Sessions</th>
 								<th class="px-4 py-3">Baseline</th>
 								<th class="px-4 py-3">Case status</th>
 								<th class="px-5 py-3 text-right">Actions</th>
@@ -85,9 +86,8 @@
 									>
 										<span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FCE8EB] text-xs font-bold text-[#B30F2A]">{{ initials(row.full_name) }}</span>
 										<span class="min-w-0">
-											<span class="block truncate text-sm font-semibold text-[#33353A] group-hover:text-[#B30F2A]">
-												{{ firstName(row.full_name) }}<span v-if="restOfName(row.full_name)" class="name-rest"> {{ restOfName(row.full_name) }}</span>
-											</span>
+											<span class="block truncate text-sm font-semibold text-[#33353A] group-hover:text-[#B30F2A]">{{ firstName(row.full_name) }}</span>
+											<span v-if="restOfName(row.full_name)" class="block truncate text-xs text-[#62656D]">{{ restOfName(row.full_name) }}</span>
 											<span class="mt-0.5 block truncate text-xs text-[#858891]">{{ row.phone_number || row.name }}</span>
 										</span>
 									</router-link>
@@ -107,6 +107,8 @@
 								</td>
 
 								<td class="max-w-[220px] px-4 py-3.5 text-sm text-[#555860]"><span class="block truncate">{{ row.institution || '—' }}</span></td>
+
+								<td class="whitespace-nowrap px-4 py-3.5 text-center text-sm font-semibold tabular-nums text-[#33353A]">{{ row.sessions ?? 0 }}</td>
 
 								<td class="whitespace-nowrap px-4 py-3.5">
 									<span v-if="row.baseline_review_status === 'Verified'" class="inline-flex items-center gap-1.5 rounded-full bg-[#DCF3E4] px-2.5 py-1 text-xs font-semibold text-[#146C3A]"><ShieldCheck :size="13" /> Verified</span>
@@ -239,8 +241,4 @@ onMounted(() => fetchClients())
 .seg:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.2); }
 .seg-on { background: #fff; color: #a10e24; box-shadow: 0 1px 2px rgba(20, 25, 35, 0.1), 0 0 0 1px #e4e6ea; }
 
-/* Rest of the name stays hidden until the row's name is hovered or focused */
-.name-rest { display: none; }
-.group:hover .name-rest,
-.group:focus-visible .name-rest { display: inline; }
 </style>

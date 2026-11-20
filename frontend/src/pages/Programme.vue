@@ -9,10 +9,10 @@
           <h1 class="mt-1 text-2xl font-semibold tracking-tight text-[#25272B] sm:text-[28px]">
             {{ data?.scope === "WoC" ? "WoC Programme Dashboard" : "KRCTI PM Dashboard" }}
           </h1>
-          <p class="mt-1 flex items-center gap- text-sm text-[#737780]">
+          <p class="mt-1 flex items-center gap-1 text-sm text-[#737780]">
             <span class="mt-1">{{ data?.scope === "WoC" ? "WoC Scholarship Fund aggregate service monitoring" : "Service delivery across KRCTI counsellors" }}</span>
           </p>
-<p v-if="syncedAt" class="mt-2  text-sm text-[#858891]">Last Update {{ syncedAt }}</p>
+          <p v-if="syncedAt" class="mt-2 text-sm text-[#858891]">Last Update {{ syncedAt }}</p>
         </div>
       </div>
 
@@ -40,39 +40,37 @@
           </router-link>
         </div>
 
-        <div class="mt-5 transition-opacity" :class="summary.loading ? 'opacity-60' : ''">
+        <div class="mt-5 space-y-5 transition-opacity" :class="summary.loading ? 'opacity-60' : ''">
 
-          <!-- ============ Two-column layout ============ -->
-          <div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.9fr)]">
+          <!-- ============ Row 1: By counsellor (matches right column height) | Trends + Appointments ============ -->
+          <div class="grid items-stretch gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.9fr)]">
 
-            <!-- ===== Left column: By counsellor, modes + referrals, baseline surveys ===== -->
-            <div class="min-w-0 space-y-5">
-
-              <!-- By counsellor -->
+            <!-- ===== Left: By counsellor (fills the height set by the right column, scrolls inside) ===== -->
+            <div class="min-w-0 xl:relative">
               <section
                 v-if="data.by_counsellor"
                 id="counsellor-performance"
                 ref="counsellorSection"
-                class="card overflow-hidden transition-shadow"
+                class="card flex max-h-[520px] flex-col overflow-hidden transition-shadow xl:absolute xl:inset-0 xl:max-h-none"
                 :class="focusCounsellors ? '!border-[#C8102E] ring-2 ring-[#C8102E]/20 shadow-md' : ''"
               >
-                <div class="card-head">
+                <div class="card-head shrink-0">
                   <div>
                     <h2 class="card-title">By counsellor</h2>
                     <p class="card-sub">Caseload and session activity</p>
                   </div>
                   <router-link :to="{ name: 'ProgrammeSessions' }" class="no-print text-sm font-semibold text-[#B30F2A] hover:underline">View all sessions</router-link>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="min-h-0 flex-1 overflow-auto">
                   <table class="w-full min-w-[640px] text-left text-sm">
                     <thead>
-                      <tr class="bg-[#FAFAFB] text-[11px] font-semibold uppercase tracking-wide text-[#858891]">
-                        <th class="whitespace-nowrap px-5 py-3">Counsellor</th>
-                        <th class="whitespace-nowrap px-3 py-3">Active caseload</th>
-                        <th class="whitespace-nowrap px-3 py-3">Delivery</th>
-                        <th class="whitespace-nowrap px-3 py-3">Completed</th>
-                        <th class="whitespace-nowrap px-3 py-3">Upcoming</th>
-                        <th class="whitespace-nowrap px-5 py-3">Overdue</th>
+                      <tr class="text-[11px] font-semibold uppercase tracking-wide text-[#858891]">
+                        <th class="sticky top-0 z-10 whitespace-nowrap bg-[#FAFAFB] px-5 py-3">Counsellor</th>
+                        <th class="sticky top-0 z-10 whitespace-nowrap bg-[#FAFAFB] px-3 py-3">Active caseload</th>
+                        <th class="sticky top-0 z-10 whitespace-nowrap bg-[#FAFAFB] px-3 py-3">Delivery</th>
+                        <th class="sticky top-0 z-10 whitespace-nowrap bg-[#FAFAFB] px-3 py-3">Completed</th>
+                        <th class="sticky top-0 z-10 whitespace-nowrap bg-[#FAFAFB] px-3 py-3">Upcoming</th>
+                        <th class="sticky top-0 z-10 whitespace-nowrap bg-[#FAFAFB] px-5 py-3">Overdue</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-[#F0F1F3]">
@@ -105,80 +103,11 @@
                     </tbody>
                   </table>
                 </div>
-                <p class="border-t border-[#ECEDEF] px-5 py-3 text-xs text-[#858891]">Delivery = completed ÷ (completed + upcoming + overdue) in this period.</p>
-              </section>
-
-              <!-- Sessions completed + Referral analytics (equal fixed height) -->
-              <div class="grid min-w-0 gap-5 md:grid-cols-2">
-
-                <!-- Sessions by mode -->
-                <section class="card flex h-[360px] flex-col overflow-hidden">
-                  <div class="card-head shrink-0">
-                    <div>
-                      <h2 class="card-title">Sessions completed</h2>
-                      <p class="card-sub">By mode of contact</p>
-                    </div>
-                    <span class="score-pill">{{ totalSessions }} total</span>
-                  </div>
-                  <ul v-if="modes.length" class="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
-                    <li v-for="[mode, n] in modes" :key="mode">
-                      <div class="flex items-baseline justify-between gap-3 text-sm">
-                        <span class="font-medium text-[#33353A]">{{ mode }}</span>
-                        <span class="tabular-nums"><span class="font-semibold">{{ n }}</span><span class="ml-2 text-[13px] text-[#858891]">{{ share(n) }}</span></span>
-                      </div>
-                      <div class="mt-2 h-2 overflow-hidden rounded-full bg-[#F4F5F7]"><div class="h-full rounded-full bg-[#C8102E] transition-[width] duration-500" :style="{ width: bar(n) }"></div></div>
-                    </li>
-                  </ul>
-                  <div v-else class="flex flex-1 flex-col items-center justify-center px-5 text-center">
-                    <ClipboardCheck class="mx-auto text-[#B9BBC1]" :size="25" />
-                    <p class="mt-3 text-sm font-medium text-[#555860]">No sessions completed in this period</p>
-                  </div>
-                </section>
-
-                <!-- Referral analytics (scrolls inside itself when types exceed the card) -->
-                <section class="card flex h-[360px] flex-col overflow-hidden">
-                  <div class="card-head shrink-0">
-                    <div>
-                      <h2 class="card-title">Referral analytics</h2>
-                      <p class="card-sub">Recorded referrals by type</p>
-                    </div>
-                    <span class="score-pill">{{ referralTotal }} total</span>
-                  </div>
-                  <ul v-if="referralRows.length" class="min-h-0 flex-1 divide-y divide-[#F0F1F3] overflow-y-auto">
-                    <li v-for="[type, count] in referralRows" :key="type" class="flex items-center gap-3 px-5 py-3.5">
-                      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FCE8EB] text-[#B30F2A]"><Share2 :size="16" /></span>
-                      <div class="min-w-0 flex-1">
-                        <p class="truncate text-sm font-medium text-[#33353A]">{{ type }}</p>
-                        <p class="text-xs text-[#858891]">{{ referralShare(count) }} of referrals</p>
-                      </div>
-                      <span class="text-[17px] font-semibold tabular-nums text-[#A10E24]">{{ count }}</span>
-                    </li>
-                  </ul>
-                  <div v-else class="flex flex-1 flex-col items-center justify-center px-5 text-center">
-                    <Share2 class="mx-auto text-[#B9BBC1]" :size="25" />
-                    <p class="mt-3 text-sm font-medium text-[#555860]">No referrals recorded in this period</p>
-                  </div>
-                </section>
-              </div>
-
-              <!-- Baseline surveys -->
-              <section class="card overflow-hidden">
-                <div class="card-head">
-                  <div>
-                    <h2 class="card-title">Baseline surveys</h2>
-                    <p class="card-sub">Aggregate completion and declination only</p>
-                  </div>
-                </div>
-                <div class="grid grid-cols-3 gap-3 p-5">
-                  <div v-for="[s, n] in baselineRows" :key="s" class="rounded-xl border border-[#ECEDEF] bg-[#FAFAFB] p-3.5">
-                    <p class="text-xs font-medium text-[#737780]">{{ s }}</p>
-                    <p class="mt-1 text-2xl font-semibold tabular-nums" :class="baselineTone(s)">{{ n }}</p>
-                  </div>
-                </div>
+                <p class="shrink-0 border-t border-[#ECEDEF] px-5 py-3 text-xs text-[#858891]">Delivery = completed ÷ (completed + upcoming + overdue) in this period.</p>
               </section>
             </div>
 
-            <!-- ===== Right column: Appointment trends + Appointments by status ===== -->
+            <!-- ===== Right: Appointment trends + Appointments by status ===== -->
             <div class="min-w-0 space-y-5">
 
               <!-- Appointment trends -->
@@ -226,6 +155,82 @@
                 </div>
               </section>
             </div>
+          </div>
+
+          <!-- ============ Row 2: Sessions completed | Referral analytics | Baseline surveys ============ -->
+          <div class="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-3">
+
+            <!-- Sessions by mode -->
+            <section class="card flex h-[360px] flex-col overflow-hidden">
+              <div class="card-head shrink-0">
+                <div>
+                  <h2 class="card-title">Sessions completed</h2>
+                  <p class="card-sub">By mode of contact</p>
+                </div>
+                <span class="score-pill">{{ totalSessions }} total</span>
+              </div>
+              <ul v-if="modes.length" class="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
+                <li v-for="[mode, n] in modes" :key="mode">
+                  <div class="flex items-baseline justify-between gap-3 text-sm">
+                    <span class="font-medium text-[#33353A]">{{ mode }}</span>
+                    <span class="tabular-nums"><span class="font-semibold">{{ n }}</span><span class="ml-2 text-[13px] text-[#858891]">{{ share(n) }}</span></span>
+                  </div>
+                  <div class="mt-2 h-2 overflow-hidden rounded-full bg-[#F4F5F7]"><div class="h-full rounded-full bg-[#C8102E] transition-[width] duration-500" :style="{ width: bar(n) }"></div></div>
+                </li>
+              </ul>
+              <div v-else class="flex flex-1 flex-col items-center justify-center px-5 text-center">
+                <ClipboardCheck class="mx-auto text-[#B9BBC1]" :size="25" />
+                <p class="mt-3 text-sm font-medium text-[#555860]">No sessions completed in this period</p>
+              </div>
+            </section>
+
+            <!-- Referral analytics (scrolls inside itself when types exceed the card) -->
+            <section class="card flex h-[360px] flex-col overflow-hidden">
+              <div class="card-head shrink-0">
+                <div>
+                  <h2 class="card-title">Referral analytics</h2>
+                  <p class="card-sub">Recorded referrals by type</p>
+                </div>
+                <span class="score-pill">{{ referralTotal }} total</span>
+              </div>
+              <ul v-if="referralRows.length" class="min-h-0 flex-1 divide-y divide-[#F0F1F3] overflow-y-auto">
+                <li v-for="[type, count] in referralRows" :key="type" class="flex items-center gap-3 px-5 py-3.5">
+                  <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FCE8EB] text-[#B30F2A]"><Share2 :size="16" /></span>
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-sm font-medium text-[#33353A]">{{ type }}</p>
+                    <p class="text-xs text-[#858891]">{{ referralShare(count) }} of referrals</p>
+                  </div>
+                  <span class="text-[17px] font-semibold tabular-nums text-[#A10E24]">{{ count }}</span>
+                </li>
+              </ul>
+              <div v-else class="flex flex-1 flex-col items-center justify-center px-5 text-center">
+                <Share2 class="mx-auto text-[#B9BBC1]" :size="25" />
+                <p class="mt-3 text-sm font-medium text-[#555860]">No referrals recorded in this period</p>
+              </div>
+            </section>
+
+            <!-- Baseline surveys -->
+            <section class="card flex h-[360px] flex-col overflow-hidden md:col-span-2 xl:col-span-1">
+              <div class="card-head shrink-0">
+                <div>
+                  <h2 class="card-title">Baseline surveys</h2>
+                  <p class="card-sub">Aggregate completion and declination only</p>
+                </div>
+                <span class="score-pill">{{ baselineTotal }} total</span>
+              </div>
+              <ul class="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
+                <li v-for="[s, n] in baselineRows" :key="s" class="rounded-xl border border-[#ECEDEF] bg-[#FAFAFB] p-4">
+                  <div class="flex items-baseline justify-between gap-3">
+                    <span class="text-sm font-medium text-[#737780]">{{ s }}</span>
+                    <span class="text-2xl font-semibold tabular-nums" :class="baselineTone(s)">{{ n }}</span>
+                  </div>
+                  <div class="mt-3 h-2 overflow-hidden rounded-full bg-[#EEF0F3]">
+                    <div class="h-full rounded-full transition-[width] duration-500" :style="{ width: baselineBar(n), background: baselineColor(s) }"></div>
+                  </div>
+                  <p class="mt-1.5 text-xs text-[#858891]">{{ baselineShare(n) }} of surveys</p>
+                </li>
+              </ul>
+            </section>
           </div>
         </div>
       </template>
@@ -353,8 +358,16 @@ const share = (n) => (totalSessions.value ? `${Math.round((n / totalSessions.val
 const statusRows = computed(() => Object.entries(data.value?.appointments_by_status || {}))
 const statusTotal = computed(() => statusRows.value.reduce((a, [, n]) => a + n, 0))
 const statusBar = (n) => `${statusTotal.value ? Math.round((n / statusTotal.value) * 100) : 0}%`
+
+// Baseline surveys
 const baselineRows = computed(() => ["Completed", "Declined", "Pending"].map((s) => [s, data.value?.baseline?.[s] || 0]))
+const baselineTotal = computed(() => baselineRows.value.reduce((a, [, n]) => a + n, 0))
 const baselineTone = (s) => ({ Completed: "text-[#146C3A]", Declined: "text-[#A10E24]", Pending: "text-[#8A4B00]" })[s] || ""
+const BASELINE_COLORS = { Completed: "#1F9D55", Declined: "#C8102E", Pending: "#E8A317" }
+const baselineColor = (s) => BASELINE_COLORS[s] || "#8A909A"
+const baselineBar = (n) => `${baselineTotal.value ? Math.round((n / baselineTotal.value) * 100) : 0}%`
+const baselineShare = (n) => baselineBar(n)
+
 const referralRows = computed(() => Object.entries(data.value?.referrals || {}))
 const referralTotal = computed(() => referralRows.value.reduce((a, [, n]) => a + n, 0))
 const referralShare = (n) => (referralTotal.value ? `${Math.round((n / referralTotal.value) * 100)}%` : "0%")
@@ -518,5 +531,8 @@ const centerText = {
 	main { min-height: 0 !important; background: white !important; padding: 0 !important; }
 	main > div { max-width: none !important; }
 	.card { break-inside: avoid; box-shadow: none !important; }
+	/* Let the counsellor card flow naturally when printing instead of being absolutely sized */
+	#counsellor-performance { position: static !important; max-height: none !important; }
+	#counsellor-performance > div { overflow: visible !important; }
 }
 </style>

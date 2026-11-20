@@ -6,15 +6,16 @@ from frappe.utils import get_datetime, get_url, now_datetime
 
 from krcti_mhpss.api.counsellor import _client_for_user, _flag
 from krcti_mhpss.api.oversight import notify_programme_managers
-from krcti_mhpss.utils import ADMIN_ROLE, COUNSELLOR, KRCTI_PM, WOC_PM, is_admin, is_counsellor, require_roles
+from krcti_mhpss.utils import ADMIN_ROLE, COUNSELLOR, KRCTI_PM, WOC_PM, calculate_age, is_admin, is_counsellor, require_roles
 
 CLIENT_TEXT = (
     "full_name", "phone_number", "email", "gender", "disability_type", "institution", "institution_county", "course_programme",
     "study_program", "study_programme", "county_location", "programme_stream", "referral_source", "referral_source_other",
 )
-CLIENT_NUMBERS = ("age", "year_of_study")
+CLIENT_NUMBERS = ("year_of_study",)
+CLIENT_DATES = ("date_of_birth",)
 CLIENT_CHECKS = ("disability_status", "refugee_status")
-CLIENT_EDIT = CLIENT_TEXT + CLIENT_NUMBERS + CLIENT_CHECKS
+CLIENT_EDIT = CLIENT_TEXT + CLIENT_NUMBERS + CLIENT_DATES + CLIENT_CHECKS
 CLIENT_CREATE = CLIENT_EDIT
 CASE_STATUSES = ("Active", "Follow-Up Pending", "Closed")
 
@@ -180,6 +181,9 @@ def save_client(name=None, data=None):
     for key in CLIENT_NUMBERS:
         if key in data:
             doc.set(key, _int(data[key], key.replace("_", " ")))
+    for key in CLIENT_DATES:
+        if key in data:
+            doc.set(key, _short(data[key], key.replace("_", " ")))
     for key in CLIENT_CHECKS:
         if key in data:
             doc.set(key, 1 if data[key] else 0)
@@ -189,6 +193,18 @@ def save_client(name=None, data=None):
         from krcti_mhpss.permissions import write_audit_log
         write_audit_log("Client email updated", doc.name, "Client management", details=f"previous={previous_email or 'empty'}; current={doc.email or 'empty'}")
     return {"name": doc.name}
+
+
+def refresh_client_ages():
+    """Refresh stored ages from date of birth; profile and analysis APIs calculate live ages too."""
+    clients = frappe.get_all("Client", filters={"date_of_birth": ["is", "set"]}, fields=["name", "date_of_birth", "age"], limit=0)
+    changed = 0
+    for client in clients:
+        age = calculate_age(client.date_of_birth)
+        if age != client.age:
+            frappe.db.set_value("Client", client.name, "age", age, update_modified=False)
+            changed += 1
+    return changed
 
 
 @frappe.whitelist()
@@ -214,6 +230,9 @@ def register_programme_client(data=None, assigned_counsellor=None):
     for key in CLIENT_NUMBERS:
         if key in data:
             doc.set(key, _int(data[key], key.replace("_", " ")))
+    for key in CLIENT_DATES:
+        if key in data:
+            doc.set(key, _short(data[key], key.replace("_", " ")))
     for key in CLIENT_CHECKS:
         if key in data:
             doc.set(key, 1 if data[key] else 0)

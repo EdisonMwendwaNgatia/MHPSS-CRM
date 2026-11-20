@@ -2,10 +2,10 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, getdate, now_datetime, nowdate
 
-from krcti_mhpss.utils import ADMIN_ROLE, COUNSELLOR, is_overdue, normalize_phone, require_roles
+from krcti_mhpss.utils import ADMIN_ROLE, COUNSELLOR, calculate_age, is_overdue, normalize_phone, require_roles
 
 CLIENT_FIELDS = (
-    "name", "scholar_code", "cohort", "full_name", "phone_number", "email", "age", "gender", "disability_status",
+    "name", "scholar_code", "cohort", "full_name", "phone_number", "email", "date_of_birth", "age", "gender", "disability_status",
     "disability_type", "institution", "course_programme", "study_program", "study_programme", "year_of_study", "county_location",
     "refugee_status", "programme_stream", "referral_source", "referral_source_other",
     "assigned_counsellor", "case_status",
@@ -128,6 +128,7 @@ def client_profile(name=None):
     )
     appointments = _attach_referrals(appointments)
     client_data = {f: doc.get(f) for f in CLIENT_FIELDS}
+    client_data["age"] = calculate_age(doc.date_of_birth) if doc.date_of_birth else doc.age
     client_data["registered_by"] = doc.owner
     client_data["registered_by_name"] = frappe.db.get_value("User", doc.owner, "full_name") or doc.owner
     client_data["assigned_counsellor_name"] = (

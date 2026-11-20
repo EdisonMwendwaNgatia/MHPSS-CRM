@@ -290,6 +290,7 @@ const detailGroups = computed(() => [
 		icon: UserRound,
 		fields: [
 			{ label: "Cohort", value: c.value.cohort || "—" },
+			{ label: "Date of birth", value: c.value.date_of_birth || "Not recorded" },
 			{ label: "Age", value: c.value.age },
 			{ label: "Gender", value: c.value.gender },
 			{ label: "Refugee status", value: yes(c.value.refugee_status) },

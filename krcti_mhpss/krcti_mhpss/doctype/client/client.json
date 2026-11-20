@@ -16,6 +16,7 @@
   "phone_number",
   "email",
   "col_1",
+  "date_of_birth",
   "age",
   "gender",
   "sec_inclusion",
@@ -91,10 +92,16 @@
    "fieldtype": "Column Break"
   },
   {
+   "fieldname": "date_of_birth",
+   "fieldtype": "Date",
+   "label": "Date of birth",
+   "description": "Age is calculated from this date of birth. Existing records without a date of birth retain their recorded age until updated."
+  },
+  {
    "fieldname": "age",
    "fieldtype": "Int",
    "label": "Age",
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "gender",

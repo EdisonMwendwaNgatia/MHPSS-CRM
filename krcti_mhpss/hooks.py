@@ -322,7 +322,8 @@ on_logout = "krcti_mhpss.permissions.log_user_logout"
 after_migrate = ["krcti_mhpss.install.after_migrate"]
 
 scheduler_events = {
-    "cron": {
+	"daily": ["krcti_mhpss.api.records.refresh_client_ages"],
+	"cron": {
         "*/15 * * * *": ["krcti_mhpss.api.counsellor.notify_overdue_followups"],
     },
 }

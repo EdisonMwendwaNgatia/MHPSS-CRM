@@ -7,7 +7,7 @@ from frappe.query_builder.functions import Count
 from frappe.utils import add_days, cint, getdate, now_datetime, nowdate
 from frappe.utils.password import check_password
 
-from krcti_mhpss.utils import ADMIN_ROLE, ADMIN_ROLES, COUNSELLOR, KRCTI_PM, MODES, WOC_PM, get_active_cohort, require_roles, roles_of
+from krcti_mhpss.utils import ADMIN_ROLE, ADMIN_ROLES, COUNSELLOR, KRCTI_PM, MODES, WOC_PM, calculate_age, get_active_cohort, require_roles, roles_of
 
 
 WOC_STREAMS = ("Scholarship/Education", "Enterprise Development", "Workforce Development")
@@ -145,11 +145,21 @@ def programme_clients(search=None, status=None, start=0, page_length=50):
     client_names = [row.name for row in rows]
     latest_baselines = {}
     if client_names:
+        session_counts = frappe.db.sql(
+            """select client_id, count(*) as sessions
+               from `tabAppointment`
+               where client_id in %(client_names)s
+               group by client_id""",
+            {"client_names": tuple(client_names)},
+            as_dict=True,
+        )
+        counts_by_client = {row.client_id: row.sessions for row in session_counts}
         surveys = frappe.get_all("Baseline Survey", filters={"client_id": ["in", client_names]}, fields=["name", "client_id", "cycle", "review_status"], order_by="cycle desc, creation desc", limit=0)
         for survey in surveys:
             latest_baselines.setdefault(survey.client_id, survey)
     for row in rows:
         row["counsellor_name"] = names.get(row.assigned_counsellor, "Unassigned")
+        row["sessions"] = counts_by_client.get(row.name, 0) if client_names else 0
         baseline = latest_baselines.get(row.name)
         row["baseline_review_status"] = baseline.review_status if baseline else "Not started"
         # Follow-Up Pending remains an internal workflow value; the programme list
@@ -165,6 +175,7 @@ def programme_client_detail(name=None):
     require_roles(KRCTI_PM, WOC_PM)
     _programme_client(name)
     client = frappe.get_doc("Client", name).as_dict()
+    client["age"] = calculate_age(client.get("date_of_birth")) if client.get("date_of_birth") else client.get("age")
     client["programme_case_status"] = "Closed" if client.get("case_status") == "Closed" else "Active"
     survey_names = frappe.get_all("Baseline Survey", filters={"client_id": name}, fields=["name", "cycle"], order_by="cycle desc, creation desc", limit=0)
     client["baseline_surveys"] = []
@@ -574,9 +585,12 @@ def programme_analysis():
     scope = _scope()
     clients = frappe.get_all(
         "Client", filters={"programme_stream": ["in", WOC_STREAMS]} if scope == "WoC" else {},
-        fields=["age", "gender", "institution", "year_of_study", "study_program", "course_programme", "study_programme", "programme_stream", "cohort", "institution_county", "county_location", "case_status", "disability_status", "refugee_status", "referral_source", "assigned_counsellor"],
+        fields=["age", "date_of_birth", "gender", "institution", "year_of_study", "study_program", "course_programme", "study_programme", "programme_stream", "cohort", "institution_county", "county_location", "case_status", "disability_status", "refugee_status", "referral_source", "assigned_counsellor"],
         limit=0,
     )
+    for row in clients:
+        if row.date_of_birth:
+            row.age = calculate_age(row.date_of_birth)
     total_clients = len(clients)
     client_analysis = {
         "total": total_clients,

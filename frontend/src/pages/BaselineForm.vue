@@ -97,12 +97,12 @@
 							</div>
 						</div>
 						<div v-else-if="step === 2" class="max-w-xl">
-							<FormControl label="Wellbeing rating" type="select" :options="RATINGS" v-model="form.wellbeing_self_rating" />
+							<FormControl label="How would you rate your current emotional and psychological wellbeing?" type="select" :options="RATINGS" v-model="form.wellbeing_self_rating" />
 							<p v-if="fieldErrors.wellbeing_self_rating" class="mt-1 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.wellbeing_self_rating }}</p>
 						</div>
 						<div v-else-if="step === 3" class="max-w-xl">
 							<fieldset class="mb-6 border-0 p-0">
-								<legend class="mb-3 text-sm font-medium text-[#2B2F36]">How often has the client felt stressed recently?</legend>
+								<legend class="mb-3 text-sm font-medium text-[#2B2F36]">In the past two weeks, how often have you experienced significant stress, anxiety, low mood, or difficulty concentrating?</legend>
 								<label v-for="option in STRESS.filter((item) => item.value)" :key="option.value" class="mb-2 flex min-h-11 cursor-pointer items-center gap-3 rounded-[10px] border border-[#D5D8DE] px-3.5 text-sm hover:border-[#C8102E]">
 									<input v-model="form.stress_frequency" class="h-[18px] w-[18px] accent-[#C8102E]" type="radio" :value="option.value" />{{ option.label }}
 								</label>
@@ -111,7 +111,7 @@
 						</div>
 						<div v-else-if="step === 4" class="max-w-xl">
 							<fieldset class="border-0 p-0">
-								<legend class="mb-3 text-sm font-medium text-[#2B2F36]">Presenting concerns <span class="font-normal text-[#5B616B]">(select all that apply)</span></legend>
+								<legend class="mb-3 text-sm font-medium text-[#2B2F36]">What are your main current concerns? <span class="font-normal text-[#5B616B]">(select all that apply)</span></legend>
 								<div class="grid gap-2 sm:grid-cols-2">
 									<label v-for="concern in mainConcernOptions" :key="concern" class="flex min-h-11 cursor-pointer items-center gap-3 rounded-[10px] border border-[#D5D8DE] px-3.5 text-sm transition hover:border-[#C8102E]" :class="selectedMainConcerns.includes(concern) ? 'border-[#C8102E] bg-[#FFF8F9]' : 'bg-white'">
 										<input v-model="selectedMainConcerns" class="h-[18px] w-[18px] accent-[#C8102E]" type="checkbox" :value="concern" @change="syncConcernDetails" />
@@ -124,29 +124,29 @@
 							<p v-if="fieldErrors.main_concerns_other" class="mt-1 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.main_concerns_other }}</p>
 						</div>
 						<div v-else-if="step === 5" class="max-w-xl space-y-5">
-							<FormControl label="Support available to the client" type="select" :options="SUPPORT" v-model="form.support_availability" />
+							<FormControl label="Do you have someone you can rely on when facing challenges?" type="select" :options="SUPPORT" v-model="form.support_availability" />
 							<p v-if="fieldErrors.support_availability" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.support_availability }}</p>
-							<FormControl label="What type of support will be more helpful?" type="select" :options="SUPPORT_TYPES" v-model="form.preferred_support_type" />
+							<FormControl label="What type of support would be most helpful to you?" type="select" :options="SUPPORT_TYPES" v-model="form.preferred_support_type" />
 							<p v-if="fieldErrors.preferred_support_type" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.preferred_support_type }}</p>
 						</div>
 						<div v-else-if="step === 6" class="max-w-xl space-y-5">
-							<FormControl label="Coping ability" type="select" :options="COPING" v-model="form.coping_ability" />
+							<FormControl label="How would you rate your ability to cope with stress?" type="select" :options="COPING" v-model="form.coping_ability" />
 							<p v-if="fieldErrors.coping_ability" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.coping_ability }}</p>
-							<FormControl label="Coping behaviour rating" type="select" :options="COPING_BEHAVIOURS" v-model="form.coping_behaviour" @update:model-value="formError = ''" />
+							<FormControl label="When you feel stressed or upset, which best describes how you usually cope?" type="select" :options="COPING_BEHAVIOURS" v-model="form.coping_behaviour" @update:model-value="formError = ''" />
 							<p v-if="fieldErrors.coping_behaviour" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.coping_behaviour }}</p>
 						</div>
 						<div v-else-if="step === 7" class="max-w-xl space-y-5">
-							<FormControl type="checkbox" label="Interested in MHPSS support" v-model="form.interest_in_support" />
-							<FormControl type="checkbox" label="Willing to take part in follow-up" v-model="form.willingness_for_followup" />
+							<FormControl type="checkbox" label="Would you be interested in receiving MHPSS support during the programme?" v-model="form.interest_in_support" />
+							<FormControl type="checkbox" label="Would you be willing to take part in voluntary follow-up during the programme?" v-model="form.willingness_for_followup" />
 						</div>
 						<div v-else class="max-w-xl space-y-5">
-							<FormControl label="Marital status" type="select" :options="MARITAL" v-model="form.marital_status" />
+							<FormControl label="What is your current marital status?" type="select" :options="MARITAL" v-model="form.marital_status" />
 							<p v-if="fieldErrors.marital_status" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.marital_status }}</p>
-							<FormControl label="Number of dependants" type="number" v-model="form.dependants" />
+							<FormControl label="How many people depend on you for financial or other support?" type="number" v-model="form.dependants" />
 							<p v-if="fieldErrors.dependants" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.dependants }}</p>
-							<FormControl label="Domestic situation" type="textarea" v-model="form.domestic_situation" />
+							<FormControl label="Would you like to describe your current home or living situation?" type="textarea" v-model="form.domestic_situation" />
 							<p v-if="fieldErrors.domestic_situation" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.domestic_situation }}</p>
-							<FormControl label="Exposure to conflict or disaster" type="select" :options="EXPOSURE" v-model="form.conflict_exposure" />
+							<FormControl label="Have you been affected by conflict or a disaster?" type="select" :options="EXPOSURE" v-model="form.conflict_exposure" />
 							<p v-if="fieldErrors.conflict_exposure" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.conflict_exposure }}</p>
 							<FormControl v-if="form.conflict_exposure === 'Yes'" label="Exposure details" type="textarea" v-model="form.exposure_details" />
 						</div>

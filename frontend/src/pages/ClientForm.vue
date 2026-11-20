@@ -78,9 +78,10 @@
               </div>
 
               <div class="sm:col-span-2">
-                <label class="lbl" for="f-age">Age <span class="req" aria-hidden="true">*</span></label>
-                <input id="f-age" v-model="form.age" class="inp" type="number" inputmode="numeric" min="10" max="100" step="1" required :aria-invalid="!!ageError" :aria-describedby="ageError ? 'f-age-error' : undefined" />
-                <p v-if="ageError" id="f-age-error" class="mt-1 text-xs text-[#A10E24]" role="alert">{{ ageError }}</p>
+                <label class="lbl" for="f-date_of_birth">Date of birth <span v-if="isNew" class="req" aria-hidden="true">*</span></label>
+                <input id="f-date_of_birth" v-model="form.date_of_birth" class="inp" type="date" :required="isNew" :max="today" />
+                <p class="hint">Age is calculated automatically from the date of birth{{ calculatedAge !== null ? ` · current age: ${calculatedAge}` : legacyAge ? ` · recorded age: ${legacyAge}` : '' }}.</p>
+                <p v-if="ageError" class="mt-1 text-xs text-[#A10E24]" role="alert">{{ ageError }}</p>
               </div>
 
               <div class="sm:col-span-2">
@@ -339,13 +340,17 @@ const back = computed(() => (isNew.value ? (isProgrammeManager.value ? { name: "
 
 const TEXT = ["full_name", "phone_number", "email", "gender", "disability_type", "institution", "institution_county",
 	"course_programme", "study_program", "study_programme", "county_location", "programme_stream", "referral_source", "referral_source_other"]
-const NUMBERS = ["age", "year_of_study"]
+const NUMBERS = ["year_of_study"]
+const now = new Date()
+const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
 const STUDY_PROGRAMS = ["Teaching", "Engineering"]
 const YEAR_OF_STUDY = Array.from({ length: 10 }, (_, index) => ({ label: String(index + 1), value: index + 1 }))
 const CHECKS = ["disability_status", "refugee_status"]
 
 const form = reactive({
 	...Object.fromEntries([...TEXT, ...NUMBERS].map((k) => [k, ""])),
+	date_of_birth: "",
+	age: "",
 	first_name: "",
 	last_name: "",
 	cohort: "",
@@ -359,12 +364,14 @@ const formError = ref("")
 const cohortLoading = ref(false)
 const countySearch = reactive({ institution_county: "", county_location: "" })
 const masterOptions = reactive({ institutions: [], courses: [], programmes: [] })
-const ageError = computed(() => {
-	if (form.age === "" || form.age === null) return ""
-	const age = Number(form.age)
-	if (!Number.isInteger(age) || age < 10 || age > 100) return "Enter an age from 10 to 100."
-	return ""
+const calculatedAge = computed(() => {
+	if (!form.date_of_birth) return null
+	const [year, month, day] = form.date_of_birth.split("-").map(Number)
+	const now = new Date()
+	return now.getFullYear() - year - ((now.getMonth() + 1 < month || (now.getMonth() + 1 === month && now.getDate() < day)) ? 1 : 0)
 })
+const legacyAge = computed(() => form.date_of_birth ? null : form.age || null)
+const ageError = computed(() => form.date_of_birth && (calculatedAge.value < 10 || calculatedAge.value > 100) ? "The client's age must be between 10 and 100." : "")
 
 // Option lists may be plain strings or { label, value } objects
 const opts = (list) => (list || []).map((o) => (o !== null && typeof o === "object" ? { label: o.label ?? o.value, value: o.value ?? o.label } : { label: o, value: o }))
@@ -395,7 +402,7 @@ const profile = createResource({
 		const c = data.client
 		form.cohort = c.cohort ?? ""
 		form.scholar_code = c.scholar_code ?? ""
-		for (const k of [...TEXT, ...NUMBERS]) form[k] = c[k] ?? ""
+		for (const k of [...TEXT, ...NUMBERS, "date_of_birth", "age"]) form[k] = c[k] ?? ""
 		for (const k of CHECKS) form[k] = !!c[k]
 		loading.value = false
 	},
@@ -446,6 +453,7 @@ const updater = saver // the template may still mention it
 function values() {
 	const data = {}
 	for (const k of TEXT) data[k] = form[k]
+	data.date_of_birth = form.date_of_birth
 	if (isNew.value) data.full_name = `${form.first_name.trim()} ${form.last_name.trim()}`.trim()
 	for (const k of NUMBERS) data[k] = form[k] === "" ? "" : Number(form[k])
 	for (const k of CHECKS) data[k] = form[k] ? 1 : 0
@@ -466,8 +474,8 @@ function save() {
 		formError.value = "The active cohort could not be loaded. Refresh the form before registering this client."
 		return
 	}
-	if (form.age === "" || form.age === null) {
-		formError.value = "Age is required."
+	if (isNew.value && !form.date_of_birth) {
+		formError.value = "Date of birth is required."
 		return
 	}
 	if (ageError.value) {

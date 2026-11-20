@@ -1,7 +1,7 @@
 import re
 
 import frappe
-from frappe.utils import get_datetime, now_datetime
+from frappe.utils import get_datetime, getdate, now_datetime, nowdate
 
 ADMIN_ROLE = "System Manager"
 KRCTI_ADMIN_ROLE = "KRCTI System Administrator"
@@ -59,6 +59,14 @@ def normalize_phone(value):
     elif len(digits) == 9 and digits[0] in "71":
         digits = "0" + digits
     return digits
+
+
+def calculate_age(date_of_birth, on_date=None):
+    if not date_of_birth:
+        return None
+    birth = getdate(date_of_birth)
+    today = getdate(on_date or nowdate())
+    return today.year - birth.year - ((today.month, today.day) < (birth.month, birth.day))
 
 
 def is_overdue(status, date_time):

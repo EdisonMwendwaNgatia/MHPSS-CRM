@@ -4,9 +4,9 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.model.naming import make_autoname
-from frappe.utils import cint
+from frappe.utils import cint, getdate, nowdate
 
-from krcti_mhpss.utils import COUNSELLOR, get_active_cohort, is_admin, is_counsellor, normalize_phone
+from krcti_mhpss.utils import COUNSELLOR, calculate_age, get_active_cohort, is_admin, is_counsellor, normalize_phone
 
 CODE = re.compile(r"^WoCS_C([1-9])(\d{2})$")
 STUDY_PROGRAMS = {"Teaching", "Engineering"}
@@ -144,6 +144,16 @@ class Client(Document):
         )
 
     def check_values(self):
+        before = self.get_doc_before_save()
+        if before and before.date_of_birth and not self.date_of_birth:
+            frappe.throw(_("Date of birth cannot be cleared once recorded."))
+        if self.date_of_birth:
+            birth = getdate(self.date_of_birth)
+            if birth > getdate(nowdate()):
+                frappe.throw(_("Date of birth cannot be in the future."))
+            self.age = calculate_age(birth)
+        elif self.is_new():
+            frappe.throw(_("Enter the client's date of birth."))
         if not 10 <= cint(self.age) <= 100:
             frappe.throw(_("Enter a valid age (10 to 100)."))
         if self.is_new() and not 1 <= cint(self.cohort) <= 9:
