@@ -126,7 +126,9 @@ def baseline_has_permission(doc, ptype=None, user=None, **kwargs):
 
 def appointment_has_permission(doc, ptype=None, user=None, **kwargs):
     if is_admin(user):
-        return ptype in ("read", "report", "export", "print")
+        # Admin controller access only lets Frappe continue to the DocType role
+        # permissions; it does not grant the action on its own.
+        return ptype in ("read", "report", "export", "print", "delete")
     return _only_own(doc, ptype, user, doc.get("counsellor_id")) or (
         ptype == "read" and counsellor_in_case(doc.get("client_id"), user)
     ) or (
