@@ -15,7 +15,7 @@ export const DISABILITY_TYPES = list([
 ])
 export const STREAMS = list(["", "Scholarship/Education", "Enterprise Development", "Workforce Development"])
 export const REFERRALS = list(["", "School", "Peer", "Self", "Other"])
-export const SESSION_TYPES = list(["", "First Session", "Follow-Up", "Termination"])
+export const SESSION_TYPES = list(["First Session", "Follow-Up", "Termination"])
 export const MODES = list(["", "Physical Individual", "Physical Group", "Tele-counselling", "Phone Call", "School Campaign"])
 export const PHYSICAL_MODES = ["Physical Individual", "Physical Group", "School Campaign"]
 export const STRESS = list(["", "Never", "Sometimes", "Always"])

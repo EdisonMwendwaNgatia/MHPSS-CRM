@@ -84,6 +84,16 @@ def search_clients(term=None, limit=20):
         return []
     like = f"%{term}%"
     or_filters = [[f, "like", like] for f in ("name", "scholar_code", "full_name", "phone_number", "institution")]
+    # Institution is a Link. Match master labels explicitly as well as the
+    # stored link value so searches work with institution display names.
+    institutions = frappe.get_list(
+        "Institution",
+        filters={"institution_name": ["like", like]},
+        pluck="name",
+        limit_page_length=50,
+    )
+    if institutions:
+        or_filters.append(["institution", "in", institutions])
     digits = normalize_phone(term)
     if len(digits) >= 6:
         or_filters.append(["phone_number", "like", f"%{digits[-9:]}%"])

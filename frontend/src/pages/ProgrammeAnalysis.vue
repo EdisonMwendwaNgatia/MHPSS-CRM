@@ -144,8 +144,8 @@
 						</div>
 
 						<!-- Charts -->
-						<div v-if="visibleCards(s).length" class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-							<article v-for="c in visibleCards(s)" :key="c.key" class="viz-card" :class="c.wide ? 'md:col-span-2 xl:col-span-3' : ''">
+						<div v-if="visibleCards(s).length" class="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+							<article v-for="c in visibleCards(s)" :key="c.key" class="viz-card min-w-0" :class="c.wide ? 'md:col-span-2 xl:col-span-3' : ''">
 								<header class="flex items-start justify-between gap-3 border-b border-[#ECEDEF] px-5 py-4">
 									<div class="min-w-0">
 										<h3 class="truncate text-sm font-semibold text-[#25272B]">{{ c.title }}</h3>
@@ -424,7 +424,7 @@ function distribution(key, title, counts, extra = {}) {
 	})
 	while (cells.length < 100) cells.push(grouped[grouped.length - 1].color)
 
-	const auto = extra.view || (numeric ? "columns" : rows.length <= 2 ? "waffle" : rows.length <= 5 ? "donut" : "bars")
+	const auto = extra.view || (rows.length > 1 && rows.length <= 5 ? "donut" : "bars")
 	return { kind: "dist", key, title, rows, grouped, cells, tree: treemap(grouped), total, top: byCount[0], auto, ...extra }
 }
 function segments(card) {
@@ -497,7 +497,7 @@ const model = computed(() => {
 	// Clients
 	const clientCards = [
 		...(plot("Client age", age) ? [{ kind: "plot", key: "age-plot", title: "Client age", subtitle: "Mean, median and range in years", chip: "Mean vs median", items: [plot("Age (years)", age)], wide: false }] : []),
-		reg(distribution("age-bands", "Age bands", c.age_bands, { ordered: true, view: "columns", subtitle: "Clients by age group" })),
+		reg(distribution("age-bands", "Age bands", c.age_bands, { ordered: true, subtitle: "Clients by age group" })),
 		reg(distribution("assignment", "Counsellor assignment", { Assigned: c.assigned || 0, Unassigned: c.unassigned || 0 }, { subtitle: "Assigned vs unassigned" })),
 		...Object.entries(c.distributions || {}).map(([f, counts]) => reg(distribution(`client-${f}`, clientLabels[f] || label(f), counts))),
 	]
