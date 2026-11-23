@@ -98,7 +98,8 @@
 													<ClipboardCheck v-if="entry.status === 'Completed'" :size="17" /><Ban v-else-if="entry.status === 'Cancelled'" :size="17" /><CalendarClock v-else :size="17" />
 												</span>
 												<span class="min-w-0">
-													<span class="block text-sm font-semibold text-[#25272B]">{{ dateTime(entry.date_time) }}</span>
+													<span class="block text-sm font-semibold text-[#25272B]">{{ fmtDate(entry.date_time) }}</span>
+													<span class="mt-0.5 block text-xs font-semibold text-[#555860]">Session time: {{ fmtTime(entry.date_time) }}</span>
 													<span class="mt-0.5 block truncate text-xs text-[#737780]">{{ entry.session_type }}<template v-if="entry.mode_of_contact"> · {{ entry.mode_of_contact }}</template><template v-if="entry.counsellor_name"> · {{ entry.counsellor_name }}</template></span>
 												</span>
 											</span>
@@ -431,7 +432,7 @@ import { createResource } from "frappe-ui"
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ArrowLeft, Ban, BookOpen, CalendarClock, Check, ChevronDown, ChevronsUpDown, ClipboardCheck, ClipboardList, Eye, EyeOff, FileText, HeartPulse, Home, Layers, LifeBuoy, LoaderCircle, Mail, Pencil, Search, Trash2, UserRoundPlus, UsersRound, UserX, Volume2, X } from "lucide-vue-next"
-import { fmtDateTime } from "../data/format"
+import { fmtDate, fmtDateTime, fmtTime } from "../data/format"
 import { backendUrl } from "../data/backend"
 
 const props = defineProps({ kind: { type: String, required: true } })
