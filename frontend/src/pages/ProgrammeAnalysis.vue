@@ -9,6 +9,7 @@
 					<p class="mt-1 text-sm text-[#737780]">Counts and distributions for client profiles, verified baselines and completed sessions.</p>
 				</div>
 				<div v-if="analysis.data" class="no-print flex flex-wrap gap-2">
+					<button v-if="defaultCount" type="button" class="btn btn-secondary" @click="resetDefaults"><RotateCcw :size="16" /> Reset chart defaults <span class="count-pill">{{ defaultCount }}</span></button>
 					<button type="button" class="btn btn-secondary" @click="printPage"><Printer :size="16" /> Print / PDF</button>
 				</div>
 			</div>
@@ -45,14 +46,17 @@
 								<h2 class="text-lg font-semibold text-[#25272B]">{{ s.title }}</h2>
 								<p class="mt-0.5 text-xs text-[#858891]">{{ s.subtitle }}</p>
 							</div>
-							<span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#62656D] ring-1 ring-[#E4E6EA]">{{ s.badge }}</span>
+							<div class="flex flex-wrap items-center gap-2">
+								<span v-if="s.key !== 'overview'" class="no-print hidden items-center gap-1.5 text-xs text-[#858891] md:inline-flex"><Pin :size="12" /> Double-click a chart type to make it that card’s default</span>
+								<span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#62656D] ring-1 ring-[#E4E6EA]">{{ s.badge }}</span>
+							</div>
 						</div>
 
 						<!-- ============ OVERVIEW EXTRAS ============ -->
 						<template v-if="s.key === 'overview'">
 							<!-- Progress rings -->
 							<div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-								<div v-for="r in rings" :key="r.label" class="rounded-xl border border-[#E4E6EA] bg-white p-4 shadow-[0_1px_2px_rgba(20,25,35,0.03)]">
+								<div v-for="r in rings" :key="r.label" class="stat-card rounded-xl border border-[#E4E6EA] bg-white p-4 shadow-[0_1px_2px_rgba(20,25,35,0.03)]">
 									<div class="flex items-center gap-4">
 										<div class="relative h-[84px] w-[84px] shrink-0">
 											<svg viewBox="0 0 42 42" class="h-full w-full -rotate-90" role="img" :aria-label="`${r.label}: ${r.pct}%`">
@@ -72,7 +76,7 @@
 							<div class="mt-4 grid gap-4 lg:grid-cols-3">
 								<!-- Funnel -->
 								<article class="viz-card lg:col-span-2">
-									<header class="flex items-start justify-between gap-3 border-b border-[#ECEDEF] px-5 py-4">
+									<header class="card-head">
 										<div>
 											<h3 class="text-sm font-semibold text-[#25272B]">Programme pipeline</h3>
 											<p class="mt-0.5 text-xs text-[#858891]">From registration to delivered sessions</p>
@@ -92,7 +96,7 @@
 
 								<!-- Insights -->
 								<article class="viz-card">
-									<header class="flex items-start justify-between gap-3 border-b border-[#ECEDEF] px-5 py-4">
+									<header class="card-head">
 										<div>
 											<h3 class="text-sm font-semibold text-[#25272B]">Key insights</h3>
 											<p class="mt-0.5 text-xs text-[#858891]">Generated from the figures</p>
@@ -110,7 +114,7 @@
 
 							<!-- At a glance: stacked bars -->
 							<article v-if="glance.length" class="viz-card mt-4">
-								<header class="flex items-start justify-between gap-3 border-b border-[#ECEDEF] px-5 py-4">
+								<header class="card-head">
 									<div>
 										<h3 class="text-sm font-semibold text-[#25272B]">At a glance</h3>
 										<p class="mt-0.5 text-xs text-[#858891]">How the main splits are shared</p>
@@ -136,7 +140,7 @@
 
 						<!-- KPI tiles -->
 						<div v-if="s.stats?.length" class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6" :class="s.key === 'overview' ? 'mt-4' : ''">
-							<div v-for="k in s.stats" :key="k.label" class="rounded-xl border border-[#E4E6EA] bg-white p-4 shadow-[0_1px_2px_rgba(20,25,35,0.03)]">
+							<div v-for="k in s.stats" :key="k.label" class="stat-card rounded-xl border border-[#E4E6EA] bg-white p-4 shadow-[0_1px_2px_rgba(20,25,35,0.03)]">
 								<span class="flex h-8 w-8 items-center justify-center rounded-full" :class="k.tone"><component :is="k.icon" :size="15" /></span>
 								<span class="mt-3 block text-2xl font-semibold leading-none tabular-nums text-[#25272B]">{{ k.value }}</span>
 								<span class="mt-1.5 block text-xs text-[#858891]">{{ k.label }}</span>
@@ -146,14 +150,24 @@
 						<!-- Charts -->
 						<div v-if="visibleCards(s).length" class="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
 							<article v-for="c in visibleCards(s)" :key="c.key" class="viz-card min-w-0" :class="c.wide ? 'md:col-span-2 xl:col-span-3' : ''">
-								<header class="flex items-start justify-between gap-3 border-b border-[#ECEDEF] px-5 py-4">
+								<header class="card-head">
 									<div class="min-w-0">
 										<h3 class="truncate text-sm font-semibold text-[#25272B]">{{ c.title }}</h3>
 										<p class="mt-0.5 truncate text-xs text-[#858891]">{{ c.subtitle || (c.total !== undefined ? `${c.total} responses` : '') }}</p>
 									</div>
-									<!-- View switcher -->
-									<div v-if="(c.kind === 'dist' && !c.empty) || c.kind === 'completion'" class="no-print inline-flex shrink-0 rounded-lg bg-[#F4F5F7] p-0.5" role="group" aria-label="Chart type">
-										<button v-for="o in (c.kind === 'completion' ? completionViews : distViews)" :key="o.v" type="button" class="view-btn" :class="viewOf(c) === o.v ? 'view-btn-on' : ''" :title="o.label" :aria-label="o.label" :aria-pressed="viewOf(c) === o.v" @click="setView(c, o.v)"><component :is="o.icon" :size="14" /></button>
+									<!-- View switcher: click to switch, double-click to pin as default -->
+									<div v-if="(c.kind === 'dist' && !c.empty) || c.kind === 'completion'" class="no-print inline-flex shrink-0 select-none rounded-lg bg-[#F4F5F7] p-0.5" role="group" :aria-label="`Chart type for ${c.title}`">
+										<button
+											v-for="o in viewsFor(c)" :key="o.v" type="button" class="view-btn"
+											:class="viewOf(c) === o.v ? 'view-btn-on' : ''"
+											:title="isDefault(c, o.v) ? `${o.label} (default). Double-click to clear` : `${o.label}. Double-click to set as default`"
+											:aria-label="`${o.label}${isDefault(c, o.v) ? ' (default)' : ''}`"
+											:aria-pressed="viewOf(c) === o.v"
+											@click="setView(c, o.v)" @dblclick.prevent="toggleDefault(c, o)"
+										>
+											<component :is="o.icon" :size="14" />
+											<span v-if="isDefault(c, o.v)" class="pin-dot" aria-hidden="true"></span>
+										</button>
 									</div>
 									<span v-else class="chip">{{ c.chip }}</span>
 								</header>
@@ -164,9 +178,9 @@
 									<!-- ===== Distribution views ===== -->
 									<template v-else-if="c.kind === 'dist'">
 										<!-- Bars -->
-										<div v-if="viewOf(c) === 'bars'">
+										<div v-if="viewOf(c) === 'bars'" :key="`${c.key}-bars`" class="view-swap">
 											<ul class="space-y-3.5">
-												<li v-for="r in shownRows(c)" :key="r.name">
+												<li v-for="r in shownRows(c)" :key="r.name" class="bar-row">
 													<div class="flex items-baseline justify-between gap-3 text-sm">
 														<span class="flex min-w-0 items-center gap-2"><span class="h-2 w-2 shrink-0 rounded-full" :style="{ background: r.color }"></span><span class="truncate font-medium text-[#33353A]" :title="r.name">{{ r.name }}</span></span>
 														<span class="shrink-0 tabular-nums"><b class="font-semibold text-[#25272B]">{{ r.count }}</b><span class="ml-1.5 text-xs text-[#858891]">{{ r.pct }}%</span></span>
@@ -180,7 +194,7 @@
 										</div>
 
 										<!-- Columns -->
-										<div v-else-if="viewOf(c) === 'columns'">
+										<div v-else-if="viewOf(c) === 'columns'" :key="`${c.key}-columns`" class="view-swap">
 											<div class="col-grid flex h-48 items-end gap-2 border-b border-[#ECEDEF] px-1">
 												<div v-for="r in c.rows.slice(0, 14)" :key="r.name" class="group flex h-full min-w-0 flex-1 flex-col items-center justify-end" :title="`${r.name}: ${r.count} (${r.pct}%)`">
 													<span class="mb-1 text-[11px] font-semibold tabular-nums text-[#555860]">{{ r.count }}</span>
@@ -194,7 +208,7 @@
 										</div>
 
 										<!-- Donut -->
-										<div v-else-if="viewOf(c) === 'donut'" class="flex flex-col items-center gap-5 sm:flex-row">
+										<div v-else-if="viewOf(c) === 'donut'" :key="`${c.key}-donut`" class="view-swap flex flex-col items-center gap-5 sm:flex-row">
 											<div class="relative h-40 w-40 shrink-0">
 												<svg viewBox="0 0 42 42" class="h-full w-full -rotate-90" role="img" :aria-label="c.title">
 													<circle cx="21" cy="21" r="15.9155" fill="none" stroke="#F4F5F7" stroke-width="5" />
@@ -208,29 +222,6 @@
 											<ul class="min-w-0 flex-1 space-y-2 self-stretch">
 												<li v-for="r in c.grouped" :key="r.name" class="legend-row flex items-center justify-between gap-3 rounded-md px-2 py-1 text-sm" @mouseenter="hot[c.key] = r.name" @mouseleave="hot[c.key] = ''">
 													<span class="flex min-w-0 items-center gap-2"><span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="{ background: r.color }"></span><span class="truncate text-[#33353A]">{{ r.name }}</span></span>
-													<span class="shrink-0 tabular-nums"><b class="font-semibold text-[#25272B]">{{ r.count }}</b><span class="ml-1.5 text-xs text-[#858891]">{{ r.pct }}%</span></span>
-												</li>
-											</ul>
-										</div>
-
-										<!-- Treemap -->
-										<div v-else-if="viewOf(c) === 'treemap'" class="flex h-52 flex-col gap-1">
-											<div v-for="(row, ri) in c.tree" :key="ri" class="flex min-h-0 gap-1" :style="{ flexGrow: row.h, flexBasis: 0 }">
-												<div v-for="t in row.items" :key="t.name" class="tree-tile flex min-w-0 flex-col justify-between overflow-hidden rounded-lg p-2.5 text-white" :style="{ flexGrow: t.w, flexBasis: 0, background: t.color }" :title="`${t.name}: ${t.count} (${t.pct}%)`">
-													<span class="truncate text-xs font-semibold">{{ t.name }}</span>
-													<span class="text-sm font-semibold tabular-nums">{{ t.pct }}% <span class="text-[11px] font-medium opacity-80">· {{ t.count }}</span></span>
-												</div>
-											</div>
-										</div>
-
-										<!-- Waffle -->
-										<div v-else-if="viewOf(c) === 'waffle'" class="flex flex-col items-center gap-5 sm:flex-row">
-											<div class="grid h-40 w-40 shrink-0 grid-cols-10 gap-[3px]" role="img" :aria-label="c.title">
-												<span v-for="(col, i) in c.cells" :key="i" class="waffle-cell rounded-[3px]" :style="{ background: col, animationDelay: `${i * 6}ms`, opacity: dimColor(c, col) }"></span>
-											</div>
-											<ul class="min-w-0 flex-1 space-y-2 self-stretch">
-												<li v-for="r in c.grouped" :key="r.name" class="legend-row flex items-center justify-between gap-3 rounded-md px-2 py-1 text-sm" @mouseenter="hot[c.key] = r.name" @mouseleave="hot[c.key] = ''">
-													<span class="flex min-w-0 items-center gap-2"><span class="h-2.5 w-2.5 shrink-0 rounded-[3px]" :style="{ background: r.color }"></span><span class="truncate text-[#33353A]">{{ r.name }}</span></span>
 													<span class="shrink-0 tabular-nums"><b class="font-semibold text-[#25272B]">{{ r.count }}</b><span class="ml-1.5 text-xs text-[#858891]">{{ r.pct }}%</span></span>
 												</li>
 											</ul>
@@ -286,7 +277,7 @@
 
 									<!-- ===== Form completion ===== -->
 									<template v-else-if="c.kind === 'completion'">
-										<ul v-if="viewOf(c) === 'bars'" class="grid gap-x-8 gap-y-4 md:grid-cols-2">
+										<ul v-if="viewOf(c) === 'bars'" :key="`${c.key}-bars`" class="view-swap grid gap-x-8 gap-y-4 md:grid-cols-2">
 											<li v-for="r in c.rows" :key="r.name">
 												<div class="flex items-baseline justify-between gap-3 text-sm">
 													<span class="truncate font-medium text-[#33353A]" :title="r.name">{{ r.name }}</span>
@@ -295,7 +286,7 @@
 												<div class="mt-1.5 h-2 overflow-hidden rounded-full bg-[#F4F5F7]"><div class="bar-fill h-full rounded-full" :style="{ '--w': `${r.pct}%`, background: heat(r.pct).solid }"></div></div>
 											</li>
 										</ul>
-										<div v-else class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+										<div v-else :key="`${c.key}-heat`" class="view-swap grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 											<div v-for="r in c.rows" :key="r.name" class="heat-tile rounded-lg p-3" :style="{ background: heat(r.pct).soft }" :title="`${r.name}: ${r.count} / ${r.of}`">
 												<p class="truncate text-xs font-medium text-[#33353A]">{{ r.name }}</p>
 												<p class="mt-1 text-lg font-semibold tabular-nums" :style="{ color: heat(r.pct).ink }">{{ r.pct }}%</p>
@@ -324,13 +315,21 @@
 				</template>
 			</template>
 		</div>
+
+		<!-- Default-set confirmation -->
+		<Transition name="toast">
+			<div v-if="toast" class="no-print fixed bottom-6 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2.5 rounded-xl bg-[#25272B] px-4 py-3 text-sm text-white shadow-[0_12px_32px_-8px_rgba(20,25,35,0.45)]" role="status" aria-live="polite">
+				<span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" :class="toast.cleared ? 'bg-white/15' : 'bg-[#C8102E]'"><component :is="toast.cleared ? RotateCcw : Pin" :size="12" /></span>
+				<span class="min-w-0">{{ toast.text }}</span>
+			</div>
+		</Transition>
 	</main>
 </template>
 
 <script setup>
 import { createResource } from "frappe-ui"
-import { computed, onMounted, reactive, ref } from "vue"
-import { Activity, AlignLeft, ArrowDown, BarChart3, CalendarRange, ChevronDown, ClipboardCheck, Filter, HeartPulse, Info, Layers, LayoutDashboard, LayoutGrid, Lightbulb, PieChart, Printer, Search, ShieldCheck, Timer, TrendingUp, UserCheck, UserX, Users, UsersRound } from "lucide-vue-next"
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue"
+import { Activity, AlignLeft, ArrowDown, BarChart3, CalendarRange, ChevronDown, ClipboardCheck, Filter, HeartPulse, Info, Layers, LayoutDashboard, LayoutGrid, Lightbulb, PieChart, Pin, Printer, RotateCcw, Search, ShieldCheck, Timer, TrendingUp, UserCheck, UserX, Users, UsersRound } from "lucide-vue-next"
 
 const analysis = createResource({ url: "krcti_mhpss.api.oversight.programme_analysis" })
 const tab = ref("overview")
@@ -343,29 +342,74 @@ const baselineLabels = { wellbeing_self_rating: "Wellbeing self-rating", stress_
 const sessionLabels = { session_type: "Session type", mode_of_contact: "Mode of contact", urgency_level: "Urgency", needs_follow_up: "Follow-up needed", followup_new_issues_present: "New issues reported", followup_new_presenting_issues: "New presenting issues", followup_evident_changes_present: "Evident changes", followup_mood_affect: "Mood and affect", followup_wellbeing_rating: "Follow-up wellbeing", followup_stress_frequency: "Follow-up stress frequency", followup_engagement_level: "Engagement", followup_risk_concerns: "Risk concerns", session_details: "Session details", notes: "Notes", presenting_issues: "Presenting issues", issue_subclassifications: "Issue subclassifications", interventions_applied: "Interventions applied", referrals_made: "Referrals made", risk_assessment: "Risk assessment", follow_up_plan: "Follow-up plan", progress_previous_goals: "Progress on previous goals", followup_goals_discussed: "Goals discussed", followup_challenges: "Challenges", followup_new_issues: "New issues detail", followup_evident_changes: "Evident changes detail", followup_coping_support: "Coping support", followup_support_effectiveness: "Support effectiveness", followup_additional_support: "Additional support", counsellor_observations: "Counsellor observations", next_session_focus: "Next session focus", followup_recommendations: "Recommendations", followup_takeaways: "Takeaways", followup_action: "Follow-up action" }
 
 // ---- Chart switcher ----
+// Click switches the view for this visit. Double-click pins it as that card's default (saved in this browser).
 const distViews = [
 	{ v: "bars", label: "Bars", icon: AlignLeft },
 	{ v: "columns", label: "Columns", icon: BarChart3 },
 	{ v: "donut", label: "Donut", icon: PieChart },
-	{ v: "treemap", label: "Treemap", icon: LayoutDashboard },
-	{ v: "waffle", label: "Waffle", icon: LayoutGrid },
 ]
 const completionViews = [
 	{ v: "bars", label: "Bars", icon: AlignLeft },
 	{ v: "heat", label: "Heatmap", icon: LayoutGrid },
 ]
+const viewsFor = (c) => (c.kind === "completion" ? completionViews : distViews)
+
+const STORE_KEY = "krcti-analysis-chart-defaults"
+function loadDefaults() {
+	try {
+		const parsed = JSON.parse(localStorage.getItem(STORE_KEY) || "{}")
+		return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {}
+	} catch {
+		return {}
+	}
+}
+function saveDefaults() {
+	try { localStorage.setItem(STORE_KEY, JSON.stringify(defaults)) } catch { /* storage unavailable */ }
+}
+
 const views = reactive({})
+const defaults = reactive(loadDefaults())
 const expanded = reactive({})
 const hot = reactive({})
-const viewOf = (c) => views[c.key] || c.auto
+const defaultCount = computed(() => Object.keys(defaults).length)
+
+// A saved default only applies while it is still a valid view for that card; otherwise fall back to the automatic choice.
+const viewOf = (c) => {
+	const chosen = views[c.key] || defaults[c.key]
+	return chosen && viewsFor(c).some((o) => o.v === chosen) ? chosen : c.auto
+}
+const isDefault = (c, v) => defaults[c.key] === v
 const setView = (c, v) => { views[c.key] = v }
+
+const toast = ref(null)
+let toastTimer = null
+function notify(text, cleared = false) {
+	toast.value = { text, cleared }
+	clearTimeout(toastTimer)
+	toastTimer = setTimeout(() => { toast.value = null }, 2600)
+}
+function toggleDefault(c, option) {
+	views[c.key] = option.v
+	if (defaults[c.key] === option.v) {
+		delete defaults[c.key]
+		notify(`Default cleared for “${c.title}”`, true)
+	} else {
+		defaults[c.key] = option.v
+		notify(`${option.label} is now the default for “${c.title}”`)
+	}
+	saveDefaults()
+}
+function resetDefaults() {
+	for (const key of Object.keys(defaults)) delete defaults[key]
+	for (const key of Object.keys(views)) delete views[key]
+	saveDefaults()
+	notify("All chart defaults reset", true)
+}
+onBeforeUnmount(() => clearTimeout(toastTimer))
+
 const shownRows = (c) => (expanded[c.key] ? c.rows : c.rows.slice(0, 8))
 const hotRow = (c) => c.grouped.find((r) => r.name === hot[c.key])
 const dim = (c, name) => (hot[c.key] && hot[c.key] !== name ? 0.25 : 1)
-const dimColor = (c, color) => {
-	const r = hotRow(c)
-	return r && r.color !== color ? 0.2 : 1
-}
 
 // ---- Helpers ----
 const PALETTE = ["#C8102E", "#1B4DB1", "#146C3A", "#D99A2B", "#0E8A8A", "#7A3FB5", "#62656D"]
@@ -378,26 +422,6 @@ const pretty = (name, field) => YES_NO_DISTRIBUTIONS.has(field) && name === "1" 
 const pct = (n, d) => (d ? Math.min(100, Math.round((n / d) * 100)) : 0)
 const val = (v) => (v === null || v === undefined ? "—" : v)
 const has = (v) => v !== null && v !== undefined
-
-function treemap(grouped) {
-	const total = grouped.reduce((s, r) => s + r.count, 0)
-	const rowsN = grouped.length > 6 ? 3 : grouped.length > 3 ? 2 : 1
-	const target = total / rowsN
-	const out = []
-	let cur = []
-	let sum = 0
-	grouped.forEach((r) => {
-		cur.push(r)
-		sum += r.count
-		if (sum >= target && out.length < rowsN - 1) {
-			out.push({ items: cur, sum })
-			cur = []
-			sum = 0
-		}
-	})
-	if (cur.length) out.push({ items: cur, sum })
-	return out.map((row) => ({ h: (row.sum / total) * 100, items: row.items.map((it) => ({ ...it, w: (it.count / row.sum) * 100 })) }))
-}
 
 function distribution(key, title, counts, extra = {}) {
 	const entries = Object.entries(counts || {}).filter(([, n]) => n > 0)
@@ -416,16 +440,9 @@ function distribution(key, title, counts, extra = {}) {
 		const count = rest.reduce((s, r) => s + r.count, 0)
 		grouped.push({ name: `Other (${rest.length})`, count, share: (count / total) * 100, pct: Math.round((count / total) * 100), rel: 0, color: OTHER })
 	}
-	const cells = []
-	let acc = 0
-	grouped.forEach((g) => {
-		acc += g.share
-		while (cells.length < Math.round(acc)) cells.push(g.color)
-	})
-	while (cells.length < 100) cells.push(grouped[grouped.length - 1].color)
 
 	const auto = extra.view || (rows.length > 1 && rows.length <= 5 ? "donut" : "bars")
-	return { kind: "dist", key, title, rows, grouped, cells, tree: treemap(grouped), total, top: byCount[0], auto, ...extra }
+	return { kind: "dist", key, title, rows, grouped, total, top: byCount[0], auto, ...extra }
 }
 function segments(card) {
 	let start = 0
@@ -614,30 +631,38 @@ onMounted(() => analysis.fetch())
 
 <style scoped>
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 8px; padding: 10px 16px; font-size: 14px; font-weight: 600; line-height: 20px; white-space: nowrap; transition: background 0.15s, border-color 0.15s, color 0.15s; }
+.btn:focus-visible, .seg:focus-visible, .view-btn:focus-visible { outline: 2px solid rgba(200, 16, 46, 0.45); outline-offset: 2px; }
 .btn-secondary { border-color: #d9dbe0; background: #fff; color: #33353a; box-shadow: 0 1px 2px rgba(20, 25, 35, 0.04); }
 .btn-secondary:hover { border-color: #c8102e; color: #a10e24; }
+.count-pill { display: inline-flex; min-width: 20px; height: 20px; align-items: center; justify-content: center; border-radius: 999px; background: #fce8eb; padding: 0 6px; font-size: 11px; font-weight: 700; color: #a10e24; }
 
 .seg { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 8px; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 600; color: #62656d; white-space: nowrap; transition: background 0.15s, color 0.15s; }
 .seg:hover { color: #25272b; }
 .seg-on { background: #fce8eb; color: #a10e24; }
 
-.viz-card { overflow: hidden; border: 1px solid #e4e6ea; border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgba(20, 25, 35, 0.03); }
+.viz-card { overflow: hidden; border: 1px solid #e4e6ea; border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgba(20, 25, 35, 0.03); transition: border-color 0.2s, box-shadow 0.2s; }
+.viz-card:hover { border-color: #d9dbe0; box-shadow: 0 4px 14px -6px rgba(20, 25, 35, 0.12); }
+.stat-card { transition: border-color 0.2s, box-shadow 0.2s; }
+.stat-card:hover { border-color: #d9dbe0; box-shadow: 0 4px 14px -6px rgba(20, 25, 35, 0.12); }
+.card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; border-bottom: 1px solid #ecedef; padding: 16px 20px; }
 .chip { display: inline-flex; flex-shrink: 0; align-items: center; gap: 6px; border-radius: 999px; background: #f4f5f7; padding: 4px 10px; font-size: 11px; font-weight: 600; color: #62656d; }
 
-.view-btn { display: flex; height: 28px; width: 30px; align-items: center; justify-content: center; border-radius: 6px; color: #737780; transition: background 0.15s, color 0.15s; }
+.view-btn { position: relative; display: flex; height: 28px; width: 30px; align-items: center; justify-content: center; border-radius: 6px; color: #737780; transition: background 0.15s, color 0.15s; }
 .view-btn:hover { color: #25272b; }
 .view-btn-on { background: #fff; color: #a10e24; box-shadow: 0 1px 2px rgba(20, 25, 35, 0.12); }
+.pin-dot { position: absolute; top: 3px; right: 3px; height: 6px; width: 6px; border-radius: 999px; background: #c8102e; box-shadow: 0 0 0 1.5px #f4f5f7; }
+.view-btn-on .pin-dot { box-shadow: 0 0 0 1.5px #fff; }
 
 .legend-row { transition: background 0.15s; }
 .legend-row:hover { background: #f7f7f8; }
+.bar-row { transition: opacity 0.15s; }
 
 .col-grid { background-image: linear-gradient(to top, #f0f1f3 1px, transparent 1px); background-size: 100% 25%; }
-.tree-tile { transition: filter 0.15s, transform 0.15s; }
-.tree-tile:hover { filter: brightness(1.08); }
 .heat-tile { transition: transform 0.15s; }
 .heat-tile:hover { transform: translateY(-1px); }
 
 /* Animations */
+.view-swap { animation: fade-in 0.25s ease both; }
 .bar-fill { width: var(--w); animation: grow-x 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .col-bar { height: var(--h); animation: grow-y 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .funnel-bar { width: var(--w); animation: grow-x 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
@@ -645,16 +670,19 @@ onMounted(() => analysis.fetch())
 .stack-seg:hover { filter: brightness(1.1); }
 .donut-seg { transition: opacity 0.2s; animation: dash-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .ring-seg { animation: dash-in 1s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.waffle-cell { animation: pop-in 0.35s ease both; transition: opacity 0.2s; }
 .radar-poly { animation: fade-in 0.8s ease both; }
 .plot-dot, .plot-range { animation: fade-in 0.8s ease both; }
 @keyframes grow-x { from { width: 0; } to { width: var(--w); } }
 @keyframes grow-y { from { height: 0; } to { height: var(--h); } }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes pop-in { from { opacity: 0; transform: scale(0.4); } to { transform: scale(1); } }
 @keyframes dash-in { from { stroke-dasharray: 0 100; } }
+
+.toast-enter-active, .toast-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.toast-enter-from, .toast-leave-to { opacity: 0; transform: translate(-50%, 8px); }
+
 @media (prefers-reduced-motion: reduce) {
-	.bar-fill, .col-bar, .funnel-bar, .stack-seg, .donut-seg, .ring-seg, .waffle-cell, .radar-poly, .plot-dot, .plot-range { animation: none; }
+	.view-swap, .bar-fill, .col-bar, .funnel-bar, .stack-seg, .donut-seg, .ring-seg, .radar-poly, .plot-dot, .plot-range { animation: none; }
+	.toast-enter-active, .toast-leave-active { transition: none; }
 }
 
 @media print {
@@ -662,6 +690,6 @@ onMounted(() => analysis.fetch())
 	main { min-height: 0 !important; background: #fff !important; padding: 0 !important; }
 	.print-show { display: block !important; break-inside: avoid-page; margin-top: 24px; }
 	.viz-card { break-inside: avoid; box-shadow: none !important; }
-	.bar-fill, .col-bar, .funnel-bar, .stack-seg, .donut-seg, .ring-seg, .waffle-cell, .radar-poly, .plot-dot, .plot-range { animation: none; }
+	.view-swap, .bar-fill, .col-bar, .funnel-bar, .stack-seg, .donut-seg, .ring-seg, .radar-poly, .plot-dot, .plot-range { animation: none; }
 }
 </style>
