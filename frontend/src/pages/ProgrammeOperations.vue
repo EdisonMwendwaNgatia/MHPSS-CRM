@@ -561,12 +561,18 @@ function archivedBaselineRows(survey) {
 		["Support available", survey.support_availability],
 		["Coping ability", survey.coping_ability],
 		["Coping behaviour rating", survey.coping_behaviour],
+		["Other coping mechanism", survey.coping_behaviour_other],
 		["Preferred support", survey.preferred_support_type],
 		["Interested in support", yesNo(survey.interest_in_support)],
 		["Willing to take part in follow-up", yesNo(survey.willingness_for_followup)],
-		["Marital status", survey.marital_status], ["Dependants", survey.dependants],
+		["Marital status", survey.marital_status], ["Has child or children", survey.has_children],
+		["Number of children", survey.number_of_children], ["Children’s ages (years)", survey.children_ages],
+		["Family status", survey.family_status], ["Abandoned or neglected by family", survey.family_abandonment_neglect],
+		["Domestic abuse victim", survey.domestic_abuse_victim], ["Dependants", survey.dependants],
 		["Domestic situation", survey.domestic_situation], ["Conflict or disaster exposure", survey.conflict_exposure],
 		["Exposure details", survey.exposure_details],
+		["Future goals", survey.future_goals],
+		["Additional wellbeing or support needs", survey.additional_support_needs],
 	]
 }
 const wellbeingScore = computed(() => {
@@ -596,7 +602,7 @@ const surveyGroups = computed(() => {
 			["Marital status", s.marital_status],
 			["Has child or children", s.has_children],
 			["Number of children", s.number_of_children],
-			["Children’s ages", s.children_ages],
+			["Children’s ages (years)", s.children_ages],
 			["Family status", s.family_status],
 			["Abandoned or neglected by family", s.family_abandonment_neglect],
 			["Domestic abuse victim", s.domestic_abuse_victim],

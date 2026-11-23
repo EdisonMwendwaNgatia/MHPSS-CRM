@@ -285,10 +285,9 @@ def record_baseline(client=None, data=None):
         frappe.throw(_("Describe the other concern."))
     if data.get("consent") == "Consented" and data.get("has_children") == "Yes":
         child_count = _int(data.get("number_of_children"), _("number of children"))
-        if child_count < 1:
-            frappe.throw(_("The number of children must be at least one."))
-        if not str(data.get("children_ages") or "").strip():
-            frappe.throw(_("Enter the age of each child."))
+        ages = [age.strip() for age in str(data.get("children_ages") or "").split(",")]
+        if child_count < 1 or child_count > 50 or len(ages) != child_count or any(not age.isdigit() for age in ages):
+            frappe.throw(_("Enter a whole-number age for each child, including 0 for children under 1 year."))
 
     doc = frappe.new_doc("Baseline Survey")
     doc.client_id = owner.name

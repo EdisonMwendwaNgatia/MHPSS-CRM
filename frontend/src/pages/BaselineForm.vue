@@ -101,10 +101,15 @@
 							<p v-if="fieldErrors.marital_status" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.marital_status }}</p>
 							<FormControl label="Do you have a child or children?" type="select" :options="YES_NO" v-model="form.has_children" @update:model-value="syncChildrenAnswer" />
 							<template v-if="form.has_children === 'Yes'">
-								<FormControl label="How many children do you have?" type="number" v-model="form.number_of_children" />
+								<FormControl label="How many children do you have?" type="number" v-model="form.number_of_children" @update:model-value="syncChildCount" />
 								<p v-if="fieldErrors.number_of_children" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.number_of_children }}</p>
-								<FormControl label="What are their ages? (For example: 4, 7, and 12)" type="textarea" v-model="form.children_ages" />
-								<p v-if="fieldErrors.children_ages" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.children_ages }}</p>
+								<fieldset v-if="childAgeFields.length" class="space-y-4 rounded-lg border border-[#E4E6EA] p-4">
+									<legend class="px-1 text-sm font-semibold text-[#2B2F36]">Child details</legend>
+									<div v-for="index in childAgeFields" :key="index">
+										<FormControl :label="`Age of child ${index} (in years; enter 0 if under 1 year)`" type="number" :min="0" step="1" v-model="childAges[index - 1]" />
+										<p v-if="fieldErrors[`child_age_${index}`]" class="mt-1 text-xs text-[#A10E24]" role="alert">{{ fieldErrors[`child_age_${index}`] }}</p>
+									</div>
+								</fieldset>
 							</template>
 							<FormControl label="Family status" type="select" :options="FAMILY_STATUS" v-model="form.family_status" />
 							<FormControl label="Have you been abandoned or neglected by your family?" type="select" :options="YES_NO" v-model="form.family_abandonment_neglect" />
@@ -208,6 +213,11 @@ const formError = ref("")
 const confirmOpen = ref(false)
 const surveyId = ref("")
 const fieldErrors = reactive({})
+const childAges = ref([])
+const childAgeFields = computed(() => {
+	const count = Number(form.number_of_children)
+	return Number.isInteger(count) && count > 0 && count <= 50 ? Array.from({ length: count }, (_, i) => i + 1) : []
+})
 
 const sections = [
 	{ title: "Student information", heading: "Student information", description: "Confirm the client record before beginning the survey." },
@@ -299,11 +309,18 @@ function syncConcernDetails() {
 }
 function syncChildrenAnswer() {
 	delete fieldErrors.number_of_children
-	delete fieldErrors.children_ages
+	for (const key of Object.keys(fieldErrors)) if (key.startsWith("child_age_")) delete fieldErrors[key]
 	if (form.has_children !== "Yes") {
 		form.number_of_children = ""
-		form.children_ages = ""
+		childAges.value = []
 	}
+}
+function syncChildCount() {
+	delete fieldErrors.number_of_children
+	const count = Number(form.number_of_children)
+	if (Number.isInteger(count) && count > 0 && count <= 50) childAges.value = Array.from({ length: count }, (_, i) => childAges.value[i] ?? "")
+	else childAges.value = []
+	for (const key of Object.keys(fieldErrors)) if (key.startsWith("child_age_")) delete fieldErrors[key]
 }
 function submit() {
 	formError.value = ""
@@ -315,17 +332,19 @@ function submit() {
 		for (const key of missing) fieldErrors[key] = "This answer is required."
 		if (!selectedMainConcerns.value.length) fieldErrors.main_concerns = "Select at least one concern."
 		if (form.has_children === "Yes") {
-			if (!Number.isInteger(Number(form.number_of_children)) || Number(form.number_of_children) < 1) fieldErrors.number_of_children = "Enter a whole number of at least one."
-			if (!String(form.children_ages || "").trim()) fieldErrors.children_ages = "Enter the age of each child."
+			if (!Number.isInteger(Number(form.number_of_children)) || Number(form.number_of_children) < 1 || Number(form.number_of_children) > 50) fieldErrors.number_of_children = "Enter a whole number from 1 to 50."
+			else childAges.value.forEach((age, index) => {
+				if (age === "" || age === null || age === undefined || !Number.isInteger(Number(age)) || Number(age) < 0) fieldErrors[`child_age_${index + 1}`] = "Enter a whole number of 0 or more."
+			})
 		}
-		if (missing.length || fieldErrors.main_concerns || fieldErrors.number_of_children || fieldErrors.children_ages) {
+		if (missing.length || fieldErrors.main_concerns || fieldErrors.number_of_children || Object.keys(fieldErrors).some((key) => key.startsWith("child_age_"))) {
 			formError.value = "Complete the highlighted answers before submitting."
-			step.value = sectionForField(missing[0] || (fieldErrors.number_of_children || fieldErrors.children_ages ? "has_children" : "main_concerns"))
+			step.value = sectionForField(missing[0] || (fieldErrors.number_of_children || Object.keys(fieldErrors).some((key) => key.startsWith("child_age_")) ? "has_children" : "main_concerns"))
 			return
 		}
 		if (!RATINGS.some((option) => option.value === form.wellbeing_self_rating && option.value)) { fieldErrors.wellbeing_self_rating = "Choose a wellbeing rating."; step.value = 3; formError.value = "Correct the highlighted answer."; return }
 		if (form.dependants !== "" && (!Number.isInteger(Number(form.dependants)) || Number(form.dependants) < 0)) { fieldErrors.dependants = "Enter a whole number of zero or more."; step.value = 2; formError.value = "Correct the highlighted answer."; return }
-		const textFields = ["main_concerns", "main_concerns_other", "coping_behaviour_other", "domestic_situation", "exposure_details", "future_goals", "additional_support_needs", "children_ages"]
+		const textFields = ["main_concerns", "main_concerns_other", "coping_behaviour_other", "domestic_situation", "exposure_details", "future_goals", "additional_support_needs"]
 		const tooLong = textFields.find((key) => String(form[key] || "").length > 2000)
 		if (tooLong) { fieldErrors[tooLong] = "Keep this answer to 2000 characters or fewer."; step.value = sectionForField(tooLong); formError.value = "Correct the highlighted answer."; return }
 	}
@@ -338,7 +357,7 @@ function submit() {
 	confirmOpen.value = true
 }
 function sectionForField(field) {
-	if (["marital_status", "has_children", "number_of_children", "children_ages", "family_status", "family_abandonment_neglect", "domestic_abuse_victim", "dependants", "domestic_situation", "conflict_exposure", "exposure_details"].includes(field)) return 2
+	if (["marital_status", "has_children", "number_of_children", "children_ages", "family_status", "family_abandonment_neglect", "domestic_abuse_victim", "dependants", "domestic_situation", "conflict_exposure", "exposure_details"].includes(field) || field.startsWith("child_age_")) return 2
 	if (field === "wellbeing_self_rating") return 3
 	if (field === "stress_frequency") return 4
 	if (["main_concerns", "main_concerns_other"].includes(field)) return 5
@@ -351,10 +370,13 @@ function confirmSubmit() {
 	if (form.consent === "Declined") {
 		data.declined_reason = form.declined_reason
 	} else {
-		for (const key of ["stress_frequency", "main_concerns_other", "support_availability", "coping_ability", "coping_behaviour", "preferred_support_type", "marital_status", "domestic_situation", "conflict_exposure", "exposure_details", "has_children", "children_ages", "family_status", "family_abandonment_neglect", "domestic_abuse_victim", "future_goals", "additional_support_needs"]) {
+		for (const key of ["stress_frequency", "main_concerns_other", "support_availability", "coping_ability", "coping_behaviour", "preferred_support_type", "marital_status", "domestic_situation", "conflict_exposure", "exposure_details", "has_children", "family_status", "family_abandonment_neglect", "domestic_abuse_victim", "future_goals", "additional_support_needs"]) {
 			data[key] = form[key]
 		}
-		if (form.has_children === "Yes") data.number_of_children = Number(form.number_of_children)
+		if (form.has_children === "Yes") {
+			data.number_of_children = Number(form.number_of_children)
+			data.children_ages = childAges.value.map(Number).join(", ")
+		}
 		data.main_concerns = selectedMainConcerns.value.join(", ")
 		data.wellbeing_self_rating = form.wellbeing_self_rating
 		data.dependants = form.dependants === "" ? 0 : Number(form.dependants)

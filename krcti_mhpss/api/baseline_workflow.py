@@ -19,11 +19,11 @@ SHORT_FIELDS = (
 )
 LONG_FIELDS = (
     "declined_reason", "main_concerns", "main_concerns_other", "coping_behaviour_other",
-    "domestic_situation", "exposure_details", "future_goals", "additional_support_needs", "children_ages",
+    "domestic_situation", "exposure_details", "future_goals", "additional_support_needs",
 )
 NUMBER_FIELDS = ("dependants", "number_of_children")
 CHECK_FIELDS = ("interest_in_support", "willingness_for_followup")
-ALLOWED_FIELDS = {"consent", *SHORT_FIELDS, *LONG_FIELDS, *NUMBER_FIELDS, *CHECK_FIELDS}
+ALLOWED_FIELDS = {"consent", "children_ages", *SHORT_FIELDS, *LONG_FIELDS, *NUMBER_FIELDS, *CHECK_FIELDS}
 REQUIRED_FIELDS = {
     "wellbeing_self_rating": "Wellbeing rating",
     "stress_frequency": "Recent stress frequency",
@@ -154,13 +154,15 @@ def _validate_answers(data):
             number_of_children = int(data.get("number_of_children"))
         except (TypeError, ValueError):
             frappe.throw(_("Enter the number of children."))
-        if number_of_children < 1:
-            frappe.throw(_("The number of children must be at least one."))
-        children_ages = str(data.get("children_ages") or "").strip()
-        if not children_ages:
-            frappe.throw(_("Enter the age of each child."))
+        if number_of_children < 1 or number_of_children > 50:
+            frappe.throw(_("The number of children must be from 1 to 50."))
+        raw_ages = data.get("children_ages") or ""
+        ages = raw_ages if isinstance(raw_ages, list) else str(raw_ages).split(",")
+        ages = [str(age).strip() for age in ages]
+        if len(ages) != number_of_children or any(not age.isdigit() for age in ages):
+            frappe.throw(_("Enter a whole-number age for each child, including 0 for children under 1 year."))
         cleaned["number_of_children"] = number_of_children
-        cleaned["children_ages"] = children_ages
+        cleaned["children_ages"] = ", ".join(ages)
     dependants = data.get("dependants") or 0
     try:
         dependants = int(dependants or 0)
@@ -170,8 +172,6 @@ def _validate_answers(data):
         frappe.throw(_("Dependants cannot be negative."))
     cleaned["dependants"] = dependants
     for key in LONG_FIELDS:
-        if key == "children_ages" and cleaned.get("has_children") != "Yes":
-            continue
         value = str(data.get(key) or "").strip()
         if len(value) > 2000:
             frappe.throw(_("{0} cannot exceed 2000 characters.").format(key.replace("_", " ")))
