@@ -594,6 +594,12 @@ const surveyGroups = computed(() => {
 		{ title: "Background", icon: Home, rows: [
 			["Consent", s.consent],
 			["Marital status", s.marital_status],
+			["Has child or children", s.has_children],
+			["Number of children", s.number_of_children],
+			["Children’s ages", s.children_ages],
+			["Family status", s.family_status],
+			["Abandoned or neglected by family", s.family_abandonment_neglect],
+			["Domestic abuse victim", s.domestic_abuse_victim],
 			["Dependants", s.dependants],
 			["Domestic situation", s.domestic_situation],
 			["Conflict or disaster exposure", [s.conflict_exposure, s.exposure_details].filter(Boolean).join(": "), true],
@@ -603,12 +609,14 @@ const surveyGroups = computed(() => {
 			["Coping ability", s.coping_ability],
 			["Coping behaviour", s.coping_behaviour],
 			["Other coping mechanism", s.coping_behaviour_other],
+			["Future goals", s.future_goals, true],
 		] },
 		{ title: "Support", icon: LifeBuoy, rows: [
 			["Support available", s.support_availability],
 			["Interested in support", yesNo(s.interest_in_support)],
 			["Willing to follow up", yesNo(s.willingness_for_followup)],
 			["Support that would be most helpful", s.preferred_support_type, true],
+			["Additional wellbeing or support needs", s.additional_support_needs, true],
 		] },
 	]
 	return groups

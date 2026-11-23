@@ -21,10 +21,10 @@ CASE_STATUSES = ("Active", "Follow-Up Pending", "Closed")
 
 BASELINE_SHORT = (
 	"wellbeing_self_rating", "stress_frequency", "support_availability", "coping_ability", "coping_behaviour", "preferred_support_type",
-	"marital_status", "conflict_exposure",
+	"marital_status", "conflict_exposure", "has_children", "family_status", "family_abandonment_neglect", "domestic_abuse_victim",
 )
-BASELINE_LONG = ("declined_reason", "main_concerns", "main_concerns_other", "coping_behaviour_other", "domestic_situation", "exposure_details")
-BASELINE_NUMBERS = ("dependants",)
+BASELINE_LONG = ("declined_reason", "main_concerns", "main_concerns_other", "coping_behaviour_other", "domestic_situation", "exposure_details", "future_goals", "additional_support_needs", "children_ages")
+BASELINE_NUMBERS = ("dependants", "number_of_children")
 BASELINE_CHECKS = ("interest_in_support", "willingness_for_followup")
 BASELINE_ALLOWED = ("consent",) + BASELINE_SHORT + BASELINE_LONG + BASELINE_NUMBERS + BASELINE_CHECKS
 
@@ -283,6 +283,12 @@ def record_baseline(client=None, data=None):
         data.get("main_concerns_other"), _("The other concern")
     ):
         frappe.throw(_("Describe the other concern."))
+    if data.get("consent") == "Consented" and data.get("has_children") == "Yes":
+        child_count = _int(data.get("number_of_children"), _("number of children"))
+        if child_count < 1:
+            frappe.throw(_("The number of children must be at least one."))
+        if not str(data.get("children_ages") or "").strip():
+            frappe.throw(_("Enter the age of each child."))
 
     doc = frappe.new_doc("Baseline Survey")
     doc.client_id = owner.name
@@ -301,6 +307,9 @@ def record_baseline(client=None, data=None):
                 doc.set(key, _long(data[key], key.replace("_", " ")))
         if "dependants" in data:
             doc.dependants = _int(data["dependants"], _("dependants"))
+        if data.get("has_children") == "Yes":
+            child_count = _int(data.get("number_of_children"), _("number of children"))
+            doc.number_of_children = child_count
         for key in BASELINE_CHECKS:
             if key in data:
                 doc.set(key, 1 if data[key] else 0)

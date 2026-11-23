@@ -96,11 +96,32 @@
 								<span class="mt-1 block text-sm font-medium text-[#2B2F36]">{{ item.value || 'Not recorded' }}</span>
 							</div>
 						</div>
-						<div v-else-if="step === 2" class="max-w-xl">
+						<div v-else-if="step === 2" class="max-w-xl space-y-5">
+							<FormControl label="What is your current marital status?" type="select" :options="MARITAL" v-model="form.marital_status" />
+							<p v-if="fieldErrors.marital_status" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.marital_status }}</p>
+							<FormControl label="Do you have a child or children?" type="select" :options="YES_NO" v-model="form.has_children" @update:model-value="syncChildrenAnswer" />
+							<template v-if="form.has_children === 'Yes'">
+								<FormControl label="How many children do you have?" type="number" v-model="form.number_of_children" />
+								<p v-if="fieldErrors.number_of_children" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.number_of_children }}</p>
+								<FormControl label="What are their ages? (For example: 4, 7, and 12)" type="textarea" v-model="form.children_ages" />
+								<p v-if="fieldErrors.children_ages" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.children_ages }}</p>
+							</template>
+							<FormControl label="Family status" type="select" :options="FAMILY_STATUS" v-model="form.family_status" />
+							<FormControl label="Have you been abandoned or neglected by your family?" type="select" :options="YES_NO" v-model="form.family_abandonment_neglect" />
+							<FormControl label="Have you been a victim of domestic abuse?" type="select" :options="YES_NO" v-model="form.domestic_abuse_victim" />
+							<FormControl label="How many people depend on you for financial or other support?" type="number" v-model="form.dependants" />
+							<p v-if="fieldErrors.dependants" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.dependants }}</p>
+							<FormControl label="Would you like to describe your current home or living situation?" type="textarea" v-model="form.domestic_situation" />
+							<p v-if="fieldErrors.domestic_situation" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.domestic_situation }}</p>
+							<FormControl label="Have you been affected by conflict or a disaster?" type="select" :options="EXPOSURE" v-model="form.conflict_exposure" />
+							<p v-if="fieldErrors.conflict_exposure" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.conflict_exposure }}</p>
+							<FormControl v-if="form.conflict_exposure === 'Yes'" label="Exposure details" type="textarea" v-model="form.exposure_details" />
+						</div>
+						<div v-else-if="step === 3" class="max-w-xl">
 							<FormControl label="How would you rate your current emotional and psychological wellbeing?" type="select" :options="RATINGS" v-model="form.wellbeing_self_rating" />
 							<p v-if="fieldErrors.wellbeing_self_rating" class="mt-1 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.wellbeing_self_rating }}</p>
 						</div>
-						<div v-else-if="step === 3" class="max-w-xl">
+						<div v-else-if="step === 4" class="max-w-xl">
 							<fieldset class="mb-6 border-0 p-0">
 								<legend class="mb-3 text-sm font-medium text-[#2B2F36]">In the past two weeks, how often have you experienced significant stress, anxiety, low mood, or difficulty concentrating?</legend>
 								<label v-for="option in STRESS.filter((item) => item.value)" :key="option.value" class="mb-2 flex min-h-11 cursor-pointer items-center gap-3 rounded-[10px] border border-[#D5D8DE] px-3.5 text-sm hover:border-[#C8102E]">
@@ -109,7 +130,7 @@
 							</fieldset>
 							<p v-if="fieldErrors.stress_frequency" class="mt-1 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.stress_frequency }}</p>
 						</div>
-						<div v-else-if="step === 4" class="max-w-xl">
+						<div v-else-if="step === 5" class="max-w-xl">
 							<fieldset class="border-0 p-0">
 								<legend class="mb-3 text-sm font-medium text-[#2B2F36]">What are your main current concerns? <span class="font-normal text-[#5B616B]">(select all that apply)</span></legend>
 								<div class="grid gap-2 sm:grid-cols-2">
@@ -123,32 +144,23 @@
 							<FormControl v-if="selectedMainConcerns.includes('Other')" label="Describe the other concern" type="textarea" v-model="form.main_concerns_other" />
 							<p v-if="fieldErrors.main_concerns_other" class="mt-1 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.main_concerns_other }}</p>
 						</div>
-						<div v-else-if="step === 5" class="max-w-xl space-y-5">
+						<div v-else-if="step === 6" class="max-w-xl space-y-5">
 							<FormControl label="Do you have someone you can rely on when facing challenges?" type="select" :options="SUPPORT" v-model="form.support_availability" />
 							<p v-if="fieldErrors.support_availability" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.support_availability }}</p>
 							<FormControl label="What type of support would be most helpful to you?" type="select" :options="SUPPORT_TYPES" v-model="form.preferred_support_type" />
 							<p v-if="fieldErrors.preferred_support_type" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.preferred_support_type }}</p>
 						</div>
-						<div v-else-if="step === 6" class="max-w-xl space-y-5">
+						<div v-else-if="step === 7" class="max-w-xl space-y-5">
 							<FormControl label="How would you rate your ability to cope with stress?" type="select" :options="COPING" v-model="form.coping_ability" />
 							<p v-if="fieldErrors.coping_ability" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.coping_ability }}</p>
 							<FormControl label="When you feel stressed or upset, which best describes how you usually cope?" type="select" :options="COPING_BEHAVIOURS" v-model="form.coping_behaviour" @update:model-value="formError = ''" />
 							<p v-if="fieldErrors.coping_behaviour" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.coping_behaviour }}</p>
+							<FormControl label="What are your main goals, dreams, or plans for your future?" type="textarea" v-model="form.future_goals" />
 						</div>
-						<div v-else-if="step === 7" class="max-w-xl space-y-5">
+						<div v-else-if="step === 8" class="max-w-xl space-y-5">
 							<FormControl type="checkbox" label="Would you be interested in receiving MHPSS support during the programme?" v-model="form.interest_in_support" />
 							<FormControl type="checkbox" label="Would you be willing to take part in voluntary follow-up during the programme?" v-model="form.willingness_for_followup" />
-						</div>
-						<div v-else class="max-w-xl space-y-5">
-							<FormControl label="What is your current marital status?" type="select" :options="MARITAL" v-model="form.marital_status" />
-							<p v-if="fieldErrors.marital_status" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.marital_status }}</p>
-							<FormControl label="How many people depend on you for financial or other support?" type="number" v-model="form.dependants" />
-							<p v-if="fieldErrors.dependants" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.dependants }}</p>
-							<FormControl label="Would you like to describe your current home or living situation?" type="textarea" v-model="form.domestic_situation" />
-							<p v-if="fieldErrors.domestic_situation" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.domestic_situation }}</p>
-							<FormControl label="Have you been affected by conflict or a disaster?" type="select" :options="EXPOSURE" v-model="form.conflict_exposure" />
-							<p v-if="fieldErrors.conflict_exposure" class="-mt-4 text-xs text-[#A10E24]" role="alert">{{ fieldErrors.conflict_exposure }}</p>
-							<FormControl v-if="form.conflict_exposure === 'Yes'" label="Exposure details" type="textarea" v-model="form.exposure_details" />
+							<FormControl label="Is there anything else you would like the MHPSS team to know about your wellbeing or support needs?" type="textarea" v-model="form.additional_support_needs" />
 						</div>
 
 						<p v-if="formError" class="mt-5 text-sm text-[#A10E24]" role="alert">{{ formError }}</p>
@@ -199,13 +211,13 @@ const fieldErrors = reactive({})
 
 const sections = [
 	{ title: "Student information", heading: "Student information", description: "Confirm the client record before beginning the survey." },
-	{ title: "Wellbeing", heading: "Section 2: Wellbeing", description: "Record the client’s current self-rating." },
-	{ title: "Stress frequency", heading: "Section 3: Stress frequency", description: "How often has the client felt stressed recently?" },
-	{ title: "Concerns", heading: "Section 4: Concerns", description: "Record the concerns shared by the client." },
-	{ title: "Support systems", heading: "Section 5: Support systems", description: "Record the support currently available to the client." },
-	{ title: "Coping mechanisms", heading: "Section 6: Coping mechanisms", description: "Record how the client is coping and the strategies they use." },
-	{ title: "Interest in MHPSS support", heading: "Section 7: Interest in MHPSS support", description: "Record the client’s support preferences and follow-up consent." },
-	{ title: "Family background", heading: "Section 8: Family background", description: "Record the family and home context shared by the client." },
+	{ title: "Family background", heading: "Section 2: Family background", description: "Record the family and home context shared by the client." },
+	{ title: "Wellbeing", heading: "Section 3: Wellbeing", description: "Record the client’s current self-rating." },
+	{ title: "Stress frequency", heading: "Section 4: Stress frequency", description: "How often has the client felt stressed recently?" },
+	{ title: "Concerns", heading: "Section 5: Concerns", description: "Record the concerns shared by the client." },
+	{ title: "Support systems", heading: "Section 6: Support systems", description: "Record the support currently available to the client." },
+	{ title: "Coping mechanisms", heading: "Section 7: Coping mechanisms", description: "Record how the client is coping and the strategies they use." },
+	{ title: "Interest in MHPSS support", heading: "Section 8: Interest in MHPSS support", description: "Record the client’s support preferences and follow-up consent." },
 ]
 const mainConcernOptions = [
 	"Academic pressure", "Financial challenges", "Family issues", "Relationships",
@@ -217,10 +229,13 @@ const consentOptions = [
 	{ label: "Client consented", value: "Consented" },
 	{ label: "Client declined", value: "Declined" },
 ]
-const form = reactive({
+const YES_NO = [{ label: "Choose an answer", value: "" }, { label: "Yes", value: "Yes" }, { label: "No", value: "No" }]
+const FAMILY_STATUS = [{ label: "Choose family status", value: "" }, { label: "Both parents", value: "Both parents" }, { label: "Single parent", value: "Single parent" }, { label: "Orphan", value: "Orphan" }]
+	const form = reactive({
 	consent: "", wellbeing_self_rating: "", dependants: "", interest_in_support: false, willingness_for_followup: false,
 	declined_reason: "", stress_frequency: "", main_concerns: "", main_concerns_other: "", support_availability: "", coping_ability: "",
 	coping_behaviour: "", coping_behaviour_other: "", preferred_support_type: "", marital_status: "", domestic_situation: "", conflict_exposure: "", exposure_details: "",
+	has_children: "", number_of_children: "", children_ages: "", family_status: "", family_abandonment_neglect: "", domestic_abuse_victim: "", future_goals: "", additional_support_needs: "",
 })
 const selectedMainConcerns = ref([])
 
@@ -282,6 +297,14 @@ function syncConcernDetails() {
 	formError.value = ""
 	if (!selectedMainConcerns.value.includes("Other")) form.main_concerns_other = ""
 }
+function syncChildrenAnswer() {
+	delete fieldErrors.number_of_children
+	delete fieldErrors.children_ages
+	if (form.has_children !== "Yes") {
+		form.number_of_children = ""
+		form.children_ages = ""
+	}
+}
 function submit() {
 	formError.value = ""
 	for (const key of Object.keys(fieldErrors)) delete fieldErrors[key]
@@ -291,14 +314,18 @@ function submit() {
 		const missing = required.filter((key) => form[key] === "" || form[key] === null || form[key] === undefined)
 		for (const key of missing) fieldErrors[key] = "This answer is required."
 		if (!selectedMainConcerns.value.length) fieldErrors.main_concerns = "Select at least one concern."
-		if (missing.length || fieldErrors.main_concerns) {
+		if (form.has_children === "Yes") {
+			if (!Number.isInteger(Number(form.number_of_children)) || Number(form.number_of_children) < 1) fieldErrors.number_of_children = "Enter a whole number of at least one."
+			if (!String(form.children_ages || "").trim()) fieldErrors.children_ages = "Enter the age of each child."
+		}
+		if (missing.length || fieldErrors.main_concerns || fieldErrors.number_of_children || fieldErrors.children_ages) {
 			formError.value = "Complete the highlighted answers before submitting."
-			step.value = sectionForField(missing[0] || "main_concerns")
+			step.value = sectionForField(missing[0] || (fieldErrors.number_of_children || fieldErrors.children_ages ? "has_children" : "main_concerns"))
 			return
 		}
-		if (!RATINGS.some((option) => option.value === form.wellbeing_self_rating && option.value)) { fieldErrors.wellbeing_self_rating = "Choose a wellbeing rating."; step.value = 2; formError.value = "Correct the highlighted answer."; return }
-		if (form.dependants !== "" && (!Number.isInteger(Number(form.dependants)) || Number(form.dependants) < 0)) { fieldErrors.dependants = "Enter a whole number of zero or more."; step.value = 8; formError.value = "Correct the highlighted answer."; return }
-		const textFields = ["main_concerns", "main_concerns_other", "coping_behaviour_other", "domestic_situation", "exposure_details"]
+		if (!RATINGS.some((option) => option.value === form.wellbeing_self_rating && option.value)) { fieldErrors.wellbeing_self_rating = "Choose a wellbeing rating."; step.value = 3; formError.value = "Correct the highlighted answer."; return }
+		if (form.dependants !== "" && (!Number.isInteger(Number(form.dependants)) || Number(form.dependants) < 0)) { fieldErrors.dependants = "Enter a whole number of zero or more."; step.value = 2; formError.value = "Correct the highlighted answer."; return }
+		const textFields = ["main_concerns", "main_concerns_other", "coping_behaviour_other", "domestic_situation", "exposure_details", "future_goals", "additional_support_needs", "children_ages"]
 		const tooLong = textFields.find((key) => String(form[key] || "").length > 2000)
 		if (tooLong) { fieldErrors[tooLong] = "Keep this answer to 2000 characters or fewer."; step.value = sectionForField(tooLong); formError.value = "Correct the highlighted answer."; return }
 	}
@@ -311,12 +338,12 @@ function submit() {
 	confirmOpen.value = true
 }
 function sectionForField(field) {
-	if (field === "wellbeing_self_rating") return 2
-	if (field === "stress_frequency") return 3
-	if (["main_concerns", "main_concerns_other"].includes(field)) return 4
-	if (["support_availability", "preferred_support_type"].includes(field)) return 5
-	if (["coping_ability", "coping_behaviour", "coping_behaviour_other"].includes(field)) return 6
-	if (["interest_in_support", "willingness_for_followup"].includes(field)) return 7
+	if (["marital_status", "has_children", "number_of_children", "children_ages", "family_status", "family_abandonment_neglect", "domestic_abuse_victim", "dependants", "domestic_situation", "conflict_exposure", "exposure_details"].includes(field)) return 2
+	if (field === "wellbeing_self_rating") return 3
+	if (field === "stress_frequency") return 4
+	if (["main_concerns", "main_concerns_other"].includes(field)) return 5
+	if (["support_availability", "preferred_support_type"].includes(field)) return 6
+	if (["coping_ability", "coping_behaviour", "coping_behaviour_other", "future_goals"].includes(field)) return 7
 	return 8
 }
 function confirmSubmit() {
@@ -324,9 +351,10 @@ function confirmSubmit() {
 	if (form.consent === "Declined") {
 		data.declined_reason = form.declined_reason
 	} else {
-		for (const key of ["stress_frequency", "main_concerns_other", "support_availability", "coping_ability", "coping_behaviour", "preferred_support_type", "marital_status", "domestic_situation", "conflict_exposure", "exposure_details"]) {
+		for (const key of ["stress_frequency", "main_concerns_other", "support_availability", "coping_ability", "coping_behaviour", "preferred_support_type", "marital_status", "domestic_situation", "conflict_exposure", "exposure_details", "has_children", "children_ages", "family_status", "family_abandonment_neglect", "domestic_abuse_victim", "future_goals", "additional_support_needs"]) {
 			data[key] = form[key]
 		}
+		if (form.has_children === "Yes") data.number_of_children = Number(form.number_of_children)
 		data.main_concerns = selectedMainConcerns.value.join(", ")
 		data.wellbeing_self_rating = form.wellbeing_self_rating
 		data.dependants = form.dependants === "" ? 0 : Number(form.dependants)

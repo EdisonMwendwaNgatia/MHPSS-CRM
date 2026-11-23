@@ -37,13 +37,21 @@
   "coping_ability",
   "coping_behaviour",
   "coping_behaviour_other",
+  "future_goals",
   "sec_support",
   "interest_in_support",
   "preferred_support_type",
   "col_3",
   "willingness_for_followup",
+  "additional_support_needs",
   "sec_family",
   "marital_status",
+  "has_children",
+  "number_of_children",
+  "children_ages",
+  "family_status",
+  "family_abandonment_neglect",
+  "domestic_abuse_victim",
   "dependants",
   "col_4",
   "domestic_situation",
@@ -232,6 +240,11 @@
    "mandatory_depends_on": "eval:doc.coping_behaviour==\"Other\""
   },
   {
+   "fieldname": "future_goals",
+   "fieldtype": "Small Text",
+   "label": "Main goals, dreams, or plans for the future"
+  },
+  {
    "fieldname": "sec_support",
    "fieldtype": "Section Break",
    "label": "Support",
@@ -258,6 +271,11 @@
    "label": "Willing to take part in follow-up"
   },
   {
+   "fieldname": "additional_support_needs",
+   "fieldtype": "Small Text",
+   "label": "Anything else the MHPSS team should know about your wellbeing or support needs?"
+  },
+  {
    "fieldname": "sec_family",
    "fieldtype": "Section Break",
    "label": "Family background",
@@ -268,6 +286,44 @@
    "fieldtype": "Select",
    "label": "Marital status",
    "options": "\nSingle\nMarried\nSeparated\nDivorced\nWidowed\nOther"
+  },
+  {
+   "fieldname": "has_children",
+   "fieldtype": "Select",
+   "label": "Do you have a child or children?",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "number_of_children",
+   "fieldtype": "Int",
+   "label": "How many children do you have?",
+   "depends_on": "eval:doc.has_children==\"Yes\"",
+   "mandatory_depends_on": "eval:doc.has_children==\"Yes\""
+  },
+  {
+   "fieldname": "children_ages",
+   "fieldtype": "Small Text",
+   "label": "What are their ages?",
+   "depends_on": "eval:doc.has_children==\"Yes\"",
+   "mandatory_depends_on": "eval:doc.has_children==\"Yes\""
+  },
+  {
+   "fieldname": "family_status",
+   "fieldtype": "Select",
+   "label": "Family status",
+   "options": "\nBoth parents\nSingle parent\nOrphan"
+  },
+  {
+   "fieldname": "family_abandonment_neglect",
+   "fieldtype": "Select",
+   "label": "Have you been abandoned or neglected by your family?",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "domestic_abuse_victim",
+   "fieldtype": "Select",
+   "label": "Have you been a victim of domestic abuse?",
+   "options": "\nYes\nNo"
   },
   {
    "fieldname": "dependants",
@@ -320,6 +376,7 @@
    "permlevel": 0,
    "read": 1,
    "create": 1,
+   "delete": 1,
    "import": 1,
    "report": 1,
    "export": 1,

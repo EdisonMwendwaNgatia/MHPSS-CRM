@@ -14,7 +14,8 @@ SURVEY_FIELDS = (
     "name", "status", "consent", "declined_reason", "wellbeing_self_rating", "stress_frequency",
     "main_concerns", "main_concerns_other", "support_availability", "coping_ability", "interest_in_support",
 	"preferred_support_type", "willingness_for_followup", "coping_behaviour", "coping_behaviour_other", "marital_status",
-    "dependants", "domestic_situation", "conflict_exposure", "exposure_details", "completed_by", "completed_on",
+    "dependants", "domestic_situation", "conflict_exposure", "exposure_details", "has_children", "family_status",
+    "family_abandonment_neglect", "domestic_abuse_victim", "future_goals", "additional_support_needs", "number_of_children", "children_ages", "completed_by", "completed_on",
 )
 APPOINTMENT_FIELDS = [
     "name", "client_id", "client_name", "scholar_code", "counsellor_id", "counsellor_name", "date_time", "end_time",

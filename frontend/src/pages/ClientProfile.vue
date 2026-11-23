@@ -332,8 +332,11 @@ const survey = computed(() => {
 		["Main concerns", [x.main_concerns, x.main_concerns_other ? `Other: ${x.main_concerns_other}` : ""].filter(Boolean).join("; ")], ["Support available", x.support_availability], ["Coping ability", x.coping_ability],
 		["Coping behaviour rating", x.coping_behaviour], ["Interested in support", yes(x.interest_in_support)],
 		["Support that would be most helpful", x.preferred_support_type], ["Willing to follow up", yes(x.willingness_for_followup)],
-		["Marital status", x.marital_status], ["Dependants", x.dependants], ["Domestic situation", x.domestic_situation],
+		["Marital status", x.marital_status], ["Has child or children", x.has_children], ["Number of children", x.number_of_children], ["Children’s ages", x.children_ages], ["Family status", x.family_status],
+		["Abandoned or neglected by family", x.family_abandonment_neglect], ["Domestic abuse victim", x.domestic_abuse_victim],
+		["Dependants", x.dependants], ["Domestic situation", x.domestic_situation],
 		["Conflict or disaster exposure", [x.conflict_exposure, x.exposure_details].filter(Boolean).join(": ")],
+		["Future goals", x.future_goals], ["Additional wellbeing or support needs", x.additional_support_needs],
 	]
 })
 

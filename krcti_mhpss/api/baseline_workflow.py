@@ -19,9 +19,9 @@ SHORT_FIELDS = (
 )
 LONG_FIELDS = (
     "declined_reason", "main_concerns", "main_concerns_other", "coping_behaviour_other",
-    "domestic_situation", "exposure_details",
+    "domestic_situation", "exposure_details", "future_goals", "additional_support_needs", "children_ages",
 )
-NUMBER_FIELDS = ("dependants",)
+NUMBER_FIELDS = ("dependants", "number_of_children")
 CHECK_FIELDS = ("interest_in_support", "willingness_for_followup")
 ALLOWED_FIELDS = {"consent", *SHORT_FIELDS, *LONG_FIELDS, *NUMBER_FIELDS, *CHECK_FIELDS}
 REQUIRED_FIELDS = {
@@ -44,6 +44,10 @@ SELECTS = {
     "coping_behaviour": {"Bad", "Fair", "Good", "Very good", "Excellent"},
     "preferred_support_type": {"Individual counselling", "Group session", "Stress management", "Peer support", "Referral services", "Psychoeducation"},
     "marital_status": {"Single", "Married", "Separated", "Divorced", "Widowed", "Other"},
+    "has_children": {"Yes", "No"},
+    "family_status": {"Both parents", "Single parent", "Orphan"},
+    "family_abandonment_neglect": {"Yes", "No"},
+    "domestic_abuse_victim": {"Yes", "No"},
     "conflict_exposure": {"Yes", "No", "Prefer not to say"},
 }
 
@@ -137,10 +141,26 @@ def _validate_answers(data):
     if missing:
         frappe.throw(_("Complete all required baseline answers: {0}.").format(", ".join(missing)))
     for key, options in SELECTS.items():
+        # New family-context questions are optional to keep existing cycles
+        # and previous form requirements unchanged.
+        if key in {"has_children", "family_status", "family_abandonment_neglect", "domestic_abuse_victim"} and not data.get(key):
+            continue
         value = str(data.get(key) or "").strip()
         if value not in options:
             frappe.throw(_("Choose a valid option for {0}.").format(key.replace("_", " ")))
         cleaned[key] = value
+    if cleaned.get("has_children") == "Yes":
+        try:
+            number_of_children = int(data.get("number_of_children"))
+        except (TypeError, ValueError):
+            frappe.throw(_("Enter the number of children."))
+        if number_of_children < 1:
+            frappe.throw(_("The number of children must be at least one."))
+        children_ages = str(data.get("children_ages") or "").strip()
+        if not children_ages:
+            frappe.throw(_("Enter the age of each child."))
+        cleaned["number_of_children"] = number_of_children
+        cleaned["children_ages"] = children_ages
     dependants = data.get("dependants") or 0
     try:
         dependants = int(dependants or 0)
@@ -150,6 +170,8 @@ def _validate_answers(data):
         frappe.throw(_("Dependants cannot be negative."))
     cleaned["dependants"] = dependants
     for key in LONG_FIELDS:
+        if key == "children_ages" and cleaned.get("has_children") != "Yes":
+            continue
         value = str(data.get(key) or "").strip()
         if len(value) > 2000:
             frappe.throw(_("{0} cannot exceed 2000 characters.").format(key.replace("_", " ")))
