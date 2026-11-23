@@ -5,14 +5,14 @@
 			<div v-if="open" class="fixed inset-0 z-40 bg-[#1F232D]/45 backdrop-blur-[2px] md:hidden" @click="open = false"></div>
 		</Transition>
 
-		<!-- ============ Sidebar ============ -->
+		<!-- ============ Sidebar / drawer ============ -->
 		<aside
 			class="fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[#E4E6EA] bg-white transition-[width,transform] duration-200 md:translate-x-0"
-			:class="[open ? 'translate-x-0 shadow-[0_24px_60px_rgba(31,35,45,0.25)] md:shadow-none' : '-translate-x-full', collapsed ? 'w-[248px] md:w-[84px]' : 'w-[248px]']"
+			:class="[open ? 'translate-x-0 shadow-[0_24px_60px_rgba(31,35,45,0.25)] md:shadow-none' : '-translate-x-full', collapsed ? 'w-[272px] md:w-[84px]' : 'w-[272px] md:w-[248px]']"
 			@click="handleSidebarBackgroundClick"
 		>
 			<!-- Brand -->
-			<div class="flex h-[68px] shrink-0 items-center justify-between border-b border-[#E4E6EA] px-4 md:h-[72px]" :class="collapsed ? 'md:justify-center md:px-2' : ''">
+			<div class="flex h-[60px] shrink-0 items-center justify-between border-b border-[#E4E6EA] px-4 md:h-[72px]" :class="collapsed ? 'md:justify-center md:px-2' : ''">
 				<div class="flex min-w-0 items-center gap-3">
 					<span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#C8102E] text-sm font-bold tracking-wide text-white shadow-[0_4px_12px_rgba(200,16,46,0.3)]" :class="collapsed ? 'md:h-9 md:w-9 md:rounded-lg md:text-xs' : ''">KR</span>
 					<span v-if="!collapsed || open" class="min-w-0 leading-[18px]">
@@ -21,7 +21,7 @@
 					</span>
 				</div>
 				<button type="button" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[#737780] transition hover:bg-[#F4F5F7] md:hidden" aria-label="Close menu" @click="open = false">
-					<X :size="20" />
+					<X :size="20" :stroke-width="1.75" />
 				</button>
 			</div>
 
@@ -41,15 +41,34 @@
 							:class="linkClass(isActive(item))"
 							@click="open = false"
 						>
-							<span v-if="isActive(item)" class="absolute -left-3 bottom-2 top-2 w-[3px] rounded-r-full bg-[#C8102E]" aria-hidden="true"></span>
-							<component :is="item.icon" :size="19" class="shrink-0" />
+							<span v-if="isActive(item)" class="absolute -left-3 bottom-2.5 top-2.5 w-[3px] rounded-r-full bg-[#C8102E]" aria-hidden="true"></span>
+							<span class="ico"><component :is="item.icon" :size="20" :stroke-width="1.75" /></span>
 							<span v-if="!collapsed || open" class="truncate">{{ navLabel(item) }}</span>
 						</router-link>
 					</div>
 				</div>
 			</nav>
 
-			<!-- Collapse -->
+			<!-- Account (mobile drawer only) -->
+			<div v-if="me.data" class="shrink-0 border-t border-[#E4E6EA] bg-[#FCFCFD] p-3 md:hidden">
+				<div class="flex items-center gap-3 rounded-xl px-2 py-2">
+					<span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FCE8EB] text-xs font-bold text-[#B30F2A]">{{ initials }}</span>
+					<span class="min-w-0">
+						<span class="block truncate text-sm font-semibold text-[#33353A]">{{ me.data?.full_name }}</span>
+						<span class="mt-0.5 block truncate text-xs text-[#858891]">{{ roleLabel }}</span>
+					</span>
+				</div>
+				<div class="mt-2 grid grid-cols-2 gap-2">
+					<button type="button" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#D9DBE0] bg-white text-[13px] font-semibold text-[#44474E] transition hover:bg-[#F7F7F8]" @click="open = false; openPasswordDialog()">
+						<KeyRound :size="16" :stroke-width="1.75" /> Password
+					</button>
+					<button type="button" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#F0C8CE] bg-[#FFF6F7] text-[13px] font-semibold text-[#A10E24] transition hover:bg-[#FCE8EB]" @click="open = false; logout()">
+						<LogOut :size="16" :stroke-width="1.75" /> Log out
+					</button>
+				</div>
+			</div>
+
+			<!-- Collapse (desktop) -->
 			<div class="hidden shrink-0 border-t border-[#E4E6EA] p-3 md:block">
 				<button
 					type="button"
@@ -60,34 +79,43 @@
 					:aria-expanded="!collapsed"
 					@click="toggleSidebar"
 				>
-					<PanelLeftOpen v-if="collapsed" :size="19" class="shrink-0" />
-					<PanelLeftClose v-else :size="19" class="shrink-0" />
+					<span class="ico">
+						<PanelLeftOpen v-if="collapsed" :size="20" :stroke-width="1.75" />
+						<PanelLeftClose v-else :size="20" :stroke-width="1.75" />
+					</span>
 					<span v-if="!collapsed">Collapse sidebar</span>
 				</button>
 			</div>
 		</aside>
 
 		<!-- ============ Main ============ -->
-		<div class="transition-[padding] duration-200" :class="collapsed ? 'md:pl-[84px]' : 'md:pl-[248px]'">
+		<div class="transition-[padding] duration-200" :class="[collapsed ? 'md:pl-[84px]' : 'md:pl-[248px]', showBottomNav ? 'pb-[calc(64px+env(safe-area-inset-bottom))] md:pb-0' : '']">
 			<!-- Top bar -->
-			<header class="sticky top-0 z-30 flex h-[68px] items-center gap-3 border-b border-[#E4E6EA] bg-white/95 px-4 backdrop-blur md:h-[72px] md:px-5 lg:px-7">
-				<button type="button" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[#555860] transition hover:bg-[#F4F5F7] md:hidden" aria-label="Open menu" @click="open = true">
-					<Menu :size="21" />
+			<header class="sticky top-0 z-30 flex h-[60px] items-center gap-2 border-b border-[#E4E6EA] bg-white px-3 md:h-[72px] md:gap-3 md:px-5 lg:px-7">
+				<button type="button" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#555860] transition hover:bg-[#F4F5F7] md:hidden" aria-label="Open menu" @click="open = true">
+					<Menu :size="21" :stroke-width="1.75" />
 				</button>
 
-				<!-- Breadcrumb -->
-				<div class="flex min-w-0 shrink-0 items-center gap-2 text-sm md:w-[220px]">
+				<!-- Title / breadcrumb -->
+				<div class="flex min-w-0 flex-1 items-center gap-2 text-sm md:w-[220px] md:flex-none md:shrink-0">
 					<span class="hidden text-[#92949A] md:inline">Workspace</span>
 					<ChevronRight :size="15" class="hidden text-[#B9BBC1] md:block" />
-					<span class="truncate font-semibold text-[#25272B] md:font-medium md:text-[#33353A]">{{ pageTitle }}</span>
+					<span class="truncate text-[15px] font-semibold text-[#25272B] md:text-sm md:font-medium md:text-[#33353A]">{{ pageTitle }}</span>
 				</div>
 
-				<!-- Client search -->
-				<div v-if="me.data && canSearchClients" class="hidden min-w-0 flex-1 justify-center px-4 md:flex lg:px-8">
-					<div class="relative w-full max-w-[460px]" data-client-search>
+				<!-- Client search: centre on desktop, full-width bar on mobile -->
+				<div
+					v-if="me.data && canSearchClients"
+					data-client-search
+					:class="mobileSearchOpen ? 'fixed inset-x-0 top-0 z-50 flex h-[60px] items-center gap-1 border-b border-[#E4E6EA] bg-white px-2 md:static md:z-auto md:h-auto md:min-w-0 md:flex-1 md:justify-center md:border-0 md:bg-transparent md:px-4 lg:px-8' : 'hidden min-w-0 flex-1 justify-center px-4 md:flex lg:px-8'"
+				>
+					<button v-if="mobileSearchOpen" type="button" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#555860] transition hover:bg-[#F4F5F7] md:hidden" aria-label="Close search" @click="closeMobileSearch">
+						<ArrowLeft :size="20" :stroke-width="1.75" />
+					</button>
+					<div class="relative min-w-0 flex-1 md:w-full md:max-w-[460px] md:flex-none">
 						<label for="topbar-client-search" class="sr-only">Search clients</label>
 						<div class="flex h-10 items-center gap-2.5 rounded-xl border border-[#E4E6EA] bg-[#F7F7F8] px-3.5 transition focus-within:border-[#C8102E] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#C8102E]/10">
-							<Search :size="17" class="shrink-0 text-[#858891]" />
+							<Search :size="17" :stroke-width="1.75" class="shrink-0 text-[#858891]" />
 							<input
 								id="topbar-client-search"
 								ref="searchInput"
@@ -100,15 +128,15 @@
 								@focus="searchOpen = true"
 							/>
 							<LoaderCircle v-if="clientSearch.loading" :size="16" class="shrink-0 animate-spin text-[#858891]" />
-							<kbd v-else-if="!searchTerm" class="shrink-0 rounded-md border border-[#E4E6EA] bg-white px-1.5 py-0.5 text-[10px] font-semibold text-[#92949A]">/</kbd>
+							<kbd v-else-if="!searchTerm" class="hidden shrink-0 rounded-md border border-[#E4E6EA] bg-white px-1.5 py-0.5 text-[10px] font-semibold text-[#92949A] md:block">/</kbd>
 							<button v-else type="button" class="shrink-0 text-xs font-medium text-[#858891] hover:text-[#33353A]" @click="clearSearch">Clear</button>
 						</div>
 
-						<div v-if="searchOpen && searchTerm.trim().length >= 2" class="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_14px_36px_rgba(31,35,45,0.16)]">
+						<div v-if="searchOpen && searchTerm.trim().length >= 2" class="fixed inset-x-3 top-[68px] z-40 overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_14px_36px_rgba(31,35,45,0.16)] md:absolute md:inset-x-0 md:top-full md:mt-2">
 							<div v-if="clientSearch.loading && !clientSearch.data?.length" class="flex items-center gap-2.5 px-4 py-3.5 text-sm text-[#737780]">
 								<LoaderCircle :size="15" class="animate-spin" /> Searching clients…
 							</div>
-							<div v-else-if="clientSearch.data?.length" class="max-h-[360px] overflow-y-auto p-1.5">
+							<div v-else-if="clientSearch.data?.length" class="max-h-[60vh] overflow-y-auto p-1.5 md:max-h-[360px]">
 								<router-link v-for="row in clientSearch.data" :key="row.name" :to="{ name: 'ClientProfile', params: { name: row.name } }" class="group flex items-center gap-3 rounded-lg px-2.5 py-2.5 transition hover:bg-[#F7F7F8]" @click="clearSearch">
 									<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FCE8EB] text-xs font-bold text-[#B30F2A]">{{ initialsOf(row.full_name) }}</span>
 									<span class="min-w-0 flex-1">
@@ -129,28 +157,33 @@
 						</div>
 					</div>
 				</div>
-				<div v-else class="flex-1"></div>
+				<div v-else-if="!(me.data && canSearchClients)" class="hidden flex-1 md:block"></div>
 
 				<!-- Right cluster -->
-				<div v-if="me.data" class="flex shrink-0 items-center gap-2 sm:gap-3">
-					<!-- ===== Notifications (counsellor + programme managers) ===== -->
+				<div v-if="me.data" class="flex shrink-0 items-center gap-1.5 sm:gap-3">
+					<!-- Mobile search button -->
+					<button v-if="canSearchClients" type="button" data-client-search class="topbtn md:hidden" aria-label="Search clients" @click="openMobileSearch">
+						<Search :size="20" :stroke-width="1.75" />
+					</button>
+
+					<!-- ===== Notifications ===== -->
 					<div v-if="hasNotifications" class="relative" data-notification-menu>
 						<button
 							type="button"
-							class="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#E4E6EA] bg-white text-[#555860] shadow-[0_1px_2px_rgba(20,25,35,0.04)] transition hover:border-[#D5D8DE] hover:bg-[#F7F7F8]"
-							:class="notificationsOpen ? 'border-[#C8102E] ring-2 ring-[#C8102E]/10' : ''"
+							class="topbtn"
+							:class="notificationsOpen ? '!border-[#C8102E] ring-2 ring-[#C8102E]/10' : ''"
 							:aria-label="isProgrammeManager ? 'Programme notifications' : 'Notifications'"
 							:aria-expanded="notificationsOpen"
 							@click="toggleNotifications"
 						>
-							<Bell :size="19" />
+							<Bell :size="20" :stroke-width="1.75" />
 							<span v-if="bellCount" class="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-white bg-[#C8102E] px-1 text-[9px] font-bold leading-none text-white">{{ bellCount > 9 ? '9+' : bellCount }}</span>
 						</button>
 
 						<Transition name="shell-pop">
 							<div
 								v-if="notificationsOpen"
-								class="fixed inset-x-3 top-[76px] z-40 flex max-h-[calc(100vh-92px)] flex-col overflow-hidden rounded-2xl border border-[#E4E6EA] bg-white shadow-[0_24px_60px_rgba(31,35,45,0.22)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-3 sm:w-[420px] sm:max-h-[min(640px,calc(100vh-110px))]"
+								class="fixed inset-x-3 top-[68px] z-40 flex max-h-[calc(100dvh-148px)] flex-col overflow-hidden rounded-2xl border border-[#E4E6EA] bg-white shadow-[0_24px_60px_rgba(31,35,45,0.22)] md:absolute md:inset-x-auto md:right-0 md:top-full md:mt-3 md:w-[420px] md:max-h-[min(640px,calc(100vh-110px))]"
 								role="dialog"
 								:aria-label="isProgrammeManager ? 'Programme notifications' : 'Notifications'"
 							>
@@ -164,7 +197,7 @@
 										<p class="mt-0.5 text-[13px] text-[#858891]">{{ isProgrammeManager ? 'Appointments and completed sessions' : 'Follow-ups and referral updates' }}</p>
 									</div>
 									<button type="button" class="-mr-1.5 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#737780] transition hover:bg-[#F4F5F7] hover:text-[#25272B]" aria-label="Close notifications" @click="notificationsOpen = false">
-										<X :size="19" />
+										<X :size="19" :stroke-width="1.75" />
 									</button>
 								</div>
 
@@ -201,7 +234,6 @@
 									</div>
 									<template v-else-if="groupedFeed.length">
 										<section v-for="group in groupedFeed" :key="group.label">
-											<!-- Date divider -->
 											<div class="flex items-center gap-3 px-5 pb-1 pt-4" role="separator">
 												<span class="h-px flex-1 bg-[#ECEDEF]"></span>
 												<span class="text-xs font-semibold text-[#858891]">{{ group.label }}</span>
@@ -216,7 +248,6 @@
 														class="group relative flex items-start gap-3 px-5 py-4 transition hover:bg-[#FCFCFD]"
 														@click="item.to && openItem(item)"
 													>
-														<!-- Avatar -->
 														<span class="relative mt-0.5 shrink-0">
 															<span class="flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold" :class="item.avatarTone">
 																<template v-if="item.initials">{{ item.initials }}</template>
@@ -227,7 +258,6 @@
 															</span>
 														</span>
 
-														<!-- Content -->
 														<div class="min-w-0 flex-1">
 															<p class="text-sm leading-5 text-[#555860]">
 																<span class="font-semibold text-[#25272B]">{{ item.actor }}</span>
@@ -244,7 +274,6 @@
 															</span>
 														</div>
 
-														<!-- Unread dot -->
 														<span class="mt-2 h-2 w-2 shrink-0 rounded-full bg-[#C8102E]" title="Unread" aria-label="Unread"></span>
 													</component>
 												</li>
@@ -271,7 +300,7 @@
 
 					<!-- Account -->
 					<div class="relative" data-account-menu>
-						<button type="button" class="flex items-center gap-2.5 rounded-xl p-1 text-left transition hover:bg-[#F7F7F8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/30 sm:px-2 sm:py-1.5" :aria-expanded="accountOpen" aria-haspopup="menu" aria-label="Account options" @click="accountOpen = !accountOpen">
+						<button type="button" class="flex items-center gap-2.5 rounded-xl p-0.5 text-left transition hover:bg-[#F7F7F8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/30 sm:px-2 sm:py-1.5" :aria-expanded="accountOpen" aria-haspopup="menu" aria-label="Account options" @click="accountOpen = !accountOpen">
 							<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FCE8EB] text-xs font-bold text-[#B30F2A]">{{ initials }}</span>
 							<span class="hidden xl:block">
 								<span class="block max-w-[170px] truncate text-sm font-semibold text-[#33353A]">{{ me.data?.full_name }}</span>
@@ -289,10 +318,10 @@
 							</div>
 							<div class="p-1.5">
 								<button type="button" role="menuitem" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-[#44474E] transition hover:bg-[#F4F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/30" @click="openPasswordDialog">
-									<KeyRound :size="17" /> Change password
+									<KeyRound :size="17" :stroke-width="1.75" /> Change password
 								</button>
 								<button type="button" role="menuitem" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-[#A10E24] transition hover:bg-[#FCE8EB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/30" @click="logout">
-									<LogOut :size="17" /> Log out
+									<LogOut :size="17" :stroke-width="1.75" /> Log out
 								</button>
 							</div>
 						</div>
@@ -314,16 +343,37 @@
 			</div>
 			<slot v-else />
 		</div>
+
+		<!-- ============ Mobile bottom navigation ============ -->
+		<nav v-if="showBottomNav" class="fixed inset-x-0 bottom-0 z-20 border-t border-[#E4E6EA] bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_20px_rgba(31,35,45,0.06)] md:hidden" aria-label="Quick navigation">
+			<ul class="grid h-16" :style="{ gridTemplateColumns: `repeat(${bottomItems.length + (hasMore ? 1 : 0)}, minmax(0, 1fr))` }">
+				<li v-for="item in bottomItems" :key="item.name">
+					<router-link :to="{ name: item.name }" class="tab" :class="isActive(item) ? 'tab-on' : ''" :aria-current="isActive(item) ? 'page' : undefined">
+						<span v-if="isActive(item)" class="absolute inset-x-5 top-0 h-[3px] rounded-b-full bg-[#C8102E]" aria-hidden="true"></span>
+						<span class="ico"><component :is="item.icon" :size="20" :stroke-width="1.75" /></span>
+						<span class="tab-label">{{ navShort(item) }}</span>
+					</router-link>
+				</li>
+				<li v-if="hasMore">
+					<button type="button" class="tab w-full" @click="open = true">
+						<span class="ico"><LayoutGrid :size="20" :stroke-width="1.75" /></span>
+						<span class="tab-label">More</span>
+					</button>
+				</li>
+			</ul>
+		</nav>
+
+		<!-- Change password dialog -->
 		<Transition name="shell-fade">
 			<div v-if="passwordDialogOpen" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#1F232D]/45 p-4 backdrop-blur-[2px]" @click.self="closePasswordDialog">
 				<section class="w-full max-w-md rounded-2xl border border-[#E4E6EA] bg-white p-6 shadow-[0_24px_70px_rgba(31,35,45,0.25)]" role="dialog" aria-modal="true" aria-labelledby="change-password-title">
 					<div class="flex items-start gap-3">
-						<span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FCE8EB] text-[#A10E24]"><KeyRound :size="20" /></span>
+						<span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FCE8EB] text-[#A10E24]"><KeyRound :size="20" :stroke-width="1.75" /></span>
 						<div class="min-w-0 flex-1">
 							<h2 id="change-password-title" class="text-lg font-semibold text-[#25272B]">Change password</h2>
 							<p class="mt-1 text-sm leading-5 text-[#737780]">Enter your current password, then choose a new one.</p>
 						</div>
-						<button type="button" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#737780] transition hover:bg-[#F4F5F7] hover:text-[#25272B]" aria-label="Close change password" @click="closePasswordDialog"><X :size="18" /></button>
+						<button type="button" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#737780] transition hover:bg-[#F4F5F7] hover:text-[#25272B]" aria-label="Close change password" @click="closePasswordDialog"><X :size="18" :stroke-width="1.75" /></button>
 					</div>
 					<form class="mt-5 space-y-4" @submit.prevent="submitPasswordChange">
 						<label class="block">
@@ -358,25 +408,26 @@
 
 <script setup>
 import { createResource } from "frappe-ui"
-import { computed, onMounted, onUnmounted, ref, watch } from "vue"
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue"
 import { useRoute } from "vue-router"
-import { AlertTriangle, ArrowLeft, ArrowRight, Bell, BellRing, BookOpen, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, ClipboardCheck, ClipboardList, HeartHandshake, KeyRound, LayoutDashboard, ListFilter, LoaderCircle, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldAlert, Users, UsersRound, ChartNoAxesCombined, X } from "lucide-vue-next"
+import { AlertTriangle, ArrowLeft, ArrowRight, Bell, BellRing, BookOpen, CalendarClock, CalendarDays, ChartNoAxesCombined, Check, CheckCheck, ChevronDown, ChevronRight, HeartHandshake, KeyRound, LayoutDashboard, LayoutGrid, ListFilter, LoaderCircle, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldAlert, ShieldCheck, UserCheck, Users, UsersRound, X } from "lucide-vue-next"
 import { me } from "../data/me"
 import { session } from "../data/session"
 
+// Every item has its own icon, and all icons are rendered in the same 20px box at the same stroke weight.
 const NAV = [
-	{ label: "Dashboard", name: "Home", icon: LayoutDashboard, match: ["Home"], roles: ["counsellor"], group: "Workspace" },
+	{ label: "Dashboard", short: "Home", name: "Home", icon: LayoutDashboard, match: ["Home"], roles: ["counsellor"], group: "Workspace" },
 	{ label: "Clients", name: "Clients", icon: UsersRound, match: ["Clients", "ClientNew", "ClientProfile", "ClientEdit", "Baseline"], roles: ["counsellor"], group: "Workspace" },
 	{ label: "Appointments", name: "Appointments", icon: CalendarDays, match: ["Appointments", "AppointmentNew", "AppointmentEdit"], roles: ["counsellor"], group: "Workspace" },
 	{ label: "Follow-ups", name: "FollowUps", icon: HeartHandshake, match: ["FollowUps"], roles: ["counsellor"], group: "Workspace" },
-	{ label: "Session records", name: "SessionRecords", icon: BookOpen, match: ["SessionRecords", "SessionRecord"], roles: ["counsellor"], group: "Workspace" },
-	{ label: "Programme", name: "Programme", icon: ClipboardList, match: ["Programme"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
-	{ label: "Programme clients", name: "ProgrammeClients", icon: UsersRound, match: ["ProgrammeClients", "ProgrammeClientDetail", "ProgrammeClientNew"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
-	{ label: "Counsellors", name: "ProgrammeCounsellors", icon: Users, match: ["ProgrammeCounsellors"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
-	{ label: "Session management", name: "ProgrammeSessions", icon: CalendarDays, match: ["ProgrammeSessions"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
+	{ label: "Session records", short: "Records", name: "SessionRecords", icon: BookOpen, match: ["SessionRecords", "SessionRecord"], roles: ["counsellor"], group: "Workspace" },
+	{ label: "Programme", short: "Overview", name: "Programme", icon: LayoutDashboard, match: ["Programme"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
+	{ label: "Programme clients", short: "Clients", name: "ProgrammeClients", icon: UsersRound, match: ["ProgrammeClients", "ProgrammeClientDetail", "ProgrammeClientNew"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
+	{ label: "Counsellors", name: "ProgrammeCounsellors", icon: UserCheck, match: ["ProgrammeCounsellors"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
+	{ label: "Session management", short: "Sessions", name: "ProgrammeSessions", icon: CalendarClock, match: ["ProgrammeSessions"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
 	{ label: "Analysis", name: "ProgrammeAnalysis", icon: ChartNoAxesCombined, match: ["ProgrammeAnalysis"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
-	{ label: "Programme settings", name: "ProgrammeSettings", icon: Settings, match: ["ProgrammeSettings"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
-	{ label: "Audit logs", name: "AuditLogs", icon: ClipboardCheck, match: ["AuditLogs"], roles: ["dpo"], group: "Compliance" },
+	{ label: "Programme settings", short: "Settings", name: "ProgrammeSettings", icon: Settings, match: ["ProgrammeSettings"], roles: ["krcti_pm", "woc_pm"], group: "Programme" },
+	{ label: "Audit logs", short: "Logs", name: "AuditLogs", icon: ShieldCheck, match: ["AuditLogs"], roles: ["dpo"], group: "Compliance" },
 ]
 const LABELS = {
 	admin: "System Administrator", counsellor: "Counsellor", krcti_pm: "KRCTI Programme Manager",
@@ -395,12 +446,16 @@ function handleSidebarBackgroundClick(event) {
 	toggleSidebar()
 }
 onMounted(() => me.reload())
-watch(() => route.fullPath, () => (open.value = false))
+watch(() => route.fullPath, () => {
+	open.value = false
+	mobileSearchOpen.value = false
+})
 
 // ---- Resources ----
 const searchTerm = ref("")
 const searchInput = ref(null)
 const searchOpen = ref(false)
+const mobileSearchOpen = ref(false)
 const notificationsOpen = ref(false)
 const filterOpen = ref(false)
 const notificationFilter = ref("all")
@@ -536,7 +591,6 @@ const bellCount = computed(() => isProgrammeManager.value
 	? (programmeNotificationData.data?.unread_count || 0)
 	: (notificationData.data?.overdue_followups || 0) + (referralNotificationData.data?.unread_count || 0))
 
-// Filter (counsellors have two kinds of updates)
 const hasFilter = computed(() => isCounsellor.value)
 const filterOptions = computed(() => [
 	{ value: "all", label: "All notifications", count: feed.value.length },
@@ -550,7 +604,6 @@ function chooseFilter(value) {
 	filterOpen.value = false
 }
 
-// Newest first, grouped under date dividers
 const groupedFeed = computed(() => {
 	const sorted = [...filteredFeed.value].sort((a, b) => (toDate(b.date)?.getTime() ?? -Infinity) - (toDate(a.date)?.getTime() ?? -Infinity))
 	const groups = []
@@ -568,6 +621,7 @@ function toggleNotifications() {
 	notificationsOpen.value = !notificationsOpen.value
 	filterOpen.value = false
 	if (!notificationsOpen.value) return
+	mobileSearchOpen.value = false
 	if (isProgrammeManager.value) {
 		programmeNotificationData.submit()
 	} else {
@@ -611,7 +665,21 @@ watch(() => me.data?.role, (value) => {
 function clearSearch() {
 	searchTerm.value = ""
 	searchOpen.value = false
+	mobileSearchOpen.value = false
 }
+function openMobileSearch() {
+	notificationsOpen.value = false
+	accountOpen.value = false
+	mobileSearchOpen.value = true
+	nextTick(() => searchInput.value?.focus())
+}
+function closeMobileSearch() {
+	mobileSearchOpen.value = false
+	searchOpen.value = false
+	searchTerm.value = ""
+}
+
+// ---- Account ----
 function logout() {
 	accountOpen.value = false
 	session.logout.submit()
@@ -647,7 +715,10 @@ function submitPasswordChange() {
 
 // ---- Global listeners ----
 function closeHeaderMenus(event) {
-	if (!event.target.closest("[data-client-search]")) searchOpen.value = false
+	if (!event.target.closest("[data-client-search]")) {
+		searchOpen.value = false
+		mobileSearchOpen.value = false
+	}
 	if (!event.target.closest("[data-notification-menu]")) {
 		notificationsOpen.value = false
 		filterOpen.value = false
@@ -665,11 +736,12 @@ function onKeydown(event) {
 			return
 		}
 		searchOpen.value = false
+		mobileSearchOpen.value = false
 		notificationsOpen.value = false
 		accountOpen.value = false
+		open.value = false
 		return
 	}
-	// "/" focuses the client search, unless the person is already typing somewhere
 	const target = event.target
 	const typing = target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
 	if (event.key === "/" && !typing && canSearchClients.value && searchInput.value) {
@@ -710,6 +782,7 @@ function navLabel(item) {
 	if (role.value === "woc_pm") return "WoC PM Dashboard"
 	return "Programme Dashboard"
 }
+const navShort = (item) => item.short || item.label
 const items = computed(() => NAV.filter((item) => item.roles.includes(role.value)))
 const groups = computed(() => {
 	const map = new Map()
@@ -721,6 +794,12 @@ const groups = computed(() => {
 })
 const allowed = computed(() => !route.meta.roles || route.meta.roles.includes(role.value))
 const isActive = (item) => item.match.includes(route.name)
+
+// Bottom bar: up to 5 slots. With more pages, the first four show and "More" opens the drawer.
+const hasMore = computed(() => items.value.length > 5)
+const bottomItems = computed(() => hasMore.value ? items.value.slice(0, 4) : items.value)
+const showBottomNav = computed(() => !!me.data && allowed.value && items.value.length >= 2)
+
 const linkClass = (active) => [
 	"relative flex h-11 items-center gap-3 rounded-[10px] px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/40",
 	collapsed.value ? "md:justify-center md:px-0" : "",
@@ -734,6 +813,19 @@ const linkClass = (active) => [
 
 .shell-pop-enter-active, .shell-pop-leave-active { transition: opacity 0.18s ease, transform 0.18s ease; transform-origin: top right; }
 .shell-pop-enter-from, .shell-pop-leave-to { opacity: 0; transform: translateY(-6px) scale(0.98); }
+
+/* Uniform icon box: every nav icon sits in the same 20px square */
+.ico { display: inline-flex; height: 20px; width: 20px; flex: none; align-items: center; justify-content: center; }
+
+/* Square top-bar buttons (search, bell) */
+.topbtn { position: relative; display: flex; height: 40px; width: 40px; align-items: center; justify-content: center; border: 1px solid #e4e6ea; border-radius: 12px; background: #fff; color: #555860; box-shadow: 0 1px 2px rgba(20, 25, 35, 0.04); transition: background 0.15s, border-color 0.15s; }
+.topbtn:hover { border-color: #d5d8de; background: #f7f7f8; }
+
+/* Bottom tab bar */
+.tab { position: relative; display: flex; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #737780; transition: color 0.15s; }
+.tab:active { background: #f7f7f8; }
+.tab-on { color: #a10e24; }
+.tab-label { font-size: 10.5px; font-weight: 600; line-height: 1; letter-spacing: 0.01em; }
 
 @media (prefers-reduced-motion: reduce) {
 	.shell-pop-enter-active, .shell-pop-leave-active { transition: opacity 0.15s ease; }
