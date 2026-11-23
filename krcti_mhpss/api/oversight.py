@@ -186,7 +186,7 @@ def programme_client_detail(name=None):
         client["baseline_surveys"].append(survey)
     client["baseline_survey"] = client["baseline_surveys"][0] if client["baseline_surveys"] else None
     appointments = frappe.get_all("Appointment", filters={"client_id": name}, fields=[
-        "name", "scholar_code", "counsellor_id", "counsellor_name", "date_time", "session_type", "mode_of_contact", "status",
+        "name", "scholar_code", "counsellor_id", "counsellor_name", "date_time", "duration_minutes", "session_type", "mode_of_contact", "status",
         "session_details", "presenting_issues", "issue_subclassifications", "interventions_applied", "referrals_made", "urgency_level", "risk_assessment",
         "needs_follow_up", "follow_up_plan", "followup_wellbeing_rating", "followup_stress_frequency", "followup_new_presenting_issues",
         "followup_new_issues_present", "followup_new_issues", "followup_evident_changes_present", "followup_evident_changes",

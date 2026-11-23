@@ -99,7 +99,7 @@
 												</span>
 												<span class="min-w-0">
 													<span class="block text-sm font-semibold text-[#25272B]">{{ fmtDate(entry.date_time) }}</span>
-													<span class="mt-0.5 block text-xs font-semibold text-[#555860]">Session time: {{ fmtTime(entry.date_time) }}</span>
+													<span class="mt-0.5 block text-xs font-semibold text-[#555860]">Session time: {{ fmtTime(entry.date_time) }}<template v-if="entry.status === 'Completed' && entry.duration_minutes"> · Duration: {{ entry.duration_minutes }} minutes</template></span>
 													<span class="mt-0.5 block truncate text-xs text-[#737780]">{{ entry.session_type }}<template v-if="entry.mode_of_contact"> · {{ entry.mode_of_contact }}</template><template v-if="entry.counsellor_name"> · {{ entry.counsellor_name }}</template></span>
 												</span>
 											</span>

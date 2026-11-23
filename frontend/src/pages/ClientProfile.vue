@@ -206,7 +206,7 @@
                 <span class="min-w-0 flex-1">
                   <span class="block text-sm font-semibold">{{ a.session_type }}</span>
                   <span class="mt-0.5 block text-[13px] text-[#5B616B]">
-                    {{ fmtDateTime(a.date_time) }}<span class="font-semibold text-[#33353A]"> · Session time: {{ fmtTime(a.date_time) }}</span><span v-if="a.mode_of_contact"> &middot; {{ a.mode_of_contact }}</span><span v-if="a.location"> &middot; {{ a.location }}</span>
+                    {{ fmtDateTime(a.date_time) }}<span class="font-semibold text-[#33353A]"> · Session time: {{ fmtTime(a.date_time) }}<template v-if="a.status === 'Completed' && a.duration_minutes"> · Duration: {{ a.duration_minutes }} minutes</template></span><span v-if="a.mode_of_contact"> &middot; {{ a.mode_of_contact }}</span><span v-if="a.location"> &middot; {{ a.location }}</span>
                   </span>
                   <span v-for="referral in a.referral_history || []" :key="referral.name || referral.referred_on" class="mt-1 block text-xs text-[#3767A6]">
                     Referred from {{ referral.from_name }} to {{ referral.to_name }} · {{ fmtDateTime(referral.referred_on) }} — {{ referral.reason }}

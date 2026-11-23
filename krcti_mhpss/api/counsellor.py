@@ -19,7 +19,7 @@ SURVEY_FIELDS = (
 )
 APPOINTMENT_FIELDS = [
     "name", "client_id", "client_name", "scholar_code", "counsellor_id", "counsellor_name", "date_time", "end_time",
-    "session_type", "mode_of_contact", "location", "status", "notes", "overdue_notification_read",
+    "session_type", "mode_of_contact", "location", "duration_minutes", "status", "notes", "overdue_notification_read",
 ]
 SESSION_RECORD_FIELDS = [
     *APPOINTMENT_FIELDS, "session_details", "presenting_issues",
