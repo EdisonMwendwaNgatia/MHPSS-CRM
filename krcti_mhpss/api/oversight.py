@@ -682,6 +682,232 @@ def programme_analysis():
     return {"scope": scope, "clients": client_analysis, "baseline": baseline_analysis, "sessions": session_analysis}
 
 
+EXPORT_DATASETS = {
+    "clients": ("Client", "Clients", ["name", "full_name", "scholar_code", "cohort", "case_status", "assigned_counsellor", "institution", "creation", "modified"]),
+    "counsellors": ("User", "Counsellors", ["name", "full_name", "email", "enabled", "creation", "modified"]),
+    "sessions": ("Appointment", "Session Records", ["name", "client_id", "client_name", "scholar_code", "counsellor_id", "counsellor_name", "date_time", "end_time", "session_type", "mode_of_contact", "status", "creation", "modified"]),
+    "baselines": ("Baseline Survey", "Baseline Surveys", ["name", "client_id", "cycle", "status", "review_status", "consent", "completed_on", "creation", "modified"]),
+}
+EXPORT_EXCLUDED_FIELDS = {"password", "api_key", "api_secret", "reset_password_key", "last_password_reset_key"}
+EXPORT_MAX_ROWS = 25000
+
+
+def _export_columns(data_type):
+    if data_type not in EXPORT_DATASETS:
+        frappe.throw(_("Choose a valid data export type."))
+    doctype, _label, _default_fields = EXPORT_DATASETS[data_type]
+    meta = frappe.get_meta(doctype)
+    fields_by_name = {field.fieldname: field for field in meta.fields if field.fieldname}
+    columns = []
+    for fieldname in meta.get_valid_columns():
+        if fieldname in EXPORT_EXCLUDED_FIELDS:
+            continue
+        field = fields_by_name.get(fieldname)
+        columns.append({
+            "field": fieldname,
+            "label": (field.label if field and field.label else fieldname.replace("_", " ").title()),
+            "fieldtype": field.fieldtype if field else ("Datetime" if fieldname in {"creation", "modified"} else "Data"),
+        })
+    available = {column["field"] for column in columns}
+    for field in meta.fields:
+        if field.fieldtype == "Table" and field.fieldname not in available:
+            columns.append({"field": field.fieldname, "label": field.label or field.fieldname.replace("_", " ").title(), "fieldtype": "Table"})
+    return doctype, columns
+
+
+def _export_json(value, default):
+    if not value:
+        return default
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except (TypeError, ValueError):
+            frappe.throw(_("Export options are invalid."))
+    return value
+
+
+def _programme_export_filters(data_type, selected_filters):
+    doctype = EXPORT_DATASETS[data_type][0]
+    filters = {}
+    or_filters = None
+    scope = _scope()
+    if doctype == "Client":
+        if scope == "WoC":
+            filters["programme_stream"] = ["in", WOC_STREAMS]
+        for field in ("cohort", "case_status", "assigned_counsellor", "programme_stream", "institution"):
+            value = str(selected_filters.get(field) or "").strip()
+            if value:
+                if field == "programme_stream" and scope == "WoC" and value not in WOC_STREAMS:
+                    frappe.throw(_("Choose a programme stream available in your scope."), frappe.PermissionError)
+                filters[field] = value
+        search = " ".join(str(selected_filters.get("search") or "").split())[:80]
+        if search:
+            like = f"%{search}%"
+            or_filters = [["Client", field, "like", like] for field in ("name", "full_name", "scholar_code", "phone_number", "institution")]
+    elif doctype == "User":
+        counsellors = _counsellor_names()
+        if scope == "WoC":
+            client_filters = {"programme_stream": ["in", WOC_STREAMS]}
+            counsellors = set(frappe.get_all("Client", filters=client_filters, pluck="assigned_counsellor", limit=0)) & counsellors
+        filters["name"] = ["in", sorted(counsellors)]
+        enabled = selected_filters.get("enabled")
+        if enabled in ("0", "1", 0, 1):
+            filters["enabled"] = int(enabled)
+        search = " ".join(str(selected_filters.get("search") or "").split())[:80]
+        if search:
+            like = f"%{search}%"
+            or_filters = [["User", field, "like", like] for field in ("name", "full_name", "email")]
+    else:
+        client_ids = selected_filters.get("client_ids") or []
+        if isinstance(client_ids, str):
+            client_ids = [client_ids]
+        if not isinstance(client_ids, list) or len(client_ids) > 1000:
+            frappe.throw(_("Select up to 1,000 clients per export."))
+        client_filters = {"programme_stream": ["in", WOC_STREAMS]} if scope == "WoC" else {}
+        if client_ids:
+            available = set(frappe.get_all("Client", filters={**client_filters, "name": ["in", client_ids]}, pluck="name", limit=0))
+            if available != set(client_ids):
+                frappe.throw(_("One or more selected clients are outside your programme scope."), frappe.PermissionError)
+            filters["client_id"] = ["in", client_ids]
+        elif scope == "WoC":
+            filters["client_id"] = ["in", frappe.get_all("Client", filters=client_filters, pluck="name", limit=0)]
+        if doctype == "Appointment":
+            for field in ("status", "session_type", "counsellor_id"):
+                value = str(selected_filters.get(field) or "").strip()
+                if value:
+                    filters[field] = value
+            date_field = "date_time"
+        else:
+            for field in ("cycle", "status", "review_status"):
+                value = str(selected_filters.get(field) or "").strip()
+                if value:
+                    filters[field] = value
+            date_field = "creation"
+        date_from = str(selected_filters.get("date_from") or "").strip()
+        date_to = str(selected_filters.get("date_to") or "").strip()
+        if date_from and date_to:
+            filters[date_field] = ["between", [date_from, f"{date_to} 23:59:59"]]
+        elif date_from:
+            filters[date_field] = [">=", date_from]
+        elif date_to:
+            filters[date_field] = ["<=", f"{date_to} 23:59:59"]
+    return filters, or_filters
+
+
+@frappe.whitelist()
+def programme_export_options():
+    require_roles(KRCTI_PM, WOC_PM, ADMIN_ROLE)
+    datasets = {}
+    for data_type, (_doctype, label, defaults) in EXPORT_DATASETS.items():
+        doctype, columns = _export_columns(data_type)
+        available = {column["field"] for column in columns}
+        datasets[data_type] = {
+            "label": label,
+            "fields": columns,
+            "defaults": [field for field in defaults if field in available],
+        }
+    counsellor_ids = sorted(_counsellor_names())
+    if _scope() == "WoC":
+        counsellor_ids = sorted(set(frappe.get_all("Client", filters={"programme_stream": ["in", WOC_STREAMS]}, pluck="assigned_counsellor", limit=0)) & set(counsellor_ids))
+    counsellors = frappe.get_all("User", filters={"name": ["in", counsellor_ids]}, fields=["name", "full_name"], order_by="full_name asc", limit=0) if counsellor_ids else []
+    return {
+        "datasets": datasets,
+        "cohorts": [str(number) for number in range(1, 10)],
+        "case_statuses": ["Active", "Follow-Up Pending", "Closed"],
+        "session_statuses": ["Scheduled", "Completed", "Cancelled"],
+        "session_types": [value for value in frappe.get_meta("Appointment").get_field("session_type").options.split("\n") if value],
+        "baseline_cycles": sorted({value for value in frappe.get_all("Baseline Survey", pluck="cycle", limit=0) if value}, key=lambda value: str(value)),
+        "baseline_statuses": [value for value in frappe.get_meta("Baseline Survey").get_field("status").options.split("\n") if value],
+        "baseline_review_statuses": [value for value in frappe.get_meta("Baseline Survey").get_field("review_status").options.split("\n") if value],
+        "programme_streams": sorted({value for value in frappe.get_all("Client", filters={"programme_stream": ["in", WOC_STREAMS]} if _scope() == "WoC" else {}, pluck="programme_stream", limit=0) if value}),
+        "counsellors": [{"value": row.name, "label": row.full_name or row.name} for row in counsellors],
+    }
+
+
+@frappe.whitelist()
+def programme_export_client_options(search=None):
+    require_roles(KRCTI_PM, WOC_PM, ADMIN_ROLE)
+    search = " ".join(str(search or "").split())[:80]
+    filters = {"programme_stream": ["in", WOC_STREAMS]} if _scope() == "WoC" else {}
+    or_filters = None
+    if search:
+        like = f"%{search}%"
+        or_filters = [["Client", field, "like", like] for field in ("name", "full_name", "scholar_code")]
+    return frappe.get_all(
+        "Client", filters=filters, or_filters=or_filters,
+        fields=["name", "full_name", "scholar_code"], order_by="full_name asc", start=0, page_length=50,
+    )
+
+
+@frappe.whitelist()
+def programme_export_preview(data_type=None, filters=None):
+    require_roles(KRCTI_PM, WOC_PM, ADMIN_ROLE)
+    selected_filters = _export_json(filters, {})
+    if not isinstance(selected_filters, dict):
+        frappe.throw(_("Export filters are invalid."))
+    doctype, _label, _defaults = EXPORT_DATASETS.get(data_type, (None, None, None))
+    if not doctype:
+        frappe.throw(_("Choose a valid data export type."))
+    query_filters, or_filters = _programme_export_filters(data_type, selected_filters)
+    count = len(frappe.get_all(doctype, filters=query_filters, or_filters=or_filters, pluck="name", limit=0))
+    return {"count": count, "limit": EXPORT_MAX_ROWS, "truncated": count > EXPORT_MAX_ROWS}
+
+
+@frappe.whitelist()
+def export_programme_data(data_type=None, filters=None, fields=None):
+    require_roles(KRCTI_PM, WOC_PM, ADMIN_ROLE)
+    selected_filters = _export_json(filters, {})
+    selected_fields = _export_json(fields, [])
+    if not isinstance(selected_filters, dict) or not isinstance(selected_fields, list) or not selected_fields:
+        frappe.throw(_("Choose at least one field and valid export filters."))
+    doctype, columns = _export_columns(data_type)
+    allowed = {column["field"]: column["label"] for column in columns}
+    if len(selected_fields) != len(set(selected_fields)) or any(field not in allowed for field in selected_fields):
+        frappe.throw(_("One or more selected fields are not available for export."), frappe.PermissionError)
+    query_filters, or_filters = _programme_export_filters(data_type, selected_filters)
+    meta = frappe.get_meta(doctype)
+    table_fields = {field: meta.get_field(field) for field in selected_fields if meta.get_field(field) and meta.get_field(field).fieldtype == "Table"}
+    query_fields = list(dict.fromkeys([*selected_fields, *( ["name"] if table_fields and "name" not in selected_fields else [])]))
+    query_fields = [field for field in query_fields if field not in table_fields]
+    rows = frappe.get_all(
+        doctype, filters=query_filters, or_filters=or_filters, fields=query_fields,
+        order_by="creation desc", start=0, page_length=EXPORT_MAX_ROWS + 1,
+    )
+    if len(rows) > EXPORT_MAX_ROWS:
+        frappe.throw(_("This export matches more than 25,000 records. Add filters before downloading."))
+    child_rows_by_field = {}
+    if table_fields and rows:
+        record_names = [row.name for row in rows]
+        for fieldname, table_field in table_fields.items():
+            child_doctype = table_field.options
+            child_meta = frappe.get_meta(child_doctype)
+            child_columns = [field for field in child_meta.get_valid_columns() if field not in {"parent", "parenttype", "parentfield"}]
+            child_rows = frappe.get_all(
+                child_doctype,
+                filters={"parent": ["in", record_names], "parenttype": doctype, "parentfield": fieldname},
+                fields=["parent", *child_columns], order_by="parent asc, idx asc", limit=0,
+            )
+            grouped = {}
+            for child in child_rows:
+                grouped.setdefault(child.parent, []).append({field: child.get(field) for field in child_columns})
+            child_rows_by_field[fieldname] = grouped
+    data = [[allowed[field] for field in selected_fields]]
+    for row in rows:
+        values = []
+        for field in selected_fields:
+            if field in table_fields:
+                value = child_rows_by_field[field].get(row.name, [])
+            else:
+                value = row.get(field)
+            values.append(json.dumps(value, default=str, ensure_ascii=False) if isinstance(value, (list, dict)) else value)
+        data.append(values)
+    from frappe.desk.utils import provide_binary_file
+    from frappe.utils.xlsxutils import make_xlsx
+
+    label = EXPORT_DATASETS[data_type][1]
+    provide_binary_file(label.replace(" ", "_"), "xlsx", make_xlsx(data, label).getvalue())
+
+
 @frappe.whitelist()
 def programme_calendar(date_from=None, date_to=None):
     """Calendar feed with participant codes but no names or notes, programme-scoped."""

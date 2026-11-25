@@ -10,7 +10,7 @@
 				</div>
 				<div v-if="analysis.data" class="no-print flex flex-wrap gap-2">
 					<button v-if="defaultCount" type="button" class="btn btn-secondary" @click="resetDefaults"><RotateCcw :size="16" /> Reset chart defaults <span class="count-pill">{{ defaultCount }}</span></button>
-					<button type="button" class="btn btn-secondary" @click="printPage"><Printer :size="16" /> Print / PDF</button>
+					<button type="button" class="btn btn-secondary" @click="exportOpen = true"><Download :size="16" /> Export data</button>
 				</div>
 			</div>
 
@@ -323,18 +323,20 @@
 				<span class="min-w-0">{{ toast.text }}</span>
 			</div>
 		</Transition>
+		<ProgrammeDataExport v-if="exportOpen" @close="exportOpen = false" />
 	</main>
 </template>
 
 <script setup>
 import { createResource } from "frappe-ui"
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue"
-import { Activity, AlignLeft, ArrowDown, BarChart3, CalendarRange, ChevronDown, ClipboardCheck, Filter, HeartPulse, Info, Layers, LayoutDashboard, LayoutGrid, Lightbulb, PieChart, Pin, Printer, RotateCcw, Search, ShieldCheck, Timer, TrendingUp, UserCheck, UserX, Users, UsersRound } from "lucide-vue-next"
+import { Activity, AlignLeft, ArrowDown, BarChart3, CalendarRange, ChevronDown, ClipboardCheck, Download, Filter, HeartPulse, Info, Layers, LayoutDashboard, LayoutGrid, Lightbulb, PieChart, Pin, RotateCcw, Search, ShieldCheck, Timer, TrendingUp, UserCheck, UserX, Users, UsersRound } from "lucide-vue-next"
+import ProgrammeDataExport from "../components/ProgrammeDataExport.vue"
 
 const analysis = createResource({ url: "krcti_mhpss.api.oversight.programme_analysis" })
 const tab = ref("overview")
 const q = ref("")
-const printPage = () => window.print()
+const exportOpen = ref(false)
 
 const label = (value) => String(value).replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
 const clientLabels = { gender: "Sex", study_program: "Study programme (category)", study_programme: "Study Programme", case_status: "Case status", disability_status: "Disability", refugee_status: "Refugee status", referral_source: "Referral source", institution_county: "Institution county", county_location: "Client county" }

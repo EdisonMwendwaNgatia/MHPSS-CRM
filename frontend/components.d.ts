@@ -28,6 +28,7 @@ declare module 'vue' {
     Programme: typeof import('./src/pages/Programme.vue')['default']
     ProgrammeAnalysis: typeof import('./src/pages/ProgrammeAnalysis.vue')['default']
     ProgrammeClients: typeof import('./src/pages/ProgrammeClients.vue')['default']
+    ProgrammeDataExport: typeof import('./src/components/ProgrammeDataExport.vue')['default']
     ProgrammeOperations: typeof import('./src/pages/ProgrammeOperations.vue')['default']
     ProgrammeSessionManagement: typeof import('./src/pages/ProgrammeSessionManagement.vue')['default']
     ProgrammeSettings: typeof import('./src/pages/ProgrammeSettings.vue')['default']
