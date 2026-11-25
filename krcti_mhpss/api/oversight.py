@@ -119,12 +119,17 @@ def _activity_scope_log(row, scope):
 
 
 @frappe.whitelist()
-def programme_clients(search=None, status=None, start=0, page_length=50):
+def programme_clients(search=None, status=None, cohort=None, start=0, page_length=50):
     require_roles(KRCTI_PM, WOC_PM)
     start, page_length = max(0, cint(start)), max(1, min(cint(page_length) or 50, 100))
     filters = {}
     if _scope() == "WoC":
         filters["programme_stream"] = ["in", WOC_STREAMS]
+    cohort = str(cohort or "").strip()
+    if cohort:
+        if cohort not in {str(number) for number in range(1, 10)}:
+            frappe.throw(_("Choose a cohort from 1 to 9."))
+        filters["cohort"] = cohort
     status = str(status or "").strip()
     if status == "Active":
         filters["case_status"] = ["!=", "Closed"]

@@ -17,22 +17,12 @@
       <ErrorMessage class="mt-4" :message="list.error || search.error" />
 
       <section class="mt-5 overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_1px_2px_rgba(20,25,35,0.03)]">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#ECEDEF] px-5 py-4">
-          <div>
-            <h2 class="text-base font-semibold text-[#25272B]">{{ searching ? 'Search results' : status || 'All clients' }}</h2>
-            <p class="mt-0.5 text-xs text-[#858891]">{{ resultDescription }}</p>
-          </div>
-          <span v-if="searching && rows.length" class="rounded-full bg-[#F4F5F7] px-2.5 py-1 text-xs font-semibold text-[#62656D]">{{ rows.length }} found</span>
-          <span v-else-if="!searching" class="rounded-full bg-[#F4F5F7] px-2.5 py-1 text-xs font-semibold text-[#62656D]">{{ total }} total</span>
-        </div>
+        <ResultListHeader :title="searching ? 'Search results' : status || 'All clients'" :description="resultDescription" :count="searching ? rows.length : total" :count-label="searching ? (rows.length ? 'found' : null) : 'total'" />
 
         <div v-if="(list.loading || search.loading) && !rows.length" class="px-5 py-10"><PageLoader /></div>
-        <div v-else-if="!rows.length" class="px-5 py-14 text-center">
-          <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F5F7] text-[#858891]"><UsersRound :size="22" /></span>
-          <p class="mt-3 text-sm font-semibold text-[#33353A]">{{ searching ? 'No matching clients' : 'No clients in this list yet' }}</p>
-          <p class="mx-auto mt-1 max-w-sm text-sm text-[#858891]">{{ searching ? 'Try another name, participant code, phone number or institution.' : 'Register a client to start building your caseload.' }}</p>
-          <router-link v-if="!searching" :to="{ name: 'ClientNew' }" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#C8102E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#A10E24]"><UserRoundPlus :size="16" /> Register client</router-link>
-        </div>
+        <EmptyState v-else-if="!rows.length" :icon="UsersRound" :title="searching ? 'No matching clients' : 'No clients in this list yet'" :description="searching ? 'Try another name, participant code, phone number or institution.' : 'Register a client to start building your caseload.'">
+          <router-link v-if="!searching" :to="{ name: 'ClientNew' }" class="inline-flex items-center gap-2 rounded-lg bg-[#C8102E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#A10E24]"><UserRoundPlus :size="16" /> Register client</router-link>
+        </EmptyState>
 
         <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[680px] text-left">
@@ -64,6 +54,8 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { UserRoundPlus, UsersRound } from "lucide-vue-next"
 import { caseTheme } from "../data/format"
 import ClientLink from "../components/ClientLink.vue"
+import EmptyState from "../components/EmptyState.vue"
+import ResultListHeader from "../components/ResultListHeader.vue"
 import SearchFilterPanel from "../components/SearchFilterPanel.vue"
 
 const term = ref("")

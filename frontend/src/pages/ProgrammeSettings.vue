@@ -48,20 +48,17 @@
 					</div>
 
 					<div class="grid gap-3 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-3">
-						<button
+						<article
 							v-for="item in settings.data.cohorts"
 							:key="item.cohort"
-							type="button"
-							:disabled="!canSelect(item)"
-							class="group rounded-xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/30 disabled:cursor-not-allowed"
+							class="rounded-xl border p-4 transition"
 							:class="cardClass(item)"
-							:aria-pressed="selected === item.cohort"
-							@click="selected = item.cohort; savedMessage = ''"
 						>
+							<router-link :to="{ name: 'ProgrammeClients', query: { cohort: item.cohort } }" class="group block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/30">
 							<span class="flex items-center justify-between gap-2">
 								<span class="flex items-center gap-2.5">
 									<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold" :class="statusOf(item).avatar">{{ item.cohort }}</span>
-									<span class="text-sm font-semibold text-[#25272B]">Cohort {{ item.cohort }}</span>
+									<span class="text-sm font-semibold text-[#25272B] group-hover:text-[#A10E24]">Cohort {{ item.cohort }}</span>
 								</span>
 								<span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold" :class="statusOf(item).pill">
 									<component :is="statusOf(item).icon" :size="12" /> {{ statusOf(item).label }}
@@ -76,7 +73,9 @@
 								<span class="block h-full rounded-full transition-[width] duration-500" :class="item.full ? 'bg-[#858891]' : 'bg-[#C8102E]'" :style="{ width: `${percent(item.count)}%` }"></span>
 							</span>
 							<span class="mt-2.5 block text-xs text-[#858891]">{{ item.remaining }} registration{{ item.remaining === 1 ? '' : 's' }} available</span>
-						</button>
+							</router-link>
+							<button type="button" :disabled="!canSelect(item)" class="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#62656D] hover:text-[#A10E24] focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E]/30 disabled:cursor-not-allowed disabled:text-[#A0A2A8]" :aria-pressed="selected === item.cohort" @click="selected = item.cohort; savedMessage = ''">{{ selected === item.cohort ? 'Selected for activation' : 'Select to activate' }}</button>
+						</article>
 					</div>
 
 					<!-- Action bar -->

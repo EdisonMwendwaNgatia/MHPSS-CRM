@@ -17,24 +17,10 @@
       <ErrorMessage class="mt-4" :message="records.error" />
 
       <section class="mt-5 overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_1px_2px_rgba(20,25,35,0.03)]">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#ECEDEF] px-5 py-4">
-          <div>
-            <h2 class="text-base font-semibold text-[#25272B]">{{ searching ? 'Search results' : type || 'Completed sessions' }}</h2>
-            <p class="mt-0.5 text-xs text-[#858891]">{{ resultDescription }}</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <LoaderCircle v-if="records.loading" :size="16" class="animate-spin text-[#858891]" />
-            <span v-if="searching" class="rounded-full bg-[#F4F5F7] px-2.5 py-1 text-xs font-semibold text-[#62656D]">{{ rows.length }} found</span>
-            <span v-else class="rounded-full bg-[#F4F5F7] px-2.5 py-1 text-xs font-semibold text-[#62656D]">{{ rows.length }} total</span>
-          </div>
-        </div>
+        <ResultListHeader :title="searching ? 'Search results' : type || 'Completed sessions'" :description="resultDescription" :count="rows.length" :count-label="searching ? 'found' : 'total'" :loading="records.loading" />
 
         <div v-if="records.loading && !allRows.length" class="px-5 py-10"><PageLoader /></div>
-        <div v-else-if="!rows.length" class="px-5 py-14 text-center">
-          <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F5F7] text-[#858891]"><BookOpen :size="22" /></span>
-          <p class="mt-3 text-sm font-semibold text-[#33353A]">{{ searching || type ? 'No matching session records' : 'No session records yet' }}</p>
-          <p class="mx-auto mt-1 max-w-sm text-sm text-[#858891]">{{ searching || type ? 'Try another name, participant code, session type or keyword.' : 'Completed session summaries will appear here.' }}</p>
-        </div>
+        <EmptyState v-else-if="!rows.length" :icon="BookOpen" :title="searching || type ? 'No matching session records' : 'No session records yet'" :description="searching || type ? 'Try another name, participant code, session type or keyword.' : 'Completed session summaries will appear here.'" />
 
         <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[920px] text-left">
@@ -68,9 +54,11 @@
 <script setup>
 import { createResource } from "frappe-ui"
 import { computed, onMounted, ref } from "vue"
-import { BookOpen, CalendarDays, Eye, LoaderCircle } from "lucide-vue-next"
+import { BookOpen, CalendarDays, Eye } from "lucide-vue-next"
 import { fmtDateTime } from "../data/format"
 import ClientLink from "../components/ClientLink.vue"
+import EmptyState from "../components/EmptyState.vue"
+import ResultListHeader from "../components/ResultListHeader.vue"
 import SearchFilterPanel from "../components/SearchFilterPanel.vue"
 
 const term = ref("")

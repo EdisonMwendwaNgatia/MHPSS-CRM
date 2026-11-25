@@ -32,6 +32,7 @@
 						</div>
 					</div>
 				</div>
+				<p v-if="cohort" class="mt-3 flex items-center gap-2 text-xs text-[#5B616B]">Showing clients in Cohort {{ cohort }} <button type="button" class="font-semibold text-[#A10E24] hover:underline" @click="clearCohort">Clear cohort filter</button></p>
 				<p v-if="searching" class="mt-3 text-xs text-[#858891]">Searching by participant code, client name, phone number or institution.</p>
 			</section>
 
@@ -39,27 +40,13 @@
 
 			<!-- Clients -->
 			<section class="mt-5 overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_1px_2px_rgba(20,25,35,0.03)]">
-				<div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#ECEDEF] px-5 py-4">
-					<div>
-						<h2 class="text-base font-semibold text-[#25272B]">{{ searching ? 'Search results' : selectedStatus.label }}</h2>
-						<p class="mt-0.5 text-xs text-[#858891]">{{ resultDescription }}</p>
-					</div>
-					<div class="flex items-center gap-2">
-						<LoaderCircle v-if="clients.loading && clientList.length" :size="16" class="animate-spin text-[#858891]" />
-						<span class="rounded-full bg-[#F4F5F7] px-2.5 py-1 text-xs font-semibold text-[#62656D]">{{ totalClients }} {{ searching ? 'found' : 'total' }}</span>
-					</div>
-				</div>
+				<ResultListHeader :title="searching ? 'Search results' : selectedStatus.label" :description="resultDescription" :count="totalClients" :count-label="searching ? 'found' : 'total'" :loading="clients.loading && !!clientList.length" />
 
 				<div v-if="clients.loading && !clientList.length" class="px-5 py-10"><PageLoader /></div>
 
-				<div v-else-if="!clientList.length" class="px-5 py-14 text-center">
-					<span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F5F7] text-[#858891]"><UsersRound :size="22" /></span>
-					<p class="mt-3 text-sm font-semibold text-[#33353A]">{{ searching ? 'No matching clients' : 'No clients found' }}</p>
-					<p class="mx-auto mt-1 max-w-sm text-sm text-[#858891]">
-						{{ searching ? 'Try another participant code, client name, phone number or institution.' : 'Register a client to add them to this programme.' }}
-					</p>
-					<router-link v-if="!searching" :to="{ name: 'ProgrammeClientNew' }" class="btn btn-primary mt-4"><UserRoundPlus :size="16" /> Register client</router-link>
-				</div>
+				<EmptyState v-else-if="!clientList.length" :icon="UsersRound" :title="searching ? 'No matching clients' : 'No clients found'" :description="searching ? 'Try another participant code, client name, phone number or institution.' : 'Register a client to add them to this programme.'">
+					<router-link v-if="!searching" :to="{ name: 'ProgrammeClientNew' }" class="btn btn-primary"><UserRoundPlus :size="16" /> Register client</router-link>
+				</EmptyState>
 
 				<div v-else class="overflow-x-auto">
 					<table class="w-full min-w-[1020px] text-left">
@@ -156,10 +143,13 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useRoute } from "vue-router"
 import { ArrowRight, Clock, Eye, Lock, LoaderCircle, Search, ShieldCheck, UserRoundPlus, UsersRound, X } from "lucide-vue-next"
 import { caseTheme } from "../data/format"
+import EmptyState from "../components/EmptyState.vue"
+import ResultListHeader from "../components/ResultListHeader.vue"
 
 const term = ref("")
 const route = useRoute()
-const status = ref(["Active", "Closed", ""].includes(route.query.status) ? route.query.status : "Active")
+const cohort = ref(["1", "2", "3", "4", "5", "6", "7", "8", "9"].includes(route.query.cohort) ? route.query.cohort : "")
+const status = ref(["Active", "Closed", ""].includes(route.query.status) ? route.query.status : cohort.value ? "" : "Active")
 
 const statusOptions = [
 	{ label: "Active", value: "Active" },
@@ -184,9 +174,10 @@ const clientList = computed(() => clientRows.value)
 const selectedStatus = computed(() => statusOptions.find((opt) => opt.value === status.value) || statusOptions[0])
 
 const resultDescription = computed(() => {
-	if (searching.value) return `Matching “${term.value.trim()}”`
-	if (status.value === "Active") return "Showing all active cases, including clients awaiting follow-up"
-	return `Showing clients${status.value ? ` with ${status.value.toLowerCase()} cases` : " across all case statuses"}`
+	const scope = cohort.value ? ` in Cohort ${cohort.value}` : ""
+	if (searching.value) return `Matching “${term.value.trim()}”${scope}`
+	if (status.value === "Active") return `Showing all active cases, including clients awaiting follow-up${scope}`
+	return `Showing clients${status.value ? ` with ${status.value.toLowerCase()} cases` : " across all case statuses"}${scope}`
 })
 
 const initials = (name) => (name || "?").split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase()
@@ -201,18 +192,32 @@ function fetchClients(append = false) {
 	clients.submit({
 		search: term.value.trim() || undefined,
 		status: status.value || undefined,
+		cohort: cohort.value || undefined,
 		start: appendResults ? clientRows.value.length : 0,
 		page_length: 100,
 	})
 }
 
-watch([term, status], () => {
+watch([term, status, cohort], () => {
 	clearTimeout(debounceTimer)
 	debounceTimer = setTimeout(() => fetchClients(), 250)
 })
 watch(() => route.query.status, (value) => {
 	if (["Active", "Closed", ""].includes(value) && status.value !== value) status.value = value
 })
+watch(() => route.query.cohort, (value) => {
+	const nextCohort = ["1", "2", "3", "4", "5", "6", "7", "8", "9"].includes(value) ? value : ""
+	if (cohort.value !== nextCohort) cohort.value = nextCohort
+	if (!["Active", "Closed", ""].includes(route.query.status)) status.value = nextCohort ? "" : "Active"
+})
+
+function clearCohort() {
+	cohort.value = ""
+	if (!["Active", "Closed", ""].includes(route.query.status)) status.value = "Active"
+	const query = { ...route.query }
+	delete query.cohort
+	route.replace({ query })
+}
 
 onBeforeUnmount(() => clearTimeout(debounceTimer))
 onMounted(() => fetchClients())

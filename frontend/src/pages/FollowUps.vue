@@ -20,25 +20,12 @@
       <ErrorMessage class="mt-4" :message="followups.error" />
 
       <section class="mt-5 overflow-hidden rounded-xl border border-[#E4E6EA] bg-white shadow-[0_1px_2px_rgba(20,25,35,0.03)]">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#ECEDEF] px-5 py-4">
-          <div>
-            <h2 class="text-base font-semibold text-[#25272B]">{{ searching ? 'Search results' : status || 'All follow-ups' }}</h2>
-            <p class="mt-0.5 text-xs text-[#858891]">{{ resultDescription }}</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <LoaderCircle v-if="followups.loading" :size="16" class="animate-spin text-[#858891]" />
-            <span v-if="searching" class="rounded-full bg-[#F4F5F7] px-2.5 py-1 text-xs font-semibold text-[#62656D]">{{ rows.length }} found</span>
-            <span v-else class="rounded-full bg-[#F4F5F7] px-2.5 py-1 text-xs font-semibold text-[#62656D]">{{ rows.length }} total</span>
-          </div>
-        </div>
+        <ResultListHeader :title="searching ? 'Search results' : status || 'All follow-ups'" :description="resultDescription" :count="rows.length" :count-label="searching ? 'found' : 'total'" :loading="followups.loading" />
 
         <div v-if="followups.loading && !allRows.length" class="px-5 py-10"><PageLoader /></div>
-        <div v-else-if="!rows.length" class="px-5 py-14 text-center">
-          <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F5F7] text-[#858891]"><HeartHandshake :size="22" /></span>
-          <p class="mt-3 text-sm font-semibold text-[#33353A]">{{ searching || status ? 'No matching follow-ups' : 'No scheduled follow-ups' }}</p>
-          <p class="mx-auto mt-1 max-w-sm text-sm text-[#858891]">{{ searching || status ? 'Try another name, participant code or status.' : 'Schedule a Follow-Up appointment to add it here.' }}</p>
-          <router-link v-if="!searching && !status" :to="{ name: 'AppointmentNew', query: { type: 'Follow-Up' } }" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#C8102E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#A10E24]"><CalendarPlus :size="16" /> Book follow-up</router-link>
-        </div>
+        <EmptyState v-else-if="!rows.length" :icon="HeartHandshake" :title="searching || status ? 'No matching follow-ups' : 'No scheduled follow-ups'" :description="searching || status ? 'Try another name, participant code or status.' : 'Schedule a Follow-Up appointment to add it here.'">
+          <router-link v-if="!searching && !status" :to="{ name: 'AppointmentNew', query: { type: 'Follow-Up' } }" class="inline-flex items-center gap-2 rounded-lg bg-[#C8102E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#A10E24]"><CalendarPlus :size="16" /> Book follow-up</router-link>
+        </EmptyState>
 
         <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[760px] text-left">
@@ -73,9 +60,11 @@
 <script setup>
 import { createResource } from "frappe-ui"
 import { computed, onMounted, ref } from "vue"
-import { AlertTriangle, CalendarPlus, ClipboardList, HeartHandshake, LoaderCircle } from "lucide-vue-next"
+import { AlertTriangle, CalendarPlus, ClipboardList, HeartHandshake } from "lucide-vue-next"
 import { fmtDateTime } from "../data/format"
 import ClientLink from "../components/ClientLink.vue"
+import EmptyState from "../components/EmptyState.vue"
+import ResultListHeader from "../components/ResultListHeader.vue"
 import SearchFilterPanel from "../components/SearchFilterPanel.vue"
 
 const term = ref("")
