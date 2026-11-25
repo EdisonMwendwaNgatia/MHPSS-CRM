@@ -12,34 +12,7 @@
         </router-link>
       </div>
 
-      <section class="mt-6 rounded-xl border border-[#E4E6EA] bg-white p-4 shadow-[0_1px_2px_rgba(20,25,35,0.03)] sm:p-5">
-        <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_230px] md:items-end">
-          <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-[#555860]">Search session records</span>
-            <span class="flex h-11 items-center gap-2.5 rounded-lg border border-[#D9DBE0] bg-white px-3.5 transition focus-within:border-[#C8102E] focus-within:ring-2 focus-within:ring-[#C8102E]/10">
-              <Search :size="17" class="shrink-0 text-[#858891]" />
-              <input v-model="term" type="search" placeholder="Client, ID, participant code, type or summary" class="min-w-0 flex-1 border-0 bg-transparent text-sm text-[#33353A] outline-none placeholder:text-[#A0A2A8] focus:ring-0" />
-              <button v-if="term" type="button" class="shrink-0 text-xs font-medium text-[#858891] hover:text-[#33353A]" @click="term = ''">Clear</button>
-            </span>
-          </label>
-          <div class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-[#555860]">Session type</span>
-            <div class="relative">
-              <button type="button" class="flex h-11 w-full items-center justify-between rounded-lg border border-[#D9DBE0] bg-white px-3.5 text-left text-sm font-medium text-[#33353A] shadow-[0_1px_2px_rgba(20,25,35,0.03)] outline-none transition hover:border-[#BFC2C8] focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/10" :aria-expanded="typeMenuOpen" aria-haspopup="listbox" @click="typeMenuOpen = !typeMenuOpen" @keydown.esc="typeMenuOpen = false">
-                <span class="truncate">{{ selectedType.label }}</span>
-                <ChevronDown :size="16" class="shrink-0 text-[#737780] transition-transform" :class="typeMenuOpen ? 'rotate-180' : ''" />
-              </button>
-              <div v-if="typeMenuOpen" class="absolute left-0 right-0 z-20 mt-2 max-h-72 overflow-y-auto rounded-xl border border-[#E4E6EA] bg-white p-1.5 shadow-[0_12px_30px_rgba(31,35,45,0.14)]" role="listbox" aria-label="Filter session records by type">
-                <button v-for="option in typeOptions" :key="option.value" type="button" role="option" :aria-selected="type === option.value" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition" :class="type === option.value ? 'bg-[#FCE8EB] font-semibold text-[#A10E24]' : 'text-[#44474E] hover:bg-[#F7F7F8]'" @click="chooseType(option.value)">
-                  {{ option.label }}
-                  <Check v-if="type === option.value" :size="16" class="text-[#C8102E]" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <p v-if="searching" class="mt-3 text-xs text-[#858891]">Search by client name, client ID, participant code, session type, mode of contact or summary.</p>
-      </section>
+      <SearchFilterPanel class="mt-6" v-model:search="term" v-model:filter="type" search-label="Search session records" placeholder="Client, ID, participant code, type or summary" filter-label="Session type" filter-aria-label="Filter session records by type" :options="typeOptions" search-hint="Search by client name, client ID, participant code, session type, mode of contact or summary." />
 
       <ErrorMessage class="mt-4" :message="records.error" />
 
@@ -68,12 +41,7 @@
             <thead><tr class="bg-[#FAFAFB] text-[11px] font-semibold uppercase tracking-wide text-[#858891]"><th class="px-5 py-3">Client</th><th class="px-4 py-3">Participant code</th><th class="px-4 py-3">Date &amp; time</th><th class="px-4 py-3">Session type</th><th class="px-4 py-3">Mode</th><th class="px-4 py-3">Summary</th><th class="px-4 py-3">Status</th><th class="px-5 py-3 text-right">Action</th></tr></thead>
             <tbody class="divide-y divide-[#F0F1F3]">
               <tr v-for="row in rows" :key="row.name" class="transition hover:bg-[#FCFCFD]">
-                <td class="px-5 py-3.5">
-                  <router-link :to="{ name: 'ClientProfile', params: { name: row.client_id } }" class="group flex items-center gap-3">
-                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FCE8EB] text-xs font-bold text-[#B30F2A]">{{ initials(row.client_name) }}</span>
-                    <span class="min-w-0"><span class="block truncate text-sm font-semibold text-[#33353A] group-hover:text-[#B30F2A]">{{ row.client_name || row.client_id }}</span><span class="mt-0.5 block truncate text-xs text-[#858891]">{{ row.client_id }}</span></span>
-                  </router-link>
-                </td>
+                <td class="px-5 py-3.5"><ClientLink :client-id="row.client_id" :client-name="row.client_name" /></td>
                 <td class="px-4 py-3.5 text-sm font-medium text-[#555860]">{{ row.scholar_code || '—' }}</td>
                 <td class="whitespace-nowrap px-4 py-3.5 text-sm text-[#555860]">{{ fmtDateTime(row.date_time) }}</td>
                 <td class="px-4 py-3.5 text-sm text-[#555860]">{{ row.session_type || '—' }}</td>
@@ -99,13 +67,14 @@
 
 <script setup>
 import { createResource } from "frappe-ui"
-import { computed, onMounted, onUnmounted, ref } from "vue"
-import { BookOpen, CalendarDays, Check, ChevronDown, Eye, LoaderCircle, Search } from "lucide-vue-next"
+import { computed, onMounted, ref } from "vue"
+import { BookOpen, CalendarDays, Eye, LoaderCircle } from "lucide-vue-next"
 import { fmtDateTime } from "../data/format"
+import ClientLink from "../components/ClientLink.vue"
+import SearchFilterPanel from "../components/SearchFilterPanel.vue"
 
 const term = ref("")
 const type = ref("")
-const typeMenuOpen = ref(false)
 
 function issueText(value) {
 	try {
@@ -124,7 +93,6 @@ const typeOptions = computed(() => {
 	const types = [...new Set(allRows.value.map((row) => row.session_type).filter(Boolean))].sort()
 	return [{ label: "All session types", value: "" }, ...types.map((value) => ({ label: value, value }))]
 })
-const selectedType = computed(() => typeOptions.value.find((option) => option.value === type.value) || typeOptions.value[0])
 
 const searching = computed(() => term.value.trim().length > 0)
 
@@ -144,19 +112,5 @@ const resultDescription = computed(() =>
 		: `Showing records${type.value ? ` for ${type.value.toLowerCase()} sessions` : " across all session types"}`
 )
 
-const initials = (fullName) => (fullName || "Client").split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase()
-const chooseType = (value) => {
-	type.value = value
-	typeMenuOpen.value = false
-}
-
-function onOutsideClick(event) {
-	if (!event.target.closest('[aria-haspopup="listbox"]') && !event.target.closest('[role="listbox"]')) typeMenuOpen.value = false
-}
-
-onMounted(() => {
-	records.submit()
-	document.addEventListener("click", onOutsideClick)
-})
-onUnmounted(() => document.removeEventListener("click", onOutsideClick))
+onMounted(() => records.submit())
 </script>

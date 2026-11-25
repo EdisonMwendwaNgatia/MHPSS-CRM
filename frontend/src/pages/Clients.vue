@@ -12,34 +12,7 @@
         </router-link>
       </div>
 
-      <section class="mt-6 rounded-xl border border-[#E4E6EA] bg-white p-4 shadow-[0_1px_2px_rgba(20,25,35,0.03)] sm:p-5">
-        <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_230px] md:items-end">
-          <label class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-[#555860]">Search clients</span>
-            <span class="flex h-11 items-center gap-2.5 rounded-lg border border-[#D9DBE0] bg-white px-3.5 transition focus-within:border-[#C8102E] focus-within:ring-2 focus-within:ring-[#C8102E]/10">
-              <Search :size="17" class="shrink-0 text-[#858891]" />
-              <input v-model="term" type="search" placeholder="Code, name, phone or institution" class="min-w-0 flex-1 border-0 bg-transparent text-sm text-[#33353A] outline-none placeholder:text-[#A0A2A8] focus:ring-0" />
-              <button v-if="term" type="button" class="shrink-0 text-xs font-medium text-[#858891] hover:text-[#33353A]" @click="term = ''">Clear</button>
-            </span>
-          </label>
-          <div class="block">
-            <span class="mb-1.5 block text-xs font-semibold text-[#555860]">Case status</span>
-            <div class="relative">
-              <button type="button" :disabled="searching" class="flex h-11 w-full items-center justify-between rounded-lg border border-[#D9DBE0] bg-white px-3.5 text-left text-sm font-medium text-[#33353A] shadow-[0_1px_2px_rgba(20,25,35,0.03)] outline-none transition hover:border-[#BFC2C8] focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/10 disabled:cursor-not-allowed disabled:border-[#E4E6EA] disabled:bg-[#F7F7F8] disabled:text-[#A0A2A8]" :aria-expanded="statusMenuOpen" aria-haspopup="listbox" @click="statusMenuOpen = !statusMenuOpen" @keydown.esc="statusMenuOpen = false">
-                <span>{{ selectedStatus.label }}</span>
-                <ChevronDown :size="16" class="shrink-0 text-[#737780] transition-transform" :class="statusMenuOpen ? 'rotate-180' : ''" />
-              </button>
-              <div v-if="statusMenuOpen && !searching" class="absolute left-0 right-0 z-20 mt-2 overflow-hidden rounded-xl border border-[#E4E6EA] bg-white p-1.5 shadow-[0_12px_30px_rgba(31,35,45,0.14)]" role="listbox" aria-label="Filter clients by case status">
-                <button v-for="option in statusOptions" :key="option.value" type="button" role="option" :aria-selected="status === option.value" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition" :class="status === option.value ? 'bg-[#FCE8EB] font-semibold text-[#A10E24]' : 'text-[#44474E] hover:bg-[#F7F7F8]'" @click="chooseStatus(option.value)">
-                  {{ option.label }}
-                  <Check v-if="status === option.value" :size="16" class="text-[#C8102E]" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <p v-if="searching" class="mt-3 text-xs text-[#858891]">Search by participant code, name, phone number or institution.</p>
-      </section>
+      <SearchFilterPanel class="mt-6" v-model:search="term" v-model:filter="status" search-label="Search clients" placeholder="Code, name, phone or institution" filter-label="Case status" filter-aria-label="Filter clients by case status" :options="statusOptions" search-hint="Search by participant code, name, phone number or institution." :search-threshold="2" :disable-filter-when-searching="true" />
 
       <ErrorMessage class="mt-4" :message="list.error || search.error" />
 
@@ -66,12 +39,7 @@
             <thead><tr class="bg-[#FAFAFB] text-[11px] font-semibold uppercase tracking-wide text-[#858891]"><th class="px-5 py-3">Client</th><th class="px-4 py-3">Participant code</th><th class="px-4 py-3">Institution</th><th class="px-4 py-3">Phone</th><th class="px-5 py-3 text-right">Case status</th></tr></thead>
             <tbody class="divide-y divide-[#F0F1F3]">
               <tr v-for="row in rows" :key="row.name" class="transition hover:bg-[#FCFCFD]">
-                <td class="px-5 py-3.5">
-                  <router-link :to="{ name: 'ClientProfile', params: { name: row.name } }" class="group flex items-center gap-3">
-                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FCE8EB] text-xs font-bold text-[#B30F2A]">{{ initials(row.full_name) }}</span>
-                    <span class="min-w-0"><span class="block truncate text-sm font-semibold text-[#33353A] group-hover:text-[#B30F2A]">{{ row.full_name }}</span><span class="mt-0.5 block truncate text-xs text-[#858891]">{{ row.name }}</span></span>
-                  </router-link>
-                </td>
+                <td class="px-5 py-3.5"><ClientLink :client-id="row.name" :client-name="row.full_name" /></td>
                 <td class="px-4 py-3.5 text-sm font-medium text-[#555860]">{{ row.scholar_code || '—' }}</td>
                 <td class="max-w-[240px] px-4 py-3.5 text-sm text-[#555860]"><span class="block truncate">{{ row.institution || '—' }}</span></td>
                 <td class="px-4 py-3.5 text-sm text-[#555860]">{{ row.phone_number || '—' }}</td>
@@ -92,13 +60,14 @@
 
 <script setup>
 import { createResource } from "frappe-ui"
-import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from "vue"
-import { Check, ChevronDown, Search, UserRoundPlus, UsersRound } from "lucide-vue-next"
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
+import { UserRoundPlus, UsersRound } from "lucide-vue-next"
 import { caseTheme } from "../data/format"
+import ClientLink from "../components/ClientLink.vue"
+import SearchFilterPanel from "../components/SearchFilterPanel.vue"
 
 const term = ref("")
 const status = ref("")
-const statusMenuOpen = ref(false)
 const statusOptions = [
 	{ label: "All case statuses", value: "" },
 	{ label: "Active", value: "Active" },
@@ -115,16 +84,6 @@ const total = computed(() => list.data?.total || 0)
 const selectedStatus = computed(() => statusOptions.find((option) => option.value === status.value) || statusOptions[0])
 const resultDescription = computed(() => searching.value ? `Matching “${term.value.trim()}”` : `Showing clients${status.value ? ` with ${status.value.toLowerCase()} cases` : " across all case statuses"}`)
 
-const initials = (fullName) => (fullName || "Client").split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase()
-const chooseStatus = (value) => {
-	status.value = value
-	statusMenuOpen.value = false
-}
-
-function onOutsideClick(event) {
-	if (!event.target.closest('[aria-haspopup="listbox"]') && !event.target.closest('[role="listbox"]')) statusMenuOpen.value = false
-}
-
 let timer = null
 watch([term, status], () => {
 	clearTimeout(timer)
@@ -135,6 +94,4 @@ watch([term, status], () => {
 })
 onBeforeUnmount(() => clearTimeout(timer))
 onMounted(() => list.submit({ page_length: 50 }))
-onMounted(() => document.addEventListener("click", onOutsideClick))
-onUnmounted(() => document.removeEventListener("click", onOutsideClick))
 </script>
